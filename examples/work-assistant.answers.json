@@ -1,0 +1,13 @@
+{
+  "agent_id": "work-assistant",
+  "display_name": "",
+  "mode": "assistant",
+  "social": {
+    "enabled": true,
+    "daily_max": 2,
+    "quiet_hours": ["18:30", "09:00"],
+    "windows": [["09:00", "10:30"], ["14:00", "17:00"]]
+  },
+  "photos": {"enabled": false},
+  "_append_soul": false
+}
