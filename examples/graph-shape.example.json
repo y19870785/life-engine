@@ -1,0 +1,10 @@
+{
+  "6": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {"text": "{{POSITIVE_PROMPT}}", "clip": ["YOUR_EXISTING_LOADER_NODE", 1]}
+  },
+  "7": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {"text": "{{NEGATIVE_PROMPT}}", "clip": ["YOUR_EXISTING_LOADER_NODE", 1]}
+  }
+}

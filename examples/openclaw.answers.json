@@ -1,0 +1,10 @@
+{
+  "agent_id": "my_agent",
+  "display_name": "",
+  "mode": "companion",
+  "social": {"enabled": false},
+  "photos": {"enabled": false},
+  "memory": {"enabled": true},
+  "_owner_channel": "",
+  "_owner_sender_id": ""
+}

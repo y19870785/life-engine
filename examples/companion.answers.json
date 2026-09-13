@@ -1,0 +1,12 @@
+{
+  "agent_id": "xiaoxue",
+  "display_name": "",
+  "mode": "companion",
+  "social": {"enabled": true, "daily_min": 1, "daily_max": 3},
+  "photos": {"enabled": false},
+  "world": {
+    "routine": [],
+    "visual_options": {}
+  },
+  "_append_soul": false
+}
