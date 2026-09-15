@@ -53,6 +53,7 @@ def defaults(agent_id="assistant", name=""):
             "windows": [["08:30", "10:00"], ["14:30", "17:30"], ["20:00", "22:30"]],
         },
         "memory": {"enabled": True},
+        "roleplay": {"scan_depth": 8, "max_recursion": 3, "max_tokens": 2000},
         "world": {"routine": [], "visual_options": {}, "scene": "", "weather": None},
         "photos": {
             "enabled": False, "provider": "comfyui", "daily_max": 1, "probability": 0.35,
@@ -66,6 +67,12 @@ def defaults(agent_id="assistant", name=""):
 
 
 def validate(cfg):
+    rp = cfg.get('roleplay', {})
+    if not isinstance(rp, dict):
+        raise ValueError('roleplay settings must be an object')
+    for key, low, high, default in [('scan_depth',1,64,8),('max_recursion',0,8,3),('max_tokens',0,16000,2000)]:
+        if type(rp.get(key,default)) is not int or not low <= rp.get(key,default) <= high:
+            raise ValueError('Invalid roleplay.' + key)
     if cfg.get("schema_version") != 2:
         raise ValueError("This runtime requires schema_version=2; use the v0.1 migration command.")
     valid_id(cfg["agent_id"])

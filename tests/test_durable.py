@@ -45,8 +45,8 @@ class DurableTests(unittest.TestCase):
 
     def command(self, *args):
         done = subprocess.run([sys.executable, str(self.root / 'life.py'), '--instance', self.key, *args],
-                              capture_output=True, text=True, timeout=20,
-                              env={**os.environ, 'HERMES_HOME': str(self.base / 'unrelated')})
+                              capture_output=True, text=True, encoding='utf-8', timeout=20,
+                              env={**os.environ, 'PYTHONIOENCODING': 'utf-8', 'HERMES_HOME': str(self.base / 'unrelated')})
         self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
         return json.loads(done.stdout)
 
@@ -128,7 +128,7 @@ class DurableTests(unittest.TestCase):
         self.assertTrue(data.exists())
         self.assertTrue(Path(restored['previous_backup']).exists())
         db = Path(restored['active_data']) / 'agents/same_name/life.db'
-        with sqlite3.connect(db) as conn:
+        with contextlib.closing(sqlite3.connect(db)) as conn, conn:
             self.assertEqual(conn.execute("SELECT value FROM meta WHERE key='paused'").fetchone()[0], 'true')
 
     def test_failed_restore_pointer_write_leaves_active_generation_untouched(self):
@@ -174,14 +174,14 @@ class DurableTests(unittest.TestCase):
             self.assertTrue(Path(str(dbpath) + '-wal').exists())
             with locked(self.root, self.key):
                 saved = snapshot(self.root, reg, inst)
-            with sqlite3.connect(saved / 'data/agents/same_name/life.db') as copy_db:
+            with contextlib.closing(sqlite3.connect(saved / 'data/agents/same_name/life.db')) as copy_db, copy_db:
                 self.assertEqual(copy_db.execute('SELECT summary FROM memories').fetchone()[0], 'WAL-only record')
             self.assertEqual((saved / 'data/agents/same_name/photos/original.png').read_bytes(), b'actual-image-bytes')
 
     def test_unknown_database_schema_rejects_upgrade(self):
         self.install()
         _, _, data = self.active()
-        with sqlite3.connect(data / 'agents/same_name/life.db') as db:
+        with contextlib.closing(sqlite3.connect(data / 'agents/same_name/life.db')) as db, db:
             db.execute("UPDATE meta SET value='999' WHERE key='schema_version'")
         before = (self.root / 'registry.json').read_bytes()
         with self.assertRaisesRegex(ValueError, 'schema'):
@@ -229,16 +229,27 @@ class DurableTests(unittest.TestCase):
             spec = importlib.util.spec_from_file_location('life_test_native_hermes', path)
             module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
-            ctx = types.SimpleNamespace(tools=[], hooks={})
+            ctx = types.SimpleNamespace(tools=[], hooks={}, commands={})
             ctx.register_tool = lambda **kw: ctx.tools.append(kw)
             ctx.register_hook = lambda name, fn: ctx.hooks.update({name: fn})
+            ctx.register_command = lambda name, handler, **kw: ctx.commands.update({name:handler})
             module.register(ctx)
             self.assertEqual(len(ctx.tools), 1)
             result = ctx.hooks['pre_llm_call'](platform='weixin', sender_id='owner-123', turn_id='incoming-1')
             self.assertIn('CURRENT_STATE_JSON', result['context'])
             observed = read(self.root / 'instances' / self.key / 'observed.json')
             self.assertIn('last_owner_hook_at', observed)
+            self.assertIn('rp',ctx.commands)
+            self.assertIn('星澜',ctx.commands['rp']('import "' + str(ROOT/'examples/roleplay/starmap.card.json') + '"'))
+            self.assertIn('现在将扮演',ctx.commands['rp']('enter 星澜'))
+            result = ctx.hooks['pre_llm_call'](platform='weixin',sender_id='owner-123',turn_id='rp-1',user_message='星港')
+            self.assertIn('月塔',result['context'])
+            self.assertNotIn('CURRENT_STATE_JSON',result['context'])
+            ctx.hooks['post_llm_call'](turn_id='rp-1',assistant_response='我们一起修复地图。')
+            self.assertIn('修复地图',ctx.commands['rp']('exit'))
+            self.assertIn('soul',ctx.commands['rp']('status'))
             fake.get_hermes_home = lambda: self.base / 'another profile'
+            self.assertIn('Different Hermes Profile',ctx.commands['rp']('enter 星澜'))
             self.assertIsNone(ctx.hooks['pre_llm_call'](platform='weixin'))
             self.assertFalse(json.loads(ctx.tools[0]['handler']({'action': 'status'}))['ok'])
 
@@ -256,8 +267,8 @@ class DurableTests(unittest.TestCase):
 import assert from 'node:assert/strict';
 const plugin = (await import(pathToFileURL(process.argv[2]))).default;
 const host = process.argv[3];
-let factory; const hooks = {};
-plugin.register({registerTool(fn){factory=fn}, on(name, fn){hooks[name]=fn}, logger: console});
+let factory; const hooks = {}; const commands = {};
+plugin.register({registerTool(fn){factory=fn}, registerCommand(c){commands[c.name]=c}, on(name, fn){hooks[name]=fn}, logger: console});
 assert.equal(factory({agentId:'other', workspaceDir:host}), null);
 assert.equal(factory({agentId:'main'}), null);
 const tool = factory({agentId:'main',workspaceDir:host});
@@ -268,9 +279,25 @@ const context = await hooks.before_prompt_build({}, {agentId:'main',workspaceDir
  inputProvenance:{kind:'external_user'}, senderId:'owner-123',channel:'weixin',runId:'run-1',
  toolAuthority:{allows(){return true}},hookInvocation:{assertActive(){}}});
 assert.ok(context.prependContext.includes('CURRENT_STATE_JSON'));
+assert.equal(commands.rp.requireAuth, true);
+const commandCtx={agentId:'main',workspaceDir:host,senderId:'owner-123',channel:'weixin'};
+await commands.rp.handler({...commandCtx,args:'import "'+process.argv[4]+'"'});
+const entered=await commands.rp.handler({...commandCtx,args:'enter 星澜'});
+assert.ok(entered.text.includes('现在将扮演'));
+const rp=await hooks.before_prompt_build({messages:[{role:'user',content:'星港'}]}, {...commandCtx,
+ inputProvenance:{kind:'external_user'},runId:'rp-1'});
+assert.ok(rp.prependContext.includes('月塔'));
+const blocks=await hooks.before_prompt_build({messages:[{role:'user',content:[{type:'text',text:'月塔的失落地图'}]}]},
+  {...commandCtx,inputProvenance:{kind:'external_user'},runId:'rp-blocks'});
+assert.ok(blocks.prependContext.includes('月塔的失落地图'));
+assert.ok(!rp.prependContext.includes('CURRENT_STATE_JSON'));
+const denied=await commands.rp.handler({...commandCtx,agentId:'other',args:'exit'});
+assert.ok(denied.text.includes('Different'));
+const ended=await commands.rp.handler({...commandCtx,args:'exit'});
+assert.ok(ended.text.includes('恢复'));
 console.log('OpenClaw bridge contract probe passed');
-''')
-        result = subprocess.run(['node', str(script), str(bridge), str(self.host)], capture_output=True, text=True, timeout=25)
+''', encoding='utf-8')
+        result = subprocess.run(['node', str(script), str(bridge), str(self.host), str(ROOT/'examples/roleplay/starmap.card.json')], capture_output=True, text=True, encoding='utf-8', timeout=25)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         observed = read(self.root / 'instances' / self.key / 'observed.json')
         self.assertIn('last_owner_hook_at', observed)
@@ -321,12 +348,12 @@ console.log('OpenClaw bridge contract probe passed');
         photo = data / 'agents/same_name/photos/real.png'
         photo.parent.mkdir()
         photo.write_bytes(b'photo bytes')
-        with sqlite3.connect(data / 'agents/same_name/life.db') as db:
+        with contextlib.closing(sqlite3.connect(data / 'agents/same_name/life.db')) as db, db:
             db.execute("INSERT INTO photos(id,day,at,status,path) VALUES('p1','2026-09-13',0,'ready',?)", (str(photo),))
         with locked(self.root, self.key):
             saved = snapshot(self.root, reg, inst)
         restored = restore(self.root, self.key, saved)
-        with sqlite3.connect(Path(restored['active_data']) / 'agents/same_name/life.db') as db:
+        with contextlib.closing(sqlite3.connect(Path(restored['active_data']) / 'agents/same_name/life.db')) as db, db:
             newpath = Path(db.execute("SELECT path FROM photos WHERE id='p1'").fetchone()[0])
             self.assertNotEqual(newpath, photo)
             self.assertEqual(newpath.read_bytes(), b'photo bytes')

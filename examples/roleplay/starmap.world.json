@@ -1,0 +1,14 @@
+{
+  "name": "工坊补充设定",
+  "entries": {
+    "0": {
+      "key": ["修复", "工坊"],
+      "content": "工坊有一盏蓝色台灯，修复地图时要先检查纸张纤维。",
+      "order": 30,
+      "position": 4,
+      "depth": 1,
+      "disable": false,
+      "case_sensitive": false
+    }
+  }
+}

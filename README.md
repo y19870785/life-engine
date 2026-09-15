@@ -1,12 +1,35 @@
-# Life Engine v0.3 — 永久安装版
+# Life Engine — 让 Agent 的经历延续下去
 
-当前为开发预览，已知问题和本机 Windows 测试结果见 [KNOWN-ISSUES.md](docs/KNOWN-ISSUES.md)。正式部署前请先处理数据库缺失保护并完成真实宿主验收。许可来源见 [NOTICE.md](NOTICE.md)。
+v0.4 开发预览。Life Engine 为已有的 Hermes / OpenClaw Agent 保存生活状态、重要经历和临时角色身份。它提供连续性的基础；自然的表达仍由宿主模型与原有 SOUL 决定。许可来源见 [NOTICE.md](NOTICE.md)。
 
 给已有的 Hermes / OpenClaw Agent 增加连续生活状态、精选记忆、主动联系和可选照片。保留原来的 SOUL、称呼、模型与密钥配置，每个 Agent 使用自己的数据实例。
 
 这一版把运行程序、角色数据和宿主插件分开保存。插件每次调用固定入口，入口再读取已激活的代码版本与角色数据库；它不依赖解压目录，也不依赖模型记住安装过程。普通宿主重启不会清空这些数据，升级 Life Engine 会先备份再切换代码。
 
 如果你准备把目录交给本机 Agent 处理，请让它先读 **START-HERE.md**。安装与连接是分开的：安装器准备永久文件，connect 调用宿主的原生插件管理命令；定时投递、实际聊天目标和 Gateway 开机运行在本机按生成的 INSTALL.md 接好一次。
+
+## 现在可以怎么玩
+
+比如，你的 Agent 原本有自己的名字、性格和与你相处的记录。导入“星澜”这张卡后，她可以暂时扮演星港的地图修复师，知道月塔与失落地图的故事。问她是谁，她应该分清自己的原有身份和当前角色。说“退出角色”，程序结束扮演，并保存一条“我们一起经历过这段虚构故事”的记忆。
+
+角色的故事留在对应角色的记忆里，下次进入同一角色可以接着聊。原有 SOUL 文件保持原样；生活状态和主动联系在正常模式继续工作，扮演时生活脉冲静默。
+
+安装并加载新版插件后，在聊天中输入（路径须是宿主机器上的真实路径）：
+
+```text
+/rp import "/项目路径/examples/roleplay/starmap.card.json"
+/rp list
+/rp enter 星澜
+星港的月塔里有什么？
+你现在是谁？
+/rp exit
+```
+
+支持 PNG / JSON 角色卡、内嵌或独立世界书、关键词递归触发，以及 `/rp status`、`switch`、`show`、`delete` 和 `aside`。完整说明与升级步骤见 [角色扮演指南](docs/ROLEPLAY.md)。
+
+真实 Hermes 隔离验收与模型对话见 [验收记录](docs/ROLEPLAY-VALIDATION.md)。以下截图来自探针结果展示页，**不是在线聊天渠道截图**：
+
+![真实 Hermes 隔离验收记录](docs/demo/roleplay-hermes.png)
 
 ## 开始安装
 
@@ -73,7 +96,7 @@ python "/永久目录/manage.py" backup --instance "实例ID" --out "/异盘备�
 python setup.py --root "/已有永久目录" upgrade
 ```
 
-升级保留所有已有配置和数据，备份后验证新运行代码能够导入，原子切换 registry.json 中的版本入口。不同数据 schema 会报错，绝不会为了启动而新建一个空库覆盖旧库。未来跨 schema 版本需要相应的显式迁移实现；v0.3 没有假定任意未来版本都兼容。
+升级先备份并验证全部运行模块。v0.4 支持把 schema 2 数据复制到新代次，在副本上迁移到 schema 3，全部成功后原子切换入口；原数据保留。其他未知 schema 拒绝升级，已有实例缺少数据库时直接报错。升级后运行 `manage.py refresh-bridges`，再按实例 `connect` 并重载宿主插件；详见角色扮演指南。
 
 回退代码不回退记忆。版本目录名可在永久目录/releases 中查看，或使用升级输出的 previous_release：
 
@@ -105,9 +128,9 @@ python setup.py --adapter hermes --home "/实际Profile" \
 
 ## 当前验证边界
 
-这份包包含可执行的两个原生桥接器，按 2026-09-13 读取的官方接口实现，完成 Linux/Python 和模拟宿主契约检查；没有在你的真实 Hermes、OpenClaw、微信渠道或 GPU 环境完成联调。
+这份包包含两个原生桥接器。v0.4 已完成 Windows / Linux 自动测试，以及真实 Hermes 默认 Profile、实际模型的隔离验收；OpenClaw 已通过 Node 契约测试。在线 Gateway、微信等渠道和 GPU 出图仍需另行联调，详情见验收记录与 [已知限制](docs/KNOWN-ISSUES.md)。
 
-原生 Hook 每轮补入状态。只有明确匹配配置的主人渠道/sender ID，且宿主提供可信身份/来源信息时，才自动记录入站时间；不会复制整段聊天全文。照片使用现有 ComfyUI API 身份工作流，OpenClaw 会在工作区内暂存要发送的实际图片，保留独立目录中的原图。
+原生 Hook 每轮补入状态。自动入站记录要求可靠的主人来源，Hermes 本地 CLI 也可使用。正常模式不复制聊天全文；角色模式保存有限对话窗口以触发世界书。照片使用现有 ComfyUI API 身份工作流，OpenClaw 会在工作区内暂存要发送的实际图片，保留独立目录中的原图。
 
 发送与回执仍由宿主负责。本版本没有把任意渠道的消息回执自动映射为 Life Engine contact ID；prepare 不是 delivered，未知发送结果不自动重发。一个原生插件接口升级后可能需要适配，因此“数据保留”与“任意未来宿主版本无需调整”是两件不同的事。
 
