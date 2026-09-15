@@ -57,7 +57,7 @@ class DurableTests(unittest.TestCase):
 
     def test_entrypoint_survives_deleted_unpack_and_fresh_process(self):
         unpack = self.base / 'unpacked'
-        shutil.copytree(ROOT, unpack, ignore=shutil.ignore_patterns('__pycache__'))
+        shutil.copytree(ROOT, unpack, ignore=shutil.ignore_patterns('__pycache__', '.git'))
         result = create_install(unpack, self.root, self.cfg)
         self.key = result['instance']
         self.command('remember', '--summary=Keep this across restart')
@@ -91,7 +91,7 @@ class DurableTests(unittest.TestCase):
         reg, inst, data = self.active()
         before = {p.name: p.read_bytes() for p in (data / 'agents/same_name').iterdir() if p.is_file()}
         new = self.base / 'new release'
-        shutil.copytree(ROOT, new, ignore=shutil.ignore_patterns('__pycache__'))
+        shutil.copytree(ROOT, new, ignore=shutil.ignore_patterns('__pycache__', '.git'))
         version = new / 'runtime/life_engine/__init__.py'
         version.write_text(version.read_text() + '\n# simulated next patch release\n')
         result = upgrade(self.root, new)
@@ -306,7 +306,7 @@ console.log('OpenClaw bridge contract probe passed');
         self.install()
         before = (self.root / 'registry.json').read_bytes()
         bad = self.base / 'broken new package'
-        shutil.copytree(ROOT, bad, ignore=shutil.ignore_patterns('__pycache__'))
+        shutil.copytree(ROOT, bad, ignore=shutil.ignore_patterns('__pycache__', '.git'))
         (bad / 'runtime/life_engine/cli.py').write_text('this is not valid python\n')
         with self.assertRaisesRegex(ValueError, 'import check'):
             upgrade(self.root, bad)
@@ -317,7 +317,7 @@ console.log('OpenClaw bridge contract probe passed');
         from life_engine.durable import rollback_code
         first = self.install()['release']
         new = self.base / 'patch package'
-        shutil.copytree(ROOT, new, ignore=shutil.ignore_patterns('__pycache__'))
+        shutil.copytree(ROOT, new, ignore=shutil.ignore_patterns('__pycache__', '.git'))
         init = new / 'runtime/life_engine/__init__.py'
         init.write_text(init.read_text() + '\n# another runtime generation\n')
         upgrade(self.root, new)
