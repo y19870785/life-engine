@@ -55,9 +55,9 @@ def apply_preview(package, plan):
 
 
 def main(package, argv=None, input_fn=input, output=print):
-    p = argparse.ArgumentParser(description='Life Engine v0.3 永久安装与维护')
+    p = argparse.ArgumentParser(description='Life Engine v0.4 永久安装与维护及角色扮演')
     p.add_argument('action', nargs='?', default='install',
-                   choices=['install', 'upgrade', 'doctor', 'list', 'backup', 'restore', 'rollback-code', 'connect', 'repair-python'])
+                   choices=['install', 'upgrade', 'doctor', 'list', 'backup', 'restore', 'rollback-code', 'connect', 'repair-python', 'refresh-bridges'])
     p.add_argument('--root', type=Path, default=Path.home() / '.life-engine')
     p.add_argument('--home', '--host-home', dest='home', type=Path)
     p.add_argument('--adapter', choices=['hermes', 'openclaw', 'generic'])
@@ -94,6 +94,17 @@ def main(package, argv=None, input_fn=input, output=print):
                 raise ValueError('connect requires --instance')
             from .bridges import native_connect
             result = native_connect(root, args.instance, args.host_profile)
+        elif args.action == 'refresh-bridges':
+            from .bridges import install_bridges
+            with locked(root, 'management'):
+                reg = registry(root)
+                if args.instance and args.instance not in reg['instances']:
+                    raise ValueError('Unknown instance')
+                for key, inst in reg['instances'].items():
+                    if not args.instance or args.instance == key:
+                        with locked(root, key):
+                            install_bridges(root, inst, reg['python'])
+            result = {'ok': True, 'next': 'Run connect for each instance and reload the host plugin.'}
         elif args.action == 'backup':
             if not args.instance:
                 raise ValueError('backup requires --instance')

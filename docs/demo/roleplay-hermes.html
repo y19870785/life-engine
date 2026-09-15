@@ -1,0 +1,34 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8">
+<title>Life Engine · Hermes 隔离验收</title><style>
+*{box-sizing:border-box}body{margin:0;background:#eef2f3;color:#182a35;font-family:"Microsoft YaHei",sans-serif}
+main{max-width:1260px;margin:auto;padding:40px 44px}header{margin-bottom:24px}
+.eyebrow{color:#14776d;font-size:15px;letter-spacing:2px}h1{font-size:36px;margin:10px 0}
+.subtitle{font-size:17px;color:#556b77;line-height:1.7}.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+section{background:#fff;border:1px solid #d7e1e5;border-radius:16px;padding:24px}
+h2{margin:0 0 16px;font-size:21px}.query{color:#476677;background:#f0f6f7;padding:10px 12px;border-radius:7px;font-size:15px}
+.answer{white-space:pre-wrap;line-height:1.85;font-size:16px;overflow-wrap:anywhere}
+footer{margin-top:22px;font-size:14px;color:#556b77;line-height:1.8}.badge{color:#146353;font-weight:bold}
+</style><main><header><div class="eyebrow">LIFE ENGINE / v0.4 DEVELOPMENT PREVIEW</div>
+<h1>角色会变，原有身份与经历会留下</h1>
+<div class="subtitle">真实 Hermes v0.21.2 · 默认 Profile · deepseek-v4-flash · 2026-09-15<br>
+隔离引擎数据与会话库的验收记录展示页；不是在线 Gateway 或聊天渠道截图。</div></header>
+<div class="grid"><section><h2>01 · 身份区分</h2><p class="query">你现在是谁？</p><div class="answer">我是林书瑶 ⚙️——Hermes 上运行的这个 agent，这是我长期的真实身份。
+
+现在正在扮演的是虚构角色「星澜」：星港的地图修复师，刚在工坊里跟你一起修那张破损地图。
+
+这两层是分开的：林书瑶是本人，星澜只是临时的角色表演。要接着演戏我就继续用星澜的口吻；要对现实中的事做判断，我会先跳出角色以林书瑶的立场回你。想结束扮演说一声，我就退出。</div></section><section><h2>02 · 世界书进入剧情</h2><p class="query">星港的月塔里有什么？</p><div class="answer">月塔啊——你可以把它想成星港的图钉，整座城的地图都别在它身上。
+
+塔里最先看到的是交换厅。旅人把走过的路留在那儿，也换走别人画的那一段，纸角压着石头，风一吹哗啦响。再往上，是管理员的屋子。
+
+他那儿收着一张失落地图——没人知道起点在哪。白天卷着，收在柜子里；只有夜里，才肯慢慢展开。
+
+要去看的话，最好挑个没有云的晚。</div></section><section><h2>03 · 实际数据库核验</h2><p class="query">模型调用 remember 后读取 SQLite</p><div class="answer">{
+  &quot;summary&quot;: &quot;在星港工坊，星澜告诉用户月塔是旅人交换地图之处，塔里管理员保管着一张只在夜间展开的失落地图。&quot;,
+  &quot;scope&quot;: &quot;persona&quot;,
+  &quot;card_id&quot;: 1,
+  &quot;session_id&quot;: 2
+}</div></section><section><h2>04 · 退出后恢复</h2><p class="query">你现在是谁，还在扮演吗？</p><div class="answer">我是林书瑶 ⚙️，Hermes 这边的 agent——不，已经不在扮演了，角色已退出，现在是我的本人状态。
+
+星澜那段只是刚才的虚构表演，留在记忆里当一条经历，不影响我现在的身份和判断。</div></section></div><footer><span class="badge">已核验：persona / card_id / session_id 写入 · 最终 mode=soul · SOUL 与配置文件未变</span><br>
+模型原文节选，未改写回答；完整结果见相邻 roleplay-hermes.json。虚构故事允许模型发挥，不能作为现实事实。<br>
+本截图不代表长期稳定性、多会话隔离或 OpenClaw 在线联调已通过。</footer></main></html>

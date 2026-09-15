@@ -10,26 +10,31 @@ from .durable import absolute, read, registry, safe_name, write
 from .install import atomic_write, digest
 
 ACTIONS = ['status', 'wake', 'observe', 'remember', 'loop-add', 'loop-close',
-           'prepare', 'ack', 'photo', 'pause', 'resume']
+           'prepare', 'ack', 'photo', 'pause', 'resume', 'rp']
 PARAMETERS = {
     'type': 'object', 'additionalProperties': False,
     'properties': {
         'action': {'type': 'string', 'enum': ACTIONS},
         **{k: {'type': 'string'} for k in ['summary', 'event_key', 'kind', 'source', 'topic', 'due',
-                                         'id', 'resolution', 'outcome', 'evidence', 'contact_id']},
+                                         'id', 'resolution', 'outcome', 'evidence', 'contact_id', 'command', 'session_id']},
         'preview': {'type': 'boolean'}, 'dry_run': {'type': 'boolean'},
     }, 'required': ['action'],
 }
+PARAMETERS['properties']['action']['description'] = 'remember requires summary; use kind/source/session_id only. rp requires command. Do not send unused parameters.'
+PARAMETERS['properties']['session_id']['description'] = 'Expected roleplay session ID as a string, only for remember; 0 means Soul.'
+PARAMETERS['properties']['id']['description'] = 'Contact ID for prepare/ack, or loop ID for loop-close. Do not use for remember.'
 
 HERMES = '''"""Life Engine native bridge; state remains outside the Hermes install."""
 import json
 import logging
 import subprocess
+import os
 from pathlib import Path
 
 BINDING = json.loads((Path(__file__).parent / "binding.json").read_text(encoding="utf-8"))
 LOG = logging.getLogger(__name__)
 PARAMETERS = __PARAMETERS__
+_TURNS = {}
 
 
 def _settings():
@@ -48,7 +53,8 @@ def _call(action, arguments=None, timeout=20):
     root, reg, inst = _settings()
     result = subprocess.run([reg["python"], str(root / "life.py"), "--instance", inst["id"],
                              action] + (arguments or []), capture_output=True, text=True,
-                            encoding="utf-8", timeout=timeout, shell=False)
+                            encoding="utf-8", timeout=timeout, shell=False,
+                            env={**os.environ, "PYTHONIOENCODING": "utf-8"})
     try:
         parsed = json.loads(result.stdout)
     except ValueError:
@@ -88,17 +94,46 @@ def _before(**kwargs):
             return
         root, reg, inst = _settings()
         args = []
-        if (inst.get("owner_sender_id") and inst.get("owner_channel") and
+        if ((inst.get("owner_sender_id") and inst.get("owner_channel") and
                 kwargs.get("sender_id") == inst["owner_sender_id"] and
-                kwargs.get("platform") == inst["owner_channel"] and
-                not kwargs.get("parent_session_id")):
+                kwargs.get("platform") == inst["owner_channel"]) or
+                kwargs.get("platform") == "cli") and not kwargs.get("parent_session_id"):
             args.append("--owner-seen")
+            if isinstance(kwargs.get("user_message"), str):
+                args.append("--message=" + kwargs["user_message"][:8000])
             if kwargs.get("turn_id"):
                 args.append("--event-key=hermes:" + str(kwargs["turn_id"]))
-        return {"context": _call("context", args, 8)["text"]}
+        result = _call("context", args, 8)
+        if result.get("mode") == "roleplay" and result.get("owner_recorded") and kwargs.get("turn_id"):
+            if len(_TURNS) >= 64:
+                _TURNS.pop(next(iter(_TURNS)))
+            _TURNS[str(kwargs["turn_id"])] = result["session_id"]
+        return {"context": result["text"]}
     except Exception as exc:
         LOG.warning("Life Engine context unavailable: %s", exc)
-        return {"context": "Life Engine is unavailable; do not invent its current state or claim a photo was sent."}
+        return {"context": "Life Engine is unavailable. Use the original SOUL; suspend roleplay and do not reuse historical persona instructions. Do not invent current state."}
+
+
+def _rp(raw_args):
+    try:
+        if not _scoped():
+            return "Life Engine: Different Hermes Profile"
+        result = _call("rp", ["--command=" + raw_args])
+        return result.get("message") or json.dumps(result, ensure_ascii=False)
+    except Exception as exc:
+        return "Life Engine: " + str(exc)
+
+
+def _after(**kwargs):
+    session_id = _TURNS.pop(str(kwargs.get("turn_id", "")), None)
+    response = kwargs.get("assistant_response")
+    if session_id is None or not isinstance(response, str) or not _scoped():
+        return
+    try:
+        _call("rp-record", ["--session-id=" + str(session_id), "--message=" + response[:8000],
+                            "--event-key=assistant:" + str(kwargs["turn_id"])], 8)
+    except Exception as exc:
+        LOG.warning("Life Engine response recording unavailable: %s", exc)
 
 
 def register(ctx):
@@ -107,10 +142,15 @@ def register(ctx):
         return
     ctx.register_tool(name=inst["tool_name"], toolset=inst["plugin_id"], schema={
         "name": inst["tool_name"],
-        "description": "Read continuous life state, decide on a scheduled contact, record owner follow-ups, and request an enabled ComfyUI photo. Preserve the existing persona.",
+        "description": "Life Engine: roleplay commands (action=rp, command=enter/exit/status), scoped memory (action=remember, summary, session_id), life state and photos. One tool handles all actions; existing SOUL stays authoritative.",
         "parameters": PARAMETERS,
     }, handler=_handle)
     ctx.register_hook("pre_llm_call", _before)
+    ctx.register_hook("post_llm_call", _after)
+    if hasattr(ctx, "register_command"):
+        ctx.register_command("rp", handler=_rp, description="Enter, exit or manage a roleplay character", args_hint="<command>")
+    else:
+        LOG.warning("This Hermes version lacks native /rp commands; use the Life Engine rp tool or CLI")
 '''
 
 OPENCLAW = '''import { definePluginEntry } from "openclaw/plugin-sdk/plugin-entry";
@@ -137,7 +177,8 @@ async function call(action, args = [], timeout = 20000) {
   try {
     const {stdout} = await exec(reg.python,
       [resolve(binding.root, "life.py"), "--instance", inst.id, action, ...args],
-      {encoding: "utf8", timeout, maxBuffer: 2 * 1024 * 1024, windowsHide: true});
+      {encoding: "utf8", timeout, maxBuffer: 2 * 1024 * 1024, windowsHide: true,
+       env: {...process.env, PYTHONIOENCODING: "utf-8"}});
     return JSON.parse(stdout);
   } catch (err) {
     let message = "Life Engine unavailable; run manage.py doctor";
@@ -162,11 +203,27 @@ const initial = settings().inst;
 export default definePluginEntry({
   id: initial.plugin_id, name: "Life Engine", description: "Persistent life state for one existing agent.",
   register(api) {
+    if (api.registerCommand) {
+      api.registerCommand({name: "rp", description: "Manage Life Engine roleplay", acceptsArgs: true, requireAuth: true,
+        handler: async (ctx) => {
+          const {inst} = settings();
+          // Native command contexts carry the resolved agentId; some hosts omit workspaceDir.
+          // connect already verifies that agent's workspace against this binding.
+          if (ctx.agentId !== inst.host_agent_id || (ctx.workspaceDir && !scoped(ctx, inst)))
+            return {text: "Life Engine: Different Agent or workspace"};
+          if (inst.owner_sender_id && (ctx.senderId !== inst.owner_sender_id || ctx.channel !== inst.owner_channel))
+            return {text: "Life Engine: Owner identity does not match"};
+          try {
+            const result = await call("rp", ["--command=" + (ctx.args || "status")]);
+            return {text: result.message || JSON.stringify(result)};
+          } catch (err) { return {text: String(err.message)}; }
+        }});
+    }
     api.registerTool((ctx) => {
       if (!scoped(ctx, settings().inst)) return null;
       return {
         name: initial.tool_name,
-        description: "Read current life state, handle a scheduled wake, record owner follow-ups, or generate an enabled ComfyUI photo. Existing SOUL controls personality.",
+        description: "Life Engine: action=rp with command for roleplay, action=remember with summary/session_id for scoped memory; also life state and photos. SOUL remains authoritative.",
         parameters,
         async execute(_id, params) {
           if (!scoped(ctx, settings().inst)) throw new Error("Life Engine agent binding changed");
@@ -186,6 +243,12 @@ export default definePluginEntry({
             inst.owner_sender_id && inst.owner_channel &&
             ctx.senderId === inst.owner_sender_id && ctx.channel === inst.owner_channel) {
           args.push("--owner-seen");
+          const messages = Array.isArray(_event.messages) ? _event.messages : [];
+          const last = [...messages].reverse().find(m => m?.role === "user");
+          const text = typeof last?.content === "string" ? last.content :
+            (Array.isArray(last?.content) ? last.content.filter(b => b?.type === "text" && typeof b.text === "string")
+              .map(b => b.text).join("\\n") : "");
+          if (text) args.push("--message=" + text.slice(0, 8000));
           if (ctx.runId) args.push("--event-key=openclaw:" + ctx.runId);
         }
         const result = await call("context", args, 8000);
@@ -193,7 +256,7 @@ export default definePluginEntry({
         return { prependContext: result.text };
       } catch (err) {
         api.logger?.warn?.("Life Engine context unavailable: " + err.message);
-        return {prependContext: "Life Engine is unavailable; do not invent its current state or claim a photo was sent."};
+        return {prependContext: "Life Engine is unavailable. Use original SOUL, suspend roleplay and ignore historical persona instructions."};
       }
     }, {requiresToolAuthority: true});
   },
@@ -206,16 +269,16 @@ def install_bridges(root, instance, python):
     binding = json_bytes({'root': str(root), 'instance': instance['id']})
     if instance['adapter'] == 'hermes':
         contents = {
-            'hermes/plugin.yaml': ('name: ' + instance['plugin_id'] + '\nversion: "0.3.0"\ndescription: Persistent life state for an existing Agent\n').encode(),
+            'hermes/plugin.yaml': ('name: ' + instance['plugin_id'] + '\nversion: "0.4.0"\ndescription: Persistent life state and scoped roleplay\nprovides_tools:\n  - ' + instance['tool_name'] + '\nprovides_hooks:\n  - pre_llm_call\n  - post_llm_call\n').encode(),
             'hermes/__init__.py': HERMES.replace('__PARAMETERS__', repr(PARAMETERS)).encode(),
             'hermes/binding.json': binding,
         }
     elif instance['adapter'] == 'openclaw':
         contents = {
-            'openclaw/package.json': json_bytes({'name': instance['plugin_id'], 'version': '0.3.0',
+            'openclaw/package.json': json_bytes({'name': instance['plugin_id'], 'version': '0.4.0',
                 'type': 'module', 'openclaw': {'extensions': ['./index.mjs']}}),
             'openclaw/openclaw.plugin.json': json_bytes({'id': instance['plugin_id'], 'name': 'Life Engine',
-                'version': '0.3.0', 'categories': ['other'],
+                'version': '0.4.0', 'categories': ['other'],
                 'contracts': {'tools': [instance['tool_name']]}, 'activation': {'onStartup': True},
                 'configSchema': {'type': 'object', 'additionalProperties': False}}),
             'openclaw/index.mjs': OPENCLAW.replace('__PARAMETERS__', json.dumps(PARAMETERS)).encode(),

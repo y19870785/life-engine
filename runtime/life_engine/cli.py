@@ -10,15 +10,22 @@ from .photos import ComfyUI, inspect_workflow, photo
 from .store import Store
 
 
+class CLIParser(argparse.ArgumentParser):
+    def error(self, message):
+        raise ValueError(message)
+
+
 def emit(data):
     print(json.dumps(data, ensure_ascii=False, indent=2, allow_nan=False))
 
 
 def parser(default_home):
-    p = argparse.ArgumentParser(description="Life Engine: independent continuity for an existing Agent")
+    p = CLIParser(description="Life Engine: independent continuity for an existing Agent")
     p.add_argument("--home", type=Path, default=default_home)
     p.add_argument("--agent", required=True)
     subs = p.add_subparsers(dest="cmd", required=True)
+    rp = subs.add_parser('rp', help='Manage roleplay; pass the text after /rp')
+    rp.add_argument('--command', required=True)
     for name in ("status", "wake"):
         item = subs.add_parser(name)
         # Real-clock only for writes; time travel belongs to a separate simulation DB.
@@ -33,6 +40,7 @@ def parser(default_home):
     mem.add_argument("--summary", required=True)
     mem.add_argument("--kind", default="shared_experience")
     mem.add_argument("--source", default="owner_conversation")
+    mem.add_argument('--session-id', type=int, help='Expected roleplay session; 0 means Soul')
     lp = subs.add_parser("loop-add")
     lp.add_argument("--topic", required=True)
     lp.add_argument("--due")
@@ -76,8 +84,8 @@ def simulate(cfg, day):
 
 
 def main(argv=None, default_home=None, photo_result_transform=None):
-    args = parser(default_home).parse_args(argv)
     try:
+        args = parser(default_home).parse_args(argv)
         cfg, agent_home = load(args.home, args.agent)
         if args.cmd == "simulate":
             emit(simulate(cfg, args.day))
@@ -88,6 +96,9 @@ def main(argv=None, default_home=None, photo_result_transform=None):
         result = {"ok": True}
         if args.cmd == "status":
             result = engine.status(now)
+        elif args.cmd == 'rp':
+            from .rp_commands import dispatch
+            result = dispatch(store, cfg, args.command)
         elif args.cmd == "wake":
             result = engine.wake(now, preview=args.preview)
         elif args.cmd == "observe":
@@ -96,7 +107,7 @@ def main(argv=None, default_home=None, photo_result_transform=None):
             if not cfg["memory"]["enabled"]:
                 raise ValueError("Memory is disabled for this agent")
             if args.cmd == "remember":
-                result["id"] = store.remember(now.timestamp(), args.kind, args.summary, args.source)
+                result["id"] = store.remember(now.timestamp(), args.kind, args.summary, args.source, args.session_id)
             elif args.cmd == "loop-add":
                 due = now_in(cfg, args.due).timestamp() if args.due else None
                 result["id"] = store.loop_add(now.timestamp(), args.topic, due)

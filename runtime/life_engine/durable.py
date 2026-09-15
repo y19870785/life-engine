@@ -24,7 +24,7 @@ from .config import json_bytes, load, validate
 from .install import atomic_write, digest, no_symlinks
 
 FORMAT = 1
-DATA_SCHEMA = 2
+DATA_SCHEMA = 3
 
 
 def absolute(path):
@@ -111,9 +111,9 @@ def locked(root, key, timeout=15):
                 fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
 
 
-def registry(root):
+def registry(root, allow_legacy=False):
     cfg = read(root / 'registry.json')
-    if cfg.get('format') != FORMAT or cfg.get('data_schema') != DATA_SCHEMA:
+    if cfg.get('format') != FORMAT or cfg.get('data_schema') not in ((2, DATA_SCHEMA) if allow_legacy else (DATA_SCHEMA,)):
         raise ValueError('Unsupported deployment/data schema; keep the existing installation')
     safe_name(cfg['release'])
     for key, instance in cfg['instances'].items():
@@ -145,15 +145,17 @@ def files_under(directory):
             raise ValueError('Unsupported file type: ' + str(path))
 
 
-def db_check(path, agent_id=None):
+def db_check(path, agent_id=None, allow_legacy=False):
     with contextlib.closing(sqlite3.connect(Path(path).as_uri() + '?mode=ro', uri=True)) as db:
         if db.execute('PRAGMA quick_check').fetchone()[0] != 'ok':
             raise ValueError('SQLite integrity check failed')
         meta = dict(db.execute('SELECT key,value FROM meta'))
-        if meta.get('schema_version') != str(DATA_SCHEMA):
+        if meta.get('schema_version') not in (('2', str(DATA_SCHEMA)) if allow_legacy else (str(DATA_SCHEMA),)):
             raise ValueError('Unsupported SQLite schema; refusing to initialize or rewrite it')
         if agent_id and meta.get('agent_id') != agent_id:
             raise ValueError('Backup database belongs to another agent')
+        if db.execute('PRAGMA foreign_key_check').fetchone():
+            raise ValueError('SQLite foreign key check failed')
 
 
 def copy_state(source, target):
@@ -166,11 +168,11 @@ def copy_state(source, target):
         out = target / path.relative_to(source)
         out.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
         if path.name == 'life.db':
-            db_check(path)
+            db_check(path, allow_legacy=True)
             with contextlib.closing(sqlite3.connect(path.as_uri() + '?mode=ro', uri=True)) as src:
                 with contextlib.closing(sqlite3.connect(out)) as dest:
                     src.backup(dest)
-            db_check(out)
+            db_check(out, allow_legacy=True)
         else:
             shutil.copy2(path, out)
         os.chmod(out, 0o600)
@@ -194,14 +196,15 @@ def rebase_photos(data, old_home):
             db.commit()
 
 
-def state_check(data, instance):
+def state_check(data, instance, allow_legacy=False):
     no_symlinks(data / 'agents' / instance['agent_id'] / 'agent.json')
     no_symlinks(data / 'agents' / instance['agent_id'] / 'life.db')
     cfg, home = load(data, instance['agent_id'])
     if cfg['integration']['adapter'] != instance['adapter'] or cfg['integration']['host_home'] != instance['host_home']:
         raise ValueError('State does not match this host binding')
-    if (home / 'life.db').is_file():
-        db_check(home / 'life.db', instance['agent_id'])
+    if not (home / 'life.db').is_file():
+        raise ValueError('Active database is missing; restore a verified backup (will not create an empty database)')
+    db_check(home / 'life.db', instance['agent_id'], allow_legacy)
     if cfg['photos']['enabled']:
         from .photos import inspect_workflow
         inspect_workflow(home / relative(cfg['photos']['workflow']))
@@ -224,7 +227,7 @@ def snapshot(root, reg, instance, destination=None, reason='manual'):
         checksums = {str(p.relative_to(temporary / 'data')).replace(os.sep, '/'): digest(p.read_bytes())
                      for p in files_under(temporary / 'data')}
         write(temporary / 'backup.json', {
-            'format': FORMAT, 'data_schema': DATA_SCHEMA, 'instance_id': instance['id'],
+            'format': FORMAT, 'data_schema': reg['data_schema'], 'instance_id': instance['id'],
             'agent_id': instance['agent_id'], 'source_home': str(data), 'reason': reason,
             'release': reg['release'], 'created_at': datetime.now(timezone.utc).isoformat(),
             'files': checksums,
@@ -240,8 +243,8 @@ def snapshot(root, reg, instance, destination=None, reason='manual'):
 def verify_backup(path, instance):
     path = absolute(path)
     manifest = read(path / 'backup.json')
-    if (manifest.get('format'), manifest.get('data_schema'), manifest.get('instance_id'), manifest.get('agent_id')) != (
-        FORMAT, DATA_SCHEMA, instance['id'], instance['agent_id']):
+    if (manifest.get('format'), manifest.get('instance_id'), manifest.get('agent_id')) != (
+        FORMAT, instance['id'], instance['agent_id']) or manifest.get('data_schema') not in (2, DATA_SCHEMA):
         raise ValueError('Backup is incompatible with this instance')
     actual = {str(p.relative_to(path / 'data')).replace(os.sep, '/'): digest(p.read_bytes())
               for p in files_under(path / 'data')}
@@ -249,7 +252,7 @@ def verify_backup(path, instance):
         relative(name)
     if actual != manifest['files']:
         raise ValueError('Backup checksum mismatch; active data was not changed')
-    state_check(path / 'data', instance)
+    state_check(path / 'data', instance, allow_legacy=True)
     return manifest
 
 
@@ -263,6 +266,7 @@ def restore(root, instance_key, backup):
         generation = 'restore-' + uuid.uuid4().hex
         data = root / 'instances' / instance_key / 'data' / generation
         copy_state(Path(backup) / 'data', data)
+        migrate_state(data, instance)
         rebase_photos(data, manifest['source_home'])
         candidate = dict(instance, generation=generation)
         state_check(data, candidate)
@@ -318,8 +322,10 @@ def probe_release(root, release, executable):
         if digest((path / relative(name)).read_bytes()) != expected:
             raise ValueError('Release integrity check failed')
     done = subprocess.run([executable, '-c',
-        'import sys; sys.path.insert(0, sys.argv[1]); from life_engine import cli, deploy_cli, durable; '
-        'assert durable.DATA_SCHEMA == 2', str(path / 'runtime')],
+        'import sys,pkgutil,importlib; sys.path.insert(0, sys.argv[1]); import life_engine; '
+        '[importlib.import_module("life_engine."+m.name) for m in pkgutil.iter_modules(life_engine.__path__)]; '
+        'from life_engine import durable; '
+        'assert durable.DATA_SCHEMA == 3', str(path / 'runtime')],
         capture_output=True, text=True, encoding='utf-8', timeout=20, shell=False)
     if done.returncode:
         raise ValueError('New runtime failed its import check; active version has not changed: ' + done.stderr[-1600:])
@@ -445,7 +451,8 @@ def create_install(package, root, cfg, *, host_agent_id='', source=None, workflo
             from .store import Store
             # An imported database must be validated BEFORE Store creates tables.
             if (agent / 'life.db').exists():
-                db_check(agent / 'life.db', cfg['agent_id'])
+                db_check(agent / 'life.db', cfg['agent_id'], allow_legacy=True)
+                migrate_state(data, instance)
             Store(agent / 'life.db', cfg['agent_id'])
             state_check(data, instance)
             sync_tree(data)
@@ -470,24 +477,54 @@ def create_install(package, root, cfg, *, host_agent_id='', source=None, workflo
 
 
 def upgrade(root, package):
-    """Back up every active instance, then atomically activate code only."""
+    """Back up every instance, migrate copies if needed, then atomically activate."""
     root, package = absolute(root), absolute(package)
     with locked(root, 'management'):
-        reg = registry(root)
+        reg = registry(root, allow_legacy=True)
         backups = []
         with contextlib.ExitStack() as stack:
             for key in sorted(reg['instances']):
                 stack.enter_context(locked(root, key))
                 inst = reg['instances'][key]
-                state_check(state_home(root, inst), inst)
+                state_check(state_home(root, inst), inst, allow_legacy=True)
                 backups.append(str(snapshot(root, reg, inst, reason='before-upgrade')))
             release = release_install(root, package)
             probe_release(root, release, reg['python'])
+            if reg['data_schema'] != DATA_SCHEMA:
+                for key, inst in list(reg['instances'].items()):
+                    old_data = state_home(root, inst)
+                    candidate = dict(inst, generation='schema3-' + uuid.uuid4().hex)
+                    new_data = root / 'instances' / key / 'data' / candidate['generation']
+                    copy_state(old_data, new_data)
+                    migrate_state(new_data, candidate)
+                    rebase_photos(new_data, old_data)
+                    state_check(new_data, candidate)
+                    sync_tree(new_data)
+                    reg['instances'][key] = candidate
+                reg['data_schema'] = DATA_SCHEMA
             previous = reg['release']
             reg['release'] = release
             write(root / 'registry.json', reg)
         return {'ok': True, 'previous_release': previous, 'release': release, 'backups': backups,
-                'settings_and_data_preserved': True}
+                'settings_and_data_preserved': True, 'bridge_refresh_required': True,
+                'next': 'Run manage.py refresh-bridges, then connect and reload the host for /rp support.'}
+
+
+def migrate_state(data, instance):
+    """Only called on a new install or inactive copied generation, never the live source."""
+    from .rp_schema import migrate
+    path = data / 'agents' / instance['agent_id'] / 'life.db'
+    db_check(path, instance['agent_id'], allow_legacy=True)
+    with contextlib.closing(sqlite3.connect(path)) as db:
+        db.execute('PRAGMA foreign_keys=ON')
+        db.execute('BEGIN IMMEDIATE')
+        try:
+            migrate(db)
+            db.commit()
+        except BaseException:
+            db.rollback()
+            raise
+    db_check(path, instance['agent_id'])
 
 
 def health(root, key=None):
@@ -520,13 +557,21 @@ def health(root, key=None):
             'instances': states, 'host_runtime_test': 'required_on_your_machine'}
 
 
-def context_text(root, reg, instance, data, owner_seen=False, event_key=None):
+def context_text(root, reg, instance, data, owner_seen=False, event_key=None, message=''):
     from .config import now_in
     from .engine import Engine
     from .store import Store
     cfg, agent = load(data, instance['agent_id'])
     store = Store(agent / 'life.db', cfg['agent_id'])
     now = now_in(cfg)
+    from .rp_prompt import build_prompt
+    from .rp_sessions import record_message
+    from .rp_commands import dispatch
+    control = None
+    if owner_seen and message.strip() in ('/rp exit', '退出角色', '退出扮演'):
+        control = dispatch(store, cfg, 'exit')
+    if owner_seen and message and cfg['memory']['enabled'] and not control:
+        record_message(store, message[:8000], event_key=event_key, at=now.timestamp())
     if owner_seen:
         store.observe(now.timestamp(), '', event_key)
     state = Engine(cfg, store).status(now)
@@ -536,6 +581,15 @@ def context_text(root, reg, instance, data, owner_seen=False, event_key=None):
     if owner_seen:
         observed['last_owner_hook_at'] = now.isoformat()
     write(observed_path, observed)
+    layered = build_prompt(store, cfg, recent_messages=[message[:8000]] if owner_seen and message else [])
+    if layered['mode'] == 'roleplay':
+        tool_help = ('Life Engine 工具名：' + instance['tool_name'] + '。所有动作通过这一个工具调用。\n'
+                     '写入剧情示例：' + json.dumps({'action':'remember','summary':'一句话剧情摘要',
+                         'kind':'roleplay_event','source':'roleplay_conversation',
+                         'session_id':str(layered['session_id'])}, ensure_ascii=False) + '\n'
+                     '退出示例：{"action":"rp","command":"exit"}。remember/rp 不是独立工具。\n')
+        return {'ok': True, 'text': tool_help + layered['text'], 'owner_recorded': owner_seen,
+                'mode': 'roleplay', 'session_id': layered['session_id'], 'activated_lore': layered['activated_lore']}
     silence = '[SILENT]' if instance['adapter'] == 'hermes' else 'NO_REPLY'
     text = (
         'Life Engine capability. Preserve the existing SOUL, identity, voice, and restrictions. '
@@ -553,7 +607,8 @@ def context_text(root, reg, instance, data, owner_seen=False, event_key=None):
     # Bound host context size without truncating inside JSON: fall back to the moment.
     if len(text) > 14000:
         text = text[:text.index('CURRENT_STATE_JSON:')] + 'CURRENT_MOMENT_JSON:\n' + json.dumps(state.get('moment', {}), ensure_ascii=False)
-    return {'ok': True, 'text': text, 'owner_recorded': owner_seen}
+    text = layered['text'] + '\n' + text
+    return {'ok': True, 'text': text, 'owner_recorded': owner_seen, 'mode': 'soul', 'control': control}
 
 
 def publish_photo(instance, data, result):
@@ -588,12 +643,27 @@ def run(root, argv):
             instance = reg['instances'][args.instance]
             data = state_home(root, instance)
             state_check(data, instance)
+            if args.action == 'rp-record':
+                cp = argparse.ArgumentParser()
+                cp.add_argument('--session-id', type=int, required=True)
+                cp.add_argument('--message', required=True)
+                cp.add_argument('--event-key')
+                extra = cp.parse_args(args.arguments)
+                from .rp_sessions import record_message
+                from .store import Store
+                cfg, agent = load(data, instance['agent_id'])
+                recorded = cfg['memory']['enabled'] and record_message(
+                    Store(agent / 'life.db', cfg['agent_id']), extra.message, role='assistant',
+                    event_key=extra.event_key, expected_session=extra.session_id)
+                emit({'ok': True, 'recorded': bool(recorded)})
+                return 0
             if args.action == 'context':
                 cp = argparse.ArgumentParser()
                 cp.add_argument('--owner-seen', action='store_true')
                 cp.add_argument('--event-key')
+                cp.add_argument('--message', default='')
                 extra = cp.parse_args(args.arguments)
-                emit(context_text(root, reg, instance, data, extra.owner_seen, extra.event_key))
+                emit(context_text(root, reg, instance, data, extra.owner_seen, extra.event_key, extra.message))
                 return 0
             if args.action == 'wake':
                 # Once per UTC day on a pulse, including silent pulses. No background

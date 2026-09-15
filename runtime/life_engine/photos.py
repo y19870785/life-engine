@@ -106,6 +106,8 @@ class ComfyUI:
 
 
 def photo(cfg, agent_home, store, engine, now, contact_id=None, kind="selfie", dry_run=False, client=None):
+    with store.tx() as db:
+        store.require_soul(db)
     conf = cfg["photos"]
     if not conf["enabled"]:
         raise ValueError("Photos are disabled for this agent")

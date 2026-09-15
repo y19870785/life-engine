@@ -30,6 +30,11 @@ class Store:
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with self.tx() as db:
+            existing = db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='meta'").fetchone()
+            if existing:
+                version = db.execute("SELECT value FROM meta WHERE key='schema_version'").fetchone()
+                if not version or version[0] != '3':
+                    raise ValueError('Unsupported SQLite schema; run the explicit upgrade/migration first')
             for query in SCHEMA.split(";"):
                 if query.strip():
                     db.execute(query)
@@ -38,6 +43,9 @@ class Store:
                 raise ValueError("Database belongs to a different agent")
             db.execute("INSERT OR IGNORE INTO meta VALUES ('agent_id',?)", (agent_id,))
             db.execute("INSERT OR IGNORE INTO meta VALUES ('schema_version','2')")
+            if not existing:
+                from .rp_schema import migrate
+                migrate(db)
         self.agent_id = agent_id
 
     @contextmanager
@@ -57,21 +65,25 @@ class Store:
 
     def observe(self, at, summary, dedupe=None):
         with self.tx() as db:
+            from .rp_sessions import active
+            if active(db):
+                summary = ''  # Keep only the real inbound timestamp in the Soul namespace.
             db.execute("INSERT OR IGNORE INTO observations(at,summary,dedupe) VALUES(?,?,?)",
                        (at, summary, dedupe))
 
-    def remember(self, at, kind, summary, provenance):
-        with self.tx() as db:
-            return db.execute("INSERT INTO memories(at,kind,summary,provenance) VALUES(?,?,?,?)",
-                              (at, kind, summary, provenance)).lastrowid
+    def remember(self, at, kind, summary, provenance, expected_session=None):
+        from .rp_sessions import remember
+        return remember(self, at, kind, summary, provenance, expected_session)
 
     def loop_add(self, at, topic, due=None):
         with self.tx() as db:
+            self.require_soul(db)
             return db.execute("INSERT INTO loops(at,due,topic) VALUES(?,?,?)",
                               (at, due, topic)).lastrowid
 
     def loop_close(self, loop_id, resolution):
         with self.tx() as db:
+            self.require_soul(db)
             count = db.execute("UPDATE loops SET status='resolved',resolution=? WHERE id=? AND status='open'",
                                (resolution, loop_id)).rowcount
             if count != 1:
@@ -102,15 +114,27 @@ class Store:
             db.execute("UPDATE contacts SET status=?,evidence=? WHERE id=?", (outcome, evidence, contact_id))
 
     def context(self, db):
+        from .rp_sessions import active, status
+        session = active(db)
+        if session:
+            return {'roleplay': status(db), 'recent_contacts': [], 'recent_user_messages': [], 'open_loops': [],
+                    'memories': [dict(r) for r in db.execute(
+                        "SELECT * FROM memories WHERE scope='persona' AND card_id=? ORDER BY id DESC LIMIT 8",
+                        (session['card_id'],))]}
         return {
             "recent_contacts": [dict(r) for r in db.execute(
                 "SELECT id,at,status,summary FROM contacts ORDER BY at DESC LIMIT 5")],
             "recent_user_messages": [dict(r) for r in db.execute(
                 "SELECT at,summary FROM observations ORDER BY at DESC LIMIT 5")],
-            "memories": [dict(r) for r in db.execute("SELECT * FROM memories ORDER BY id DESC LIMIT 8")],
+            "memories": [dict(r) for r in db.execute("SELECT * FROM memories WHERE scope='soul' ORDER BY id DESC LIMIT 8")],
             "open_loops": [dict(r) for r in db.execute(
                 "SELECT * FROM loops WHERE status='open' ORDER BY COALESCE(due,9e12),id LIMIT 8")],
         }
+
+    def require_soul(self, db):
+        from .rp_sessions import active
+        if active(db):
+            raise ValueError('This action uses Soul life state; exit roleplay first')
 
     def pause(self, paused):
         with self.tx() as db:
