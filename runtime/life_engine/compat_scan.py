@@ -1,6 +1,6 @@
-"""Read-only, offline corpus scanner. Reports contain no paths or imported text.
+"""只读离线语料扫描器；报告不包含路径或导入正文。
 
-Usage: python -m life_engine.compat_scan DIRECTORY [--report TEMP_DIRECTORY/report.json]
+用法：python -m life_engine.compat_scan DIRECTORY [--report TEMP_DIRECTORY/report.json]
 """
 import argparse
 from collections import Counter
@@ -15,7 +15,7 @@ from .import_ir import CharacterImportIR, Classification, ImportFailure
 
 
 def inventory(root):
-    """Private in-memory manifest includes paths solely to detect renames/additions."""
+    """私有内存清单中的路径仅用于检测重命名及新增文件。"""
     result = {}
     def fail_walk(error):
         raise error
@@ -87,7 +87,7 @@ def scan(root):
                 category = Classification.UNSUPPORTED
                 row['diagnostics'] = [diagnostic('FILE_READ_ERROR', source_id, 'error', 'read')]
             except Exception:
-                # A bug is never blamed on input. No exception text or traceback may expose a card.
+                # 内部缺陷不归咎于输入；不得通过异常文本或堆栈泄露角色卡内容。
                 category = Classification.INTERNAL_ERROR
                 row['diagnostics'] = [diagnostic('PARSER_INTERNAL_ERROR', source_id, 'error', 'import')]
         versions[row['spec']] += 1
@@ -111,7 +111,7 @@ def main(argv=None):
     parser.add_argument('--report', type=Path)
     args = parser.parse_args(argv)
     try:
-        # Validate destination BEFORE reading corpus. CLI only writes new files under system temp.
+        # 读取语料前先校验目标路径；命令行仅在系统临时目录中写入新文件。
         if args.report:
             destination = args.report.resolve()
             if (not destination.is_relative_to(Path(tempfile.gettempdir()).resolve())

@@ -1,4 +1,4 @@
-"""Original synthetic cards only. Never reads the local/private compatibility corpus."""
+"""仅使用原创合成角色卡，绝不读取本地私有兼容性语料。"""
 import base64
 from dataclasses import FrozenInstanceError, replace
 from datetime import datetime, timezone
@@ -45,7 +45,7 @@ def chunk(kind, body):
 
 def png(value=None, extra=(), key=b'ccv3'):
     header = chunk(b'IHDR', struct.pack('>IIBBBBB', 1, 1, 8, 2, 0, 0, 0))
-    image = chunk(b'IDAT', zlib.compress(b'\0\0\0\0'))  # Original 1x1 black pixel.
+    image = chunk(b'IDAT', zlib.compress(b'\0\0\0\0'))  # 原创的 1×1 黑色像素。
     metadata = chunk(b'tEXt', key + b'\0' + base64.b64encode(encoded(value or card())))
     return PNG + header + image + metadata + b''.join(extra) + chunk(b'IEND', b'')
 

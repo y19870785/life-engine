@@ -1,4 +1,4 @@
-"""Offline external-card adapter. No databases, image decode, prompt execution or network."""
+"""离线外部角色卡适配器；不访问数据库、不解码图片、不执行提示词、不联网。"""
 import base64
 import binascii
 import hashlib
@@ -28,7 +28,7 @@ def is_link(path):
 
 def read_card(path):
     path = Path(path)
-    # Reject reparse points, including parent junctions, instead of following them.
+    # 拒绝重解析点及父目录中的联接点，不跟随这些链接。
     if any(is_link(p) for p in (path, *path.absolute().parents)) or not path.is_file():
         raise ImportFailure('NOT_REGULAR_FILE', 'read', category=Classification.UNSUPPORTED)
     if path.stat().st_size > MAX_FILE:
@@ -70,8 +70,8 @@ def png_payload(data):
             if not separator:
                 raise ImportFailure('PNG_TEXT_HEADER', 'container')
             if key in (b'chara', b'ccv3'):
-                # Record offsets/counts only. Authority is known after the entire
-                # container is validated, regardless of metadata chunk order.
+                # 仅记录偏移量和数量；完成整个容器的校验后再确定权威载荷，
+                # 选择结果不受元数据块顺序影响。
                 count = payloads.get(key, (0, None, 0, 0))[0]
                 payloads[key] = (count + 1, kind, cursor + 8 + len(key) + 1, len(value))
             elif key.startswith(b'chara-ext-asset_:'):
@@ -107,7 +107,7 @@ def png_payload(data):
 
 
 def validate_metadata(card):
-    """Validate supported semantic slots; unknown data remains opaque and preserved."""
+    """校验已支持的语义字段；未知数据保持原样且不执行。"""
     if 'assets' in card:
         if type(card['assets']) is not list:
             raise ImportFailure('ASSETS_ARRAY_TYPE', 'normalize', '$.data.assets')
@@ -139,8 +139,8 @@ def normalize_lore(book, fingerprint, warnings):
     for row in entries:
         if type(row) is not dict:
             raise ImportFailure('LORE_ENTRY_OBJECT', 'normalize', '$.character_book.entries[]')
-        # Keep all original entry data, including aliases, regex, decorators and plugin settings.
-        # No trigger evaluation or precedence assumptions are made here.
+        # 保留条目的全部原始数据，包括别名、正则表达式、装饰器和插件设置。
+        # 此处不求值触发条件，也不假定字段优先级。
         mapped = {'triggers': row.get('keys', row.get('key', [])),
                   'secondary_triggers': row.get('secondary_keys', row.get('keysecondary', [])),
                   'text': row.get('content', ''), 'enabled': row.get('enabled'),
@@ -235,7 +235,7 @@ def normalize_card(raw, fingerprint, source_format, key, container_warnings, ass
     payload_fingerprint = hashlib.sha256(preserved.text.encode()).hexdigest()
     lore = normalize_lore(card['character_book'], fingerprint, warnings) if 'character_book' in card else None
     references = {}
-    # Recognized ST linked-lore slots only; never guess that arbitrary URLs are lore.
+    # 仅识别已知的 SillyTavern 外部背景知识字段，不把任意 URL 猜测为背景知识引用。
     for field in ('world', 'extraBooks'):
         if extensions.get(field):
             references[field] = extensions[field]

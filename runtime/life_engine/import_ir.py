@@ -1,4 +1,4 @@
-"""Version 1 import interchange values; all content remains untrusted data."""
+"""第 1 版导入交换数据；所有内容始终是不可信数据。"""
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
@@ -25,7 +25,7 @@ class Classification(str, Enum):
 
 
 class ImportFailure(ValueError):
-    """Only implementation-owned codes/paths; never interpolate source data."""
+    """仅使用实现中定义的固定代码和路径，绝不插入源数据。"""
     def __init__(self, code, stage='parse', field='$', category=Classification.MALFORMED):
         super().__init__(code)
         self.code, self.stage, self.field, self.category = code, stage, field, category
@@ -82,7 +82,7 @@ def load_json(data, limit=MAX_JSON, *, max_depth=MAX_DEPTH, max_nodes=None):
 
 @dataclass(frozen=True, repr=False)
 class JsonValue:
-    """Immutable JSON value. Decoding returns a detached copy, never shared state."""
+    """不可变 JSON 值；解码返回独立副本，不共享可变状态。"""
     text: str
 
     def __post_init__(self):
@@ -99,7 +99,7 @@ class JsonValue:
 
 @dataclass(frozen=True, repr=False)
 class LoreIR:
-    """Context source, never a World or an activated lore result."""
+    """上下文来源，不代表 World，也不是已激活的背景知识结果。"""
     metadata: JsonValue
     entries: tuple[JsonValue, ...]
     source_fingerprint: str
@@ -172,7 +172,7 @@ class CharacterImportIR:
                     preserved_source=self.preserved_source.value(), warnings=list(self.warnings))
 
     def to_json(self):
-        """Private interchange, NOT the privacy-safe compatibility report."""
+        """含私有内容的交换格式，不能作为匿名兼容性报告发布。"""
         return canonical(self.normalized())
 
     @classmethod
@@ -202,7 +202,7 @@ class CharacterImportIR:
 
 
 def project_definition(ir, actor: Principal, created_at: datetime, reference=None):
-    """Pure projection. ID/version/owner come from trusted caller, never imported fields."""
+    """纯投影；身份、版本和所有者来自可信调用方，绝不取自导入字段。"""
     if type(ir) is not CharacterImportIR:
         raise ImportFailure('INVALID_IR_VALUE', 'projection')
     profile = ir.profile.value()
@@ -211,8 +211,8 @@ def project_definition(ir, actor: Principal, created_at: datetime, reference=Non
     reference = reference or DefinitionRef(DomainId.new(IdKind.DEFINITION), DefinitionVersion(1))
     provenance = Provenance(SourceType.IMPORT, 'sha256:' + ir.source_fingerprint, created_at, actor,
                             RealityStatus.UNKNOWN, CanonStatus.UNREVIEWED)
-    # Opaque preservation, image assets and plugin settings remain in the IR sidecar.
-    # CharacterDefinition receives only deliberately mapped character content.
+    # 不透明保留数据、图片资产和插件设置留在 IR 附属数据中。
+    # CharacterDefinition 仅接收明确映射的角色内容。
     content = {'profile': profile, 'instructions': ir.instructions.value(),
                'greetings': ir.greetings.value(), 'example_dialogue': ir.example_dialogue,
                'tags': list(ir.tags), 'lore_reference': ir.payload_fingerprint if ir.lore else None}
