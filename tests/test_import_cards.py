@@ -51,6 +51,86 @@ def png(value=None, extra=(), key=b'ccv3'):
 
 
 class ImportTests(unittest.TestCase):
+    def test_r1_v3_ignores_legacy_semantics_in_both_chunk_orders(self):
+        fallback = chunk(b'tEXt', b'chara\0' + base64.b64encode(encoded(card(2))))
+        variants = [(chunk(b'tEXt', b'chara\0@@@@'),),
+                    (chunk(b'tEXt', b'chara\0' + b'A' * 8000),),
+                    (fallback, fallback),
+                    (chunk(b'zTXt', b'chara\0\0not-decompressed'),)]
+        for chunks in variants:
+            for before in (False, True):
+                with self.subTest(variant=variants.index(chunks), before=before):
+                    data = png(extra=chunks)
+                    if before:
+                        marker = data.index(b'ccv3') - 8
+                        data = png()[:marker] + b''.join(chunks) + png()[marker:]
+                    with patch('life_engine.import_cards.MAX_JSON', 4096):
+                        ir = parse_bytes(data)
+                    self.assertEqual(ir.source_spec, 'V3')
+                    self.assertIn('PNG_V_TWO_BACKFILL_IGNORED', ir.warnings)
+
+    def test_r1_bad_authoritative_payload_never_falls_back(self):
+        fallback = chunk(b'tEXt', b'chara\0' + base64.b64encode(encoded(card(2))))
+        original = png()
+        prefix = original[:original.index(b'ccv3') - 8]
+        end = chunk(b'IEND', b'')
+        variants = [(b'@@@@', 'PNG_CARD_BASE64'),
+                    (base64.b64encode(b'{bad'), 'INVALID_JSON'),
+                    (b'A' * 8000, 'PNG_METADATA_LIMIT')]
+        for value, code in variants:
+            with self.subTest(code=code), patch('life_engine.import_cards.MAX_JSON', 4096):
+                self.assert_failure(prefix + chunk(b'tEXt', b'ccv3\0' + value) + fallback + end, code)
+        for version in (1, 2):
+            self.assertEqual(parse_bytes(png(card(version), key=b'chara')).source_spec, f'V{version}')
+
+    def test_r1_ignored_backfill_still_requires_valid_container(self):
+        invalid_crc = bytearray(chunk(b'tEXt', b'chara\0@@@@'))
+        invalid_crc[-1] ^= 1
+        self.assert_failure(png(extra=(bytes(invalid_crc),)), 'PNG_CRC')
+        self.assert_failure(png(extra=(chunk(b'IHDR', b'bad'),)), 'PNG_HEADER')
+        self.assert_failure(png()[:-12], 'PNG_INCOMPLETE')
+
+    def test_r1_known_v3_fields_fail_closed_with_safe_diagnostics(self):
+        cases = [('assets', {}, 'ASSETS_ARRAY_TYPE'), ('assets', None, 'ASSETS_ARRAY_TYPE'),
+                 ('assets', ['PRIVATE_MARKER'], 'ASSET_OBJECT_TYPE'),
+                 ('creator_notes_multilingual', [], 'MULTILINGUAL_STRING_MAP_TYPE'),
+                 ('creator_notes_multilingual', {'PRIVATE_KEY': 1}, 'MULTILINGUAL_STRING_MAP_TYPE'),
+                 ('source', 'PRIVATE_MARKER', 'STRING_ARRAY_TYPE'),
+                 ('character_book', None, 'LORE_OBJECT_REQUIRED'),
+                 ('character_book', [], 'LORE_OBJECT_REQUIRED'),
+                 ('extensions', [], 'EXTENSIONS_OBJECT')]
+        for field in ('creation_date', 'modification_date'):
+            for value in ('PRIVATE_MARKER', None, {}, [], True, False):
+                cases.append((field, value, 'DATE_NUMBER_TYPE'))
+        for field, value, code in cases:
+            with self.subTest(field=field, value_type=type(value).__name__):
+                raw = card()
+                raw['data'][field] = value
+                exc = self.assert_failure(encoded(raw), code)
+                self.assertEqual(exc.category, Classification.MALFORMED)
+                self.assertNotIn('PRIVATE', exc.field + str(exc))
+
+    def test_r1_asset_properties_required_and_unknown_fields_preserved(self):
+        valid = dict(type='icon', uri='https://invalid.example/no-fetch', name='main', ext='png')
+        for field in valid:
+            for missing in (False, True):
+                raw = card()
+                asset = dict(valid)
+                if missing:
+                    del asset[field]
+                else:
+                    asset[field] = {'PRIVATE_MARKER': 1}
+                raw['data']['assets'] = [asset]
+                exc = self.assert_failure(encoded(raw), 'ASSET_PROPERTY_TYPE')
+                self.assertEqual(exc.field, '$.data.assets[].' + field)
+        raw = card()
+        raw['data']['assets'] = [dict(valid, future={'arbitrary': [None, False, 3]})]
+        raw['data'].update(creation_date=0, modification_date=123.5,
+                           creator_notes_multilingual={'zh': '原创测试'}, future_v3={'unknown': [1, 2]})
+        ir = parse_bytes(encoded(raw))
+        self.assertEqual(CharacterImportIR.from_json(ir.to_json()).preserved_source.value(), raw)
+        self.assertEqual(ir.asset_references.value()['declared'], raw['data']['assets'])
+
     def assert_failure(self, data, code):
         with self.assertRaises(ImportFailure) as caught:
             parse_bytes(data)
@@ -208,7 +288,8 @@ class ImportTests(unittest.TestCase):
 
     def test_projection_excludes_assets_and_opaque_lore_extensions(self):
         raw = card()
-        raw['data']['assets'] = [{'uri': 'data:image/png;base64,PRIVATE_ASSET'}]
+        raw['data']['assets'] = [{'type': 'icon', 'uri': 'data:image/png;base64,PRIVATE_ASSET',
+                                 'name': 'main', 'ext': 'png'}]
         raw['data']['character_book'] = {'entries': [{'content': 'Lore.',
             'extensions': {'image': 'PRIVATE_ASSET'}}]}
         ir = parse_bytes(encoded(raw))

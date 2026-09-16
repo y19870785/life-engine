@@ -70,17 +70,10 @@ def png_payload(data):
             if not separator:
                 raise ImportFailure('PNG_TEXT_HEADER', 'container')
             if key in (b'chara', b'ccv3'):
-                # CC specs mandate tEXt. No decompression of arbitrary metadata.
-                if kind != b'tEXt':
-                    raise ImportFailure('PNG_COMPRESSED_CARD_UNSUPPORTED', 'container', category=Classification.UNSUPPORTED)
-                if key in payloads:
-                    raise ImportFailure('PNG_DUPLICATE_CARD', 'container')
-                if len(value) > ((MAX_JSON + 2) // 3) * 4:
-                    raise ImportFailure('PNG_METADATA_LIMIT', 'container', category=Classification.UNSUPPORTED)
-                try:
-                    payloads[key] = base64.b64decode(value, validate=True)
-                except (binascii.Error, ValueError):
-                    raise ImportFailure('PNG_CARD_BASE64', 'container') from None
+                # Record offsets/counts only. Authority is known after the entire
+                # container is validated, regardless of metadata chunk order.
+                count = payloads.get(key, (0, None, 0, 0))[0]
+                payloads[key] = (count + 1, kind, cursor + 8 + len(key) + 1, len(value))
             elif key.startswith(b'chara-ext-asset_:'):
                 assets += 1
         cursor = end
@@ -94,12 +87,43 @@ def png_payload(data):
     if not payloads:
         raise ImportFailure('PNG_NO_CARD', 'container', category=Classification.UNSUPPORTED)
     selected = b'ccv3' if b'ccv3' in payloads else b'chara'
+    count, kind, start, length = payloads[selected]
+    if count != 1:
+        raise ImportFailure('PNG_DUPLICATE_CARD', 'container')
+    if kind != b'tEXt':
+        raise ImportFailure('PNG_COMPRESSED_CARD_UNSUPPORTED', 'container', category=Classification.UNSUPPORTED)
+    if length > ((MAX_JSON + 2) // 3) * 4:
+        raise ImportFailure('PNG_METADATA_LIMIT', 'container', category=Classification.UNSUPPORTED)
+    try:
+        payload = base64.b64decode(data[start:start + length], validate=True)
+    except (binascii.Error, ValueError):
+        raise ImportFailure('PNG_CARD_BASE64', 'container') from None
     warnings = []
     if len(payloads) > 1:
         warnings.append('PNG_V_TWO_BACKFILL_IGNORED')
     if assets:
         warnings.append('PNG_ASSETS_REFERENCE_ONLY')
-    return payloads[selected], selected, tuple(warnings), assets
+    return payload, selected, tuple(warnings), assets
+
+
+def validate_metadata(card):
+    """Validate supported semantic slots; unknown data remains opaque and preserved."""
+    if 'assets' in card:
+        if type(card['assets']) is not list:
+            raise ImportFailure('ASSETS_ARRAY_TYPE', 'normalize', '$.data.assets')
+        for asset in card['assets']:
+            if type(asset) is not dict:
+                raise ImportFailure('ASSET_OBJECT_TYPE', 'normalize', '$.data.assets[]')
+            for field in ('type', 'uri', 'name', 'ext'):
+                if type(asset.get(field)) is not str:
+                    raise ImportFailure('ASSET_PROPERTY_TYPE', 'normalize', '$.data.assets[].' + field)
+    if 'creator_notes_multilingual' in card:
+        notes = card['creator_notes_multilingual']
+        if type(notes) is not dict or any(type(value) is not str for value in notes.values()):
+            raise ImportFailure('MULTILINGUAL_STRING_MAP_TYPE', 'normalize', '$.data.creator_notes_multilingual')
+    for field in ('creation_date', 'modification_date'):
+        if field in card and type(card[field]) not in (int, float):
+            raise ImportFailure('DATE_NUMBER_TYPE', 'normalize', '$.data.' + field)
 
 
 def normalize_lore(book, fingerprint, warnings):
@@ -169,6 +193,7 @@ def normalize_card(raw, fingerprint, source_format, key, container_warnings, ass
         raise ImportFailure('CARD_DATA_OBJECT', field='$.data')
     if key == b'ccv3' and spec != 'chara_card_v3':
         raise ImportFailure('PNG_SPEC_MISMATCH')
+    validate_metadata(card)
     warnings = set(container_warnings)
     source_spec = {'chara_card_v2': 'V2', 'chara_card_v3': 'V3', None: 'V1'}[spec]
     version = raw.get('spec_version', '') if spec else '1'
@@ -208,7 +233,7 @@ def normalize_card(raw, fingerprint, source_format, key, container_warnings, ass
         warnings.add('OPAQUE_FIELDS')
     preserved = JsonValue.of(raw)
     payload_fingerprint = hashlib.sha256(preserved.text.encode()).hexdigest()
-    lore = normalize_lore(card['character_book'], fingerprint, warnings) if card.get('character_book') is not None else None
+    lore = normalize_lore(card['character_book'], fingerprint, warnings) if 'character_book' in card else None
     references = {}
     # Recognized ST linked-lore slots only; never guess that arbitrary URLs are lore.
     for field in ('world', 'extraBooks'):

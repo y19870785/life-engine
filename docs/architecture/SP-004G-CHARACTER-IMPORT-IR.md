@@ -49,6 +49,16 @@ JsonValue 用不可变规范 JSON 字符串保存值，解码返回独立副本�
 
 不重建相同 PNG、不保存其图像 blob、不提取附带资产，也不保证被 ccv3 替代的 chara 回填版本独立往返。原容器依靠 source_fingerprint 引用，仍需要调用方保管原文件。相关情况有固定 warning，不能把语义往返称为二进制归档。
 
+### SP-004G-R1: authoritative payload and known field types
+
+PNG/APNG 先全局验证 CRC、chunk boundaries、IHDR、IDAT、IEND，再选择权威载荷。存在 ccv3 时只校验/解码它；非权威 chara 仅记录存在，发出 PNG_V_TWO_BACKFILL_IGNORED。chara 的非法 Base64、metadata 超预算、重复或压缩形式不会阻断有效 ccv3，且不需要解码它来生成警告。整个文件大小和 chunk 数量上限仍全局生效；非权威 chunk 的 CRC/结构错误仍拒绝。
+
+重复、非法或超预算的权威 ccv3 拒绝，绝不回退到有效 chara。没有 ccv3 时，chara 继续接受完整的数量、metadata 类型、预算、Base64 和 JSON 校验，兼容 V1/V2。
+
+已知字段只要出现就校验：assets 必须为 object 数组，每项 type/uri/name/ext 必须存在且为 string；creator_notes_multilingual 必须为 string→string map；creation_date/modification_date 必须为有限 JSON number（int/float，明确拒绝 bool/null/string）。不限制或解析资产 URI，不下载。source 保持 string-array 校验，character_book/extensions 保持 object 校验，显式 null character_book 也不再当成缺省值忽略。
+
+新固定诊断代码：ASSETS_ARRAY_TYPE、ASSET_OBJECT_TYPE、ASSET_PROPERTY_TYPE、MULTILINGUAL_STRING_MAP_TYPE、DATE_NUMBER_TYPE；错误路径只含固定字段名，绝不插入语言键、资产值或正文。已知非法字段 fail closed；asset 的未知键以及任意未知 V3/extension 字段继续完整保存。这些规则应用于导入卡片中出现的相应已知字段，不改变领域模型。
+
 ## Lore IR
 
 LoreIR 是上下文来源，绝不创建 World。它保存书级 metadata、逐条 entries 和原文件指纹。entry 映射 triggers、secondary_triggers、text、enabled、disabled、order、priority，其他字段进入 settings。完整源 sidecar 保留原字段名、alias 冲突和字典形式 entry ID。

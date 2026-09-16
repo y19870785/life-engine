@@ -4,7 +4,7 @@
 
 Implementation: AUTHORIZED — LIMITED TO SP-004G. Merge: NOT AUTHORIZED.
 
-Status: PENDING_INDEPENDENT_REVIEW. 相关：[Architecture](../architecture/SP-004G-CHARACTER-IMPORT-IR.md)、[Compatibility](../compatibility/SILLYTAVERN-COMPATIBILITY.md)。
+Status: PENDING_RE_REVIEW (SP-004G-R1). 相关：[Architecture](../architecture/SP-004G-CHARACTER-IMPORT-IR.md)、[Compatibility](../compatibility/SILLYTAVERN-COMPATIBILITY.md)。以下原始 SP-004G 记录保留，R1 最新结果见末节。
 
 ## Automated tests
 
@@ -90,3 +90,39 @@ git diff --check
 PR #3 仅只读，预期 OPEN / DRAFT / NOT MERGED，head `ab227f2179eeaa7ded662d612508a98ad5cdf04a`。本 PR 必须 OPEN / DRAFT / NOT MERGED；最终 commit/push/状态由 Execution Report 与 GitHub 实际状态交叉核对。没有 Ready、Merge、Auto Merge，也没有启动后续阶段。
 
 本阶段无范围偏离。Known limits：容器资产只保留引用；不支持 CHARX/压缩卡 metadata；没有完整外部规范 validator 或 Lore runtime；私有 IR 序列化需要调用方安全保管；哈希验证不能替代防并发修改的文件系统锁。所有最终存储/迁移/版本登记/宿主接入需新授权。
+
+## SP-004G-R1 review fixes
+
+Reviewed head: `b8788a230fe4f7625c6bd8a43efcaf24871fc788`。Base 不变。只修 R1-A/R1-B，沿用 PR #6，禁止 Ready/Merge。
+
+- R1-A：容器全局校验完成后只处理权威 payload；有效 ccv3 不受非法/超大/重复 chara 语义阻断；权威 ccv3 失败不降级。结构与全局预算保护保留。
+- R1-B：assets 及四个必需 string 属性、多语言 string map、数值日期（排除 bool）增加固定诊断。source/character_book/extensions 类型合同保留；显式 null book 拒绝。未知 asset/V3/extension 数据继续保存。
+- 新增 5 个回归测试方法，参数化覆盖审核要求的 15 类情况，并覆盖两种 chunk 顺序、压缩回填、被忽略 chunk 的 CRC 错误、缺资产属性和 null book。原测试中用于隔离图片的合成 asset 补齐标准必需字段，图片隔离断言不变。
+
+| R1 Gate | Actual result |
+| --- | --- |
+| Importer tests / Windows | 28/28 PASS |
+| Windows full suite | 100 tests，5 既有 SQLite cleanup errors、1 既有 skip；失败集合不变 |
+| WSL/Linux full suite | 100/100 PASS |
+| Windows + WSL corpus | 两边完整扫描全部 1,737 文件，最终报告一致；均未修改语料、无内部错误 |
+| Privacy / integrity | 1,737 行匿名报告 allowlist 审计；全部 hash 与原始清单一致 |
+| Import/package/syntax | 新模块可导入、现有 release collector 包含它们、Python AST 检查通过 |
+| Schema | DATA_SCHEMA == 2，没有生产 schema diff |
+| Documentation / diff | 10 个相对文档链接通过；git diff --check 通过 |
+
+| Corpus metric | SP-004G before | R1 after |
+| --- | ---: | ---: |
+| Total | 1,737 | 1,737 |
+| PASS | 0 | 0 |
+| PASS_WITH_WARNINGS | 1,298 | 1,297 |
+| LOSSY | 0 | 0 |
+| UNSUPPORTED | 428 | 428 |
+| MALFORMED | 11 | 12 |
+| INTERNAL_ERROR / Parser Crash Count | 0 / 0 | 0 / 0 |
+| V1 / V2 / V3 / Unknown | 48 / 1,124 / 131 / 434 | 48 / 1,124 / 131 / 434 |
+| Cards With Extensions | 1,282 | 1,281 |
+| Corpus Modified | NO | NO |
+
+计数变化的唯一新增错误是一个 V2 卡显式 `character_book: null`，固定代码 LORE_OBJECT_REQUIRED。之前被视为缺省 book，R1 按已知字段的 object 合同拒绝；未 stringify、丢弃或针对卡名特判。扩展卡计数只统计成功导入对象，因此同步减少 1。原 5 个 STRING_ARRAY_TYPE 与 6 个 INVALID_JSON 不变，131 个识别的 V3 仍全部成功往返，其余 corpus aggregate 不变。
+
+没有提交 corpus、逐卡报告或私有 manifest，没有改动 PR #3。R1 无范围偏离，完成后停止并等待 PENDING_RE_REVIEW。

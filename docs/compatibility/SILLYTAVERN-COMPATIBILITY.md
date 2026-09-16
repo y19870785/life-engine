@@ -9,7 +9,7 @@ SP-004G candidate；导入兼容不等于 SillyTavern Runtime 功能兼容。
 | V1 flat JSON | 保守识别 name/description/first_mes；统一 IR，LEGACY_FORMAT |
 | V2 / V3 JSON | 按实际 spec/data 识别；未知字段保留；缺可选/兼容字段有 warning |
 | V2 chara / V3 ccv3 PNG | CRC/长度/基本结构验证；V3 放在 chara 可警告兼容；ccv3 放 V2 拒绝 |
-| ccv3 + chara | 优先 ccv3，警告说明忽略 V2 回填 |
+| ccv3 + chara | 先验全局容器结构，只处理权威 ccv3；无效/超大/重复 chara 回填不阻断，发出忽略警告；ccv3 失败不降级 |
 | Alternate / group greetings、examples、creator metadata | 映射并保留，不执行宏或替换指令 |
 | Embedded Lore | Context-only LoreIR；保留触发、secondary keys、位置/排序、递归和扩展，不激活 |
 | Linked Lore | 识别非空 extensions.world / extraBooks，保留引用，不访问网络或外部文件 |
@@ -17,9 +17,13 @@ SP-004G candidate；导入兼容不等于 SillyTavern Runtime 功能兼容。
 | Assets | 仅源指纹/声明/数量引用；不下载、不解码、不进入 CharacterDefinition |
 | Standalone World Book JSON / settings JSON | 当前不是 character import 入口，NOT_CHARACTER_CARD |
 | CHARX、ZIP、7z、文档及其他附件 | UNSUPPORTED；不提取压缩包或执行其中程序 |
-| zTXt / iTXt card payload | UNSUPPORTED；不解压 |
+| zTXt / iTXt authoritative card payload | UNSUPPORTED；不解压；若只是被 ccv3 替代的 chara 则忽略其语义 |
 | Invalid JSON / duplicate keys / invalid known field types | MALFORMED，fail closed，无部分导入 |
 | Size/depth/node/chunk limits | UNSUPPORTED，资源限制不伪称格式损坏 |
+
+R1 已知字段校验：assets 必须为 object 数组且每项含 string type/uri/name/ext；creator_notes_multilingual 为 string→string map；creation_date/modification_date 为有限 JSON number，bool/null/string 不接受。source、character_book、extensions 的既有类型约束保留，显式 null character_book 拒绝。未知资产键/扩展仍保留；不对 URI 联网检查，不 stringify 非法字段。
+
+PNG 容器 CRC、边界、IHDR/IDAT/IEND 校验仍覆盖所有 chunk，包括被忽略的 chara。忽略的仅是非权威回填的语义校验；文件大小和 chunk 总数保护没有放宽。
 
 ## Classification
 
@@ -60,5 +64,7 @@ duplicate_logical_cards 只计算规范 source JSON 完全相同的重复个数�
 ## Real local corpus baseline
 
 完整统计与失败原因见 [SP-004G Quality Gates](../planning/SP-004G-QUALITY-GATES.md)。仅匿名 aggregate 进入 Git；原 corpus、逐卡 report、私有 hash manifest 均不提交。
+
+R1 回归：总数仍为 1,737，成功附警告从 1,298 变为 1,297，MALFORMED 从 11 变为 12，UNSUPPORTED 仍为 428，内部错误为 0。唯一新增拒绝为一个 V2 卡显式 null character_book，违反 object 合同；识别的 V3 仍为 131 且全部成功往返。全部原始文件 hash 未变。
 
 识别的 V3 全部通过解析/往返，不意味着未识别的超大卡片也经过验证。所有成功卡片均有至少一项兼容 warning，不能宣传为“100% SillyTavern 语义兼容”。扩展执行、资产解析、Lore 触发、故事、宿主接入均未实现。
