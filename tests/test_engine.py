@@ -69,7 +69,7 @@ class EngineTests(unittest.TestCase):
         self.assertEqual(a, b)
 
     def test_databases_reject_mismatched_agent_id(self):
-        with self.assertRaisesRegex(ValueError, "different agent"):
+        with self.assertRaisesRegex(ValueError, "SchemaMismatch"):
             Store(self.path, "xiaoxue")
 
     def test_memory_cannot_cross_agent_stores(self):

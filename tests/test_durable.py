@@ -57,7 +57,7 @@ class DurableTests(unittest.TestCase):
 
     def test_entrypoint_survives_deleted_unpack_and_fresh_process(self):
         unpack = self.base / 'unpacked'
-        shutil.copytree(ROOT, unpack, ignore=shutil.ignore_patterns('__pycache__'))
+        shutil.copytree(ROOT, unpack, ignore=shutil.ignore_patterns('__pycache__', '.git'))
         result = create_install(unpack, self.root, self.cfg)
         self.key = result['instance']
         self.command('remember', '--summary=Keep this across restart')
@@ -91,7 +91,7 @@ class DurableTests(unittest.TestCase):
         reg, inst, data = self.active()
         before = {p.name: p.read_bytes() for p in (data / 'agents/same_name').iterdir() if p.is_file()}
         new = self.base / 'new release'
-        shutil.copytree(ROOT, new, ignore=shutil.ignore_patterns('__pycache__'))
+        shutil.copytree(ROOT, new, ignore=shutil.ignore_patterns('__pycache__', '.git'))
         version = new / 'runtime/life_engine/__init__.py'
         version.write_text(version.read_text() + '\n# simulated next patch release\n')
         result = upgrade(self.root, new)
@@ -128,7 +128,7 @@ class DurableTests(unittest.TestCase):
         self.assertTrue(data.exists())
         self.assertTrue(Path(restored['previous_backup']).exists())
         db = Path(restored['active_data']) / 'agents/same_name/life.db'
-        with sqlite3.connect(db) as conn:
+        with contextlib.closing(sqlite3.connect(db)) as conn, conn:
             self.assertEqual(conn.execute("SELECT value FROM meta WHERE key='paused'").fetchone()[0], 'true')
 
     def test_failed_restore_pointer_write_leaves_active_generation_untouched(self):
@@ -174,17 +174,17 @@ class DurableTests(unittest.TestCase):
             self.assertTrue(Path(str(dbpath) + '-wal').exists())
             with locked(self.root, self.key):
                 saved = snapshot(self.root, reg, inst)
-            with sqlite3.connect(saved / 'data/agents/same_name/life.db') as copy_db:
+            with contextlib.closing(sqlite3.connect(saved / 'data/agents/same_name/life.db')) as copy_db, copy_db:
                 self.assertEqual(copy_db.execute('SELECT summary FROM memories').fetchone()[0], 'WAL-only record')
             self.assertEqual((saved / 'data/agents/same_name/photos/original.png').read_bytes(), b'actual-image-bytes')
 
     def test_unknown_database_schema_rejects_upgrade(self):
         self.install()
         _, _, data = self.active()
-        with sqlite3.connect(data / 'agents/same_name/life.db') as db:
+        with contextlib.closing(sqlite3.connect(data / 'agents/same_name/life.db')) as db, db:
             db.execute("UPDATE meta SET value='999' WHERE key='schema_version'")
         before = (self.root / 'registry.json').read_bytes()
-        with self.assertRaisesRegex(ValueError, 'schema'):
+        with self.assertRaisesRegex(ValueError, 'SchemaMismatch'):
             upgrade(self.root, ROOT)
         self.assertEqual(before, (self.root / 'registry.json').read_bytes())
 
@@ -279,7 +279,7 @@ console.log('OpenClaw bridge contract probe passed');
         self.install()
         before = (self.root / 'registry.json').read_bytes()
         bad = self.base / 'broken new package'
-        shutil.copytree(ROOT, bad, ignore=shutil.ignore_patterns('__pycache__'))
+        shutil.copytree(ROOT, bad, ignore=shutil.ignore_patterns('__pycache__', '.git'))
         (bad / 'runtime/life_engine/cli.py').write_text('this is not valid python\n')
         with self.assertRaisesRegex(ValueError, 'import check'):
             upgrade(self.root, bad)
@@ -290,7 +290,7 @@ console.log('OpenClaw bridge contract probe passed');
         from life_engine.durable import rollback_code
         first = self.install()['release']
         new = self.base / 'patch package'
-        shutil.copytree(ROOT, new, ignore=shutil.ignore_patterns('__pycache__'))
+        shutil.copytree(ROOT, new, ignore=shutil.ignore_patterns('__pycache__', '.git'))
         init = new / 'runtime/life_engine/__init__.py'
         init.write_text(init.read_text() + '\n# another runtime generation\n')
         upgrade(self.root, new)
@@ -321,12 +321,12 @@ console.log('OpenClaw bridge contract probe passed');
         photo = data / 'agents/same_name/photos/real.png'
         photo.parent.mkdir()
         photo.write_bytes(b'photo bytes')
-        with sqlite3.connect(data / 'agents/same_name/life.db') as db:
+        with contextlib.closing(sqlite3.connect(data / 'agents/same_name/life.db')) as db, db:
             db.execute("INSERT INTO photos(id,day,at,status,path) VALUES('p1','2026-09-13',0,'ready',?)", (str(photo),))
         with locked(self.root, self.key):
             saved = snapshot(self.root, reg, inst)
         restored = restore(self.root, self.key, saved)
-        with sqlite3.connect(Path(restored['active_data']) / 'agents/same_name/life.db') as db:
+        with contextlib.closing(sqlite3.connect(Path(restored['active_data']) / 'agents/same_name/life.db')) as db, db:
             newpath = Path(db.execute("SELECT path FROM photos WHERE id='p1'").fetchone()[0])
             self.assertNotEqual(newpath, photo)
             self.assertEqual(newpath.read_bytes(), b'photo bytes')

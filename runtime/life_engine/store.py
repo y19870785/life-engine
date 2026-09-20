@@ -27,17 +27,20 @@ CREATE TABLE IF NOT EXISTS photos (
 
 class Store:
     def __init__(self, path, agent_id):
+        from .world_schema import create_world_schema, validate_schema
         self.path = Path(path)
+        existed = self.path.exists()
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with self.tx() as db:
-            for query in SCHEMA.split(";"):
-                if query.strip():
-                    db.execute(query)
-            row = db.execute("SELECT value FROM meta WHERE key='agent_id'").fetchone()
-            if row and row["value"] != agent_id:
-                raise ValueError("Database belongs to a different agent")
-            db.execute("INSERT OR IGNORE INTO meta VALUES ('agent_id',?)", (agent_id,))
-            db.execute("INSERT OR IGNORE INTO meta VALUES ('schema_version','2')")
+            if existed:
+                validate_schema(db, agent_id=agent_id)
+            else:
+                for query in SCHEMA.split(";"):
+                    if query.strip():
+                        db.execute(query)
+                db.execute("INSERT INTO meta VALUES ('agent_id',?)", (agent_id,))
+                db.execute("INSERT INTO meta VALUES ('schema_version','3')")
+                create_world_schema(db)
         self.agent_id = agent_id
 
     @contextmanager

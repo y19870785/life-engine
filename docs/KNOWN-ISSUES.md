@@ -9,6 +9,10 @@
 `durable.state_check` 仅检查存在的数据库，后续 `Store` 自动初始化。
 已有实例应在缺库时停止并要求恢复，首次安装才允许建库。
 
+SP-004E 候选修复：`state_check` 现在拒绝缺失活动数据库，健康检查返回失败；
+首次安装仍可显式创建完整 Schema 3。相关测试见
+[SP-004E 质量门禁](planning/SP-004E-QUALITY-GATES.md)。
+
 ## 出图期间实例锁阻塞其他调用
 
 代码检查发现 `durable.run` 在整个 photo 命令期间持有实例锁，包括网络等待；
@@ -24,6 +28,11 @@
 相关测试的 SQLite 连接需显式关闭；不能据此认定备份、恢复和迁移的业务断言失败。
 OpenClaw 契约测试因测试进程 PATH 未发现 Node 而跳过。
 历史 Linux 检查记录见 VALIDATION.md，与本轮 Windows 结果分别保留。
+
+SP-004E 候选修复：上述 SQLite 测试使用显式 `contextlib.closing` 释放连接，
+保留事务上下文负责 commit/rollback；没有使用 sleep、GC、错误吞掉或新增跳过。
+测试复制发布源码时排除 `.git`，避免 Windows 只读 Git 对象触发无关清理错误。
+最新 Windows 与 WSL/Linux 结果记录在 SP-004E 质量门禁；本节历史记录保留。
 
 ## 真实环境验证
 

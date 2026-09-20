@@ -22,9 +22,9 @@ from pathlib import Path
 from . import __version__
 from .config import json_bytes, load, validate
 from .install import atomic_write, digest, no_symlinks
+from .world_schema import DATA_SCHEMA, validate_schema, migrate_copy
 
 FORMAT = 1
-DATA_SCHEMA = 2
 
 
 def absolute(path):
@@ -111,9 +111,9 @@ def locked(root, key, timeout=15):
                 fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
 
 
-def registry(root):
+def registry(root, *, allow_schema2=False):
     cfg = read(root / 'registry.json')
-    if cfg.get('format') != FORMAT or cfg.get('data_schema') != DATA_SCHEMA:
+    if cfg.get('format') != FORMAT or cfg.get('data_schema') not in ((2, DATA_SCHEMA) if allow_schema2 else (DATA_SCHEMA,)):
         raise ValueError('Unsupported deployment/data schema; keep the existing installation')
     safe_name(cfg['release'])
     for key, instance in cfg['instances'].items():
@@ -145,18 +145,18 @@ def files_under(directory):
             raise ValueError('Unsupported file type: ' + str(path))
 
 
-def db_check(path, agent_id=None):
-    with contextlib.closing(sqlite3.connect(Path(path).as_uri() + '?mode=ro', uri=True)) as db:
-        if db.execute('PRAGMA quick_check').fetchone()[0] != 'ok':
-            raise ValueError('SQLite integrity check failed')
-        meta = dict(db.execute('SELECT key,value FROM meta'))
-        if meta.get('schema_version') != str(DATA_SCHEMA):
-            raise ValueError('Unsupported SQLite schema; refusing to initialize or rewrite it')
-        if agent_id and meta.get('agent_id') != agent_id:
-            raise ValueError('Backup database belongs to another agent')
+def db_check(path, agent_id=None, *, expected_schema=DATA_SCHEMA):
+    """只读验证实际结构、业务身份、外键和领域数据。"""
+    from .world_sqlite_repository import storage_errors, validate_world_data
+    with storage_errors(), contextlib.closing(sqlite3.connect(Path(path).resolve().as_uri() + '?mode=ro', uri=True)) as db:
+        db.execute('PRAGMA foreign_keys=ON')
+        db.execute('BEGIN')
+        validate_schema(db, expected_schema, agent_id)
+        if expected_schema == 3:
+            validate_world_data(db)
 
 
-def copy_state(source, target):
+def copy_state(source, target, *, expected_schema=DATA_SCHEMA):
     """SQLite backup API includes committed WAL pages; other assets are copied."""
     source, target = absolute(source), absolute(target)
     target.mkdir(parents=True, exist_ok=False, mode=0o700)
@@ -166,11 +166,11 @@ def copy_state(source, target):
         out = target / path.relative_to(source)
         out.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
         if path.name == 'life.db':
-            db_check(path)
+            db_check(path, expected_schema=expected_schema)
             with contextlib.closing(sqlite3.connect(path.as_uri() + '?mode=ro', uri=True)) as src:
                 with contextlib.closing(sqlite3.connect(out)) as dest:
                     src.backup(dest)
-            db_check(out)
+            db_check(out, expected_schema=expected_schema)
         else:
             shutil.copy2(path, out)
         os.chmod(out, 0o600)
@@ -194,14 +194,15 @@ def rebase_photos(data, old_home):
             db.commit()
 
 
-def state_check(data, instance):
+def state_check(data, instance, *, expected_schema=DATA_SCHEMA):
     no_symlinks(data / 'agents' / instance['agent_id'] / 'agent.json')
     no_symlinks(data / 'agents' / instance['agent_id'] / 'life.db')
     cfg, home = load(data, instance['agent_id'])
     if cfg['integration']['adapter'] != instance['adapter'] or cfg['integration']['host_home'] != instance['host_home']:
         raise ValueError('State does not match this host binding')
-    if (home / 'life.db').is_file():
-        db_check(home / 'life.db', instance['agent_id'])
+    if not (home / 'life.db').is_file():
+        raise ValueError('活动数据库缺失；请从已验证备份恢复')
+    db_check(home / 'life.db', instance['agent_id'], expected_schema=expected_schema)
     if cfg['photos']['enabled']:
         from .photos import inspect_workflow
         inspect_workflow(home / relative(cfg['photos']['workflow']))
@@ -220,11 +221,11 @@ def snapshot(root, reg, instance, destination=None, reason='manual'):
     final = destination / (instance['id'] + '-' + stamp)
     try:
         temporary.mkdir(mode=0o700)
-        copy_state(data, temporary / 'data')
+        copy_state(data, temporary / 'data', expected_schema=reg['data_schema'])
         checksums = {str(p.relative_to(temporary / 'data')).replace(os.sep, '/'): digest(p.read_bytes())
                      for p in files_under(temporary / 'data')}
         write(temporary / 'backup.json', {
-            'format': FORMAT, 'data_schema': DATA_SCHEMA, 'instance_id': instance['id'],
+            'format': FORMAT, 'data_schema': reg['data_schema'], 'instance_id': instance['id'],
             'agent_id': instance['agent_id'], 'source_home': str(data), 'reason': reason,
             'release': reg['release'], 'created_at': datetime.now(timezone.utc).isoformat(),
             'files': checksums,
@@ -237,11 +238,11 @@ def snapshot(root, reg, instance, destination=None, reason='manual'):
         raise
 
 
-def verify_backup(path, instance):
+def verify_backup(path, instance, *, expected_schema=DATA_SCHEMA):
     path = absolute(path)
     manifest = read(path / 'backup.json')
     if (manifest.get('format'), manifest.get('data_schema'), manifest.get('instance_id'), manifest.get('agent_id')) != (
-        FORMAT, DATA_SCHEMA, instance['id'], instance['agent_id']):
+        FORMAT, expected_schema, instance['id'], instance['agent_id']):
         raise ValueError('Backup is incompatible with this instance')
     actual = {str(p.relative_to(path / 'data')).replace(os.sep, '/'): digest(p.read_bytes())
               for p in files_under(path / 'data')}
@@ -249,7 +250,7 @@ def verify_backup(path, instance):
         relative(name)
     if actual != manifest['files']:
         raise ValueError('Backup checksum mismatch; active data was not changed')
-    state_check(path / 'data', instance)
+    state_check(path / 'data', instance, expected_schema=expected_schema)
     return manifest
 
 
@@ -309,17 +310,19 @@ def release_install(root, package):
     return name
 
 
-def probe_release(root, release, executable):
+def probe_release(root, release, executable, *, expected_schema=DATA_SCHEMA):
     path = root / 'releases' / safe_name(release)
     manifest = read(path / 'release.json')
-    if manifest.get('data_schema') != DATA_SCHEMA:
+    if manifest.get('data_schema') != expected_schema:
         raise ValueError('Release has an incompatible data schema')
     for name, expected in manifest['files'].items():
         if digest((path / relative(name)).read_bytes()) != expected:
             raise ValueError('Release integrity check failed')
     done = subprocess.run([executable, '-c',
-        'import sys; sys.path.insert(0, sys.argv[1]); from life_engine import cli, deploy_cli, durable; '
-        'assert durable.DATA_SCHEMA == 2', str(path / 'runtime')],
+        'import sys; sys.path.insert(0, sys.argv[1]); from life_engine import cli, deploy_cli, durable\n'
+        'if durable.DATA_SCHEMA != int(sys.argv[2]): raise ValueError("SchemaMismatch")\n'
+        'if int(sys.argv[2]) == 3: from life_engine.world_sqlite_repository import SQLiteWorldRepository\n',
+        str(path / 'runtime'), str(expected_schema)],
         capture_output=True, text=True, encoding='utf-8', timeout=20, shell=False)
     if done.returncode:
         raise ValueError('New runtime failed its import check; active version has not changed: ' + done.stderr[-1600:])
@@ -469,25 +472,87 @@ def create_install(package, root, cfg, *, host_agent_id='', source=None, workflo
                 'guide': str(root / 'bridges' / key / 'INSTALL.md')}
 
 
+def migrate_generation(root, data, instance):
+    """只能由升级器对新 generation 副本执行，绝不接受活动路径。"""
+    active = registry(root, allow_schema2=True)
+    if any(data.resolve() == state_home(root, inst).resolve() for inst in active['instances'].values()):
+        raise ValueError('禁止在活动 generation 中执行 Schema 迁移')
+    expected = root / 'instances' / instance['id'] / 'data' / instance['generation']
+    if data != expected or not re.fullmatch(r'schema3-[0-9a-f]{32}', instance['generation']):
+        raise ValueError('迁移目标必须是本安装的新 Schema 3 generation')
+    path = data / 'agents' / instance['agent_id'] / 'life.db'
+    with contextlib.closing(sqlite3.connect(path)) as db:
+        db.execute('PRAGMA foreign_keys=ON')
+        with db:
+            db.execute('BEGIN IMMEDIATE')
+            migrate_copy(db)
+    db_check(path, instance['agent_id'])
+
+
 def upgrade(root, package):
-    """Back up every active instance, then atomically activate code only."""
+    """全部实例备份、复制、迁移及探针成功后，一次切换安装级 registry。"""
     root, package = absolute(root), absolute(package)
-    with locked(root, 'management'):
-        reg = registry(root)
+    with locked(root, 'management'), contextlib.ExitStack() as stack:
+        reg = registry(root, allow_schema2=True)
+        previous = json.loads(json.dumps(reg))
+        schema = reg['data_schema']
         backups = []
-        with contextlib.ExitStack() as stack:
-            for key in sorted(reg['instances']):
-                stack.enter_context(locked(root, key))
-                inst = reg['instances'][key]
-                state_check(state_home(root, inst), inst)
-                backups.append(str(snapshot(root, reg, inst, reason='before-upgrade')))
-            release = release_install(root, package)
-            probe_release(root, release, reg['python'])
-            previous = reg['release']
-            reg['release'] = release
-            write(root / 'registry.json', reg)
-        return {'ok': True, 'previous_release': previous, 'release': release, 'backups': backups,
+        for key in sorted(reg['instances']):
+            stack.enter_context(locked(root, key))
+        for key, inst in sorted(reg['instances'].items()):
+            state_check(state_home(root, inst), inst, expected_schema=schema)
+            saved = snapshot(root, reg, inst, reason='before-schema-3-migration' if schema == 2 else 'before-upgrade')
+            verify_backup(saved, inst, expected_schema=schema)
+            backups.append(str(saved))
+        release = release_install(root, package)
+        probe_release(root, release, reg['python'])
+        rollback_point = None
+        if schema == 2:
+            for key, inst in sorted(reg['instances'].items()):
+                old_data = state_home(root, inst)
+                candidate = dict(inst, generation='schema3-' + uuid.uuid4().hex)
+                data = root / 'instances' / key / 'data' / candidate['generation']
+                copy_state(old_data, data, expected_schema=2)
+                migrate_generation(root, data, candidate)
+                rebase_photos(data, old_data)
+                state_check(data, candidate)
+                sync_tree(data)
+                reg['instances'][key] = candidate
+            reg['data_schema'] = DATA_SCHEMA
+            rollback_point = root / 'schema-rollbacks' / (uuid.uuid4().hex + '.json')
+            write(rollback_point, {'format': FORMAT, 'previous': previous,
+                                   'activated_instances': reg['instances'], 'activated_release': release,
+                                   'backups': backups})
+        reg['release'] = release
+        write(root / 'registry.json', reg)
+        return {'ok': True, 'previous_release': previous['release'], 'release': release, 'backups': backups,
+                'schema_rollback': str(rollback_point) if rollback_point else None,
                 'settings_and_data_preserved': True}
+
+
+def rollback_schema(root, checkpoint):
+    """显式整组回退旧代码与旧 generation；升级后的写入仍保留在新 generation。"""
+    root = absolute(root)
+    checkpoint = absolute(checkpoint)
+    if checkpoint.parent != root / 'schema-rollbacks':
+        raise ValueError('只能使用本安装保存的 Schema 回退记录')
+    with locked(root, 'management'), contextlib.ExitStack() as stack:
+        active = registry(root)
+        record = read(checkpoint)
+        previous = record['previous']
+        if record.get('format') != FORMAT or previous.get('data_schema') != 2:
+            raise ValueError('Schema 回退记录不兼容')
+        if active['instances'] != record['activated_instances']:
+            raise ValueError('实例或 generation 已变化；拒绝使用过期回退记录')
+        for key in sorted(active['instances']):
+            stack.enter_context(locked(root, key))
+        probe_release(root, previous['release'], previous['python'], expected_schema=2)
+        for key, inst in previous['instances'].items():
+            state_check(state_home(root, inst), inst, expected_schema=2)
+        for inst in active['instances'].values():
+            snapshot(root, active, inst, reason='before-schema-rollback')
+        write(root / 'registry.json', previous)
+        return {'ok': True, 'release': previous['release'], 'data_schema': 2, 'old_generations_retained': True}
 
 
 def health(root, key=None):
@@ -496,6 +561,8 @@ def health(root, key=None):
     release = root / 'releases' / reg['release']
     manifest = read(release / 'release.json')
     errors = []
+    if manifest.get('data_schema') != reg['data_schema']:
+        errors.append('Release 与 registry 的 data_schema 不一致')
     for name, expected in manifest['files'].items():
         path = release / relative(name)
         no_symlinks(path)
@@ -508,7 +575,11 @@ def health(root, key=None):
         if key and key != ident:
             continue
         with locked(root, ident):
-            state_check(state_home(root, instance), instance)
+            try:
+                state_check(state_home(root, instance), instance)
+            except (ValueError, OSError, sqlite3.Error) as exc:
+                errors.append(ident + ': ' + str(exc))
+                continue
             observed = root / 'instances' / ident / 'observed.json'
             states.append({'instance': ident, 'data': str(state_home(root, instance)),
                            'native_events': read(observed) if observed.exists() else {},

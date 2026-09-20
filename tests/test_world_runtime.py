@@ -50,12 +50,12 @@ class FailingRepository:
                 raise RuntimeError('测试注入提交失败')
 
 
-class WorldRuntimeTests(unittest.TestCase):
+class WorldRuntimeContract:
     def setUp(self):
         self.now = datetime(2026, 9, 16, tzinfo=timezone.utc)
         self.actor = Principal(new(IdKind.PRINCIPAL), new(IdKind.OWNER))
         self.soul = Soul(new(IdKind.SOUL), self.actor.owner_id, new(IdKind.WORLD))
-        self.repo = InMemoryWorldRepository()
+        self.repo = self.make_repository()
         self.runtime = WorldRuntime(self.repo)
         self.runtime.register_soul(self.actor, self.soul)
         raw = {'spec': 'chara_card_v3', 'spec_version': '3.0', 'data': {
@@ -64,6 +64,9 @@ class WorldRuntimeTests(unittest.TestCase):
         self.ir = parse_bytes(json.dumps(raw).encode())
         self.definition = project_definition(self.ir, self.actor, self.now)
         self.runtime.register_definition(self.actor, self.definition)
+
+    def make_repository(self):
+        return InMemoryWorldRepository()
 
     def make(self):
         created = self.runtime.create_roleplay_world(self.actor, self.soul.soul_id, self.now)
@@ -373,6 +376,9 @@ class WorldRuntimeTests(unittest.TestCase):
             active.world.revision, self.now))
         self.assertEqual(self.runtime.snapshot(self.actor, active.world.world_id), active)
 
+
+
+class WorldRuntimeTests(WorldRuntimeContract, unittest.TestCase):
     def test_no_database_network_or_host_process(self):
         with patch('sqlite3.connect', side_effect=AssertionError('禁止数据库')), \
                 patch('socket.create_connection', side_effect=AssertionError('禁止网络')), \

@@ -11,7 +11,7 @@ from pathlib import Path
 
 from .config import defaults, load, validate
 from .durable import (absolute, create_install, digest, health, instance_id, locked,
-                      read, registry, restore, rollback_code, snapshot, state_home, upgrade, write)
+                      read, registry, restore, rollback_code, rollback_schema, snapshot, state_home, upgrade, write)
 from .install import inspect_host
 from .setup import ask, discover_homes, existing_cfg, guide, merged, yes
 
@@ -57,7 +57,7 @@ def apply_preview(package, plan):
 def main(package, argv=None, input_fn=input, output=print):
     p = argparse.ArgumentParser(description='Life Engine v0.3 永久安装与维护')
     p.add_argument('action', nargs='?', default='install',
-                   choices=['install', 'upgrade', 'doctor', 'list', 'backup', 'restore', 'rollback-code', 'connect', 'repair-python'])
+                   choices=['install', 'upgrade', 'doctor', 'list', 'backup', 'restore', 'rollback-code', 'rollback-schema', 'connect', 'repair-python'])
     p.add_argument('--root', type=Path, default=Path.home() / '.life-engine')
     p.add_argument('--home', '--host-home', dest='home', type=Path)
     p.add_argument('--adapter', choices=['hermes', 'openclaw', 'generic'])
@@ -74,12 +74,17 @@ def main(package, argv=None, input_fn=input, output=print):
     p.add_argument('--backup', type=Path)
     p.add_argument('--python', type=Path)
     p.add_argument('--release', help='已安装的代码版本目录名，用于 rollback-code')
+    p.add_argument('--checkpoint', type=Path, help='本安装的 Schema 整体回退记录')
     args = p.parse_args(argv)
     root = absolute(args.root)
     try:
         result = None
         if args.action == 'upgrade':
             result = upgrade(root, package)
+        elif args.action == 'rollback-schema':
+            if not args.checkpoint:
+                raise ValueError('rollback-schema 需要 --checkpoint')
+            result = rollback_schema(root, args.checkpoint)
         elif args.action == 'rollback-code':
             if not args.release:
                 raise ValueError('rollback-code requires --release')
