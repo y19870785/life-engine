@@ -1,50 +1,44 @@
-# SP-004 — PR #3 Gap Analysis
+# SP-004 — 历史差距与当前边界校准
 
-状态：PROPOSED / PENDING_INDEPENDENT_REVIEW。日期：2026-09-16。
+本文件由 SP-004R 在 canonical main `780c7a54635e7347b914751ce0c79e350800be0b` 上校准，文档修订状态为 **PENDING_INDEPENDENT_REVIEW**。只授权治理文档，不授权新的运行实现或 PR #3 合并/关闭。
 
-Implementation Authorization: NOT AUTHORIZED。Merge Authorization: NOT AUTHORIZED。
+## 一、比较基线与记录职责
 
-比较对象固定为 main `81ee02b561ac90641c3632f750ffd86a48310cf7` 与 [Draft PR #3](https://github.com/y19870785/life-engine/pull/3) head `ab227f2179eeaa7ded662d612508a98ad5cdf04a`。PR #3 的新能力尚未进入 main。目标来自本次 [RFC](SP-004-PERSISTENT-WORLD-RUNTIME.md)，不是已实现的要求；本分析不批准或否决 PR #3 的合并。
+原分析比较 main `81ee02b561ac90641c3632f750ffd86a48310cf7` 和 [PR #3](https://github.com/y19870785/life-engine/pull/3) 的固定 Head `ab227f2179eeaa7ded662d612508a98ad5cdf04a`。那个时间点没有后来的 A/G/D/E，不能继续将当时的缺口当作当前未完成事实。
 
-## 1. Current Capability → Target Architecture
+32 文件的逐项证据、唯一分类、剩余能力与关闭条件，以 [SP-004R 正式替代记录](../planning/SP-004R-PR3-SUPERSESSION.md) 为准；已完成历史和未来 PROPOSED 工作包以[实施计划](../planning/SP-004-IMPLEMENTATION-PLAN.md)为准。本文件仅保留架构差距的对照，避免重复维护两份分类表。
 
-下表中所有动作均为未来建议。KEEP 保留能力；ADAPT 调整边界；MIGRATE 转换数据；DEPRECATE 停止新增依赖而保留兼容；REPLACE 用新的职责模型替代旧假设，不代表本轮删除代码。
+PR #3 不再是“受控预览合并候选”。它保持 OPEN / DRAFT / NOT MERGED，只作 read-only reference，不能通过解决冲突、cherry-pick 或迁入旧 Schema 继续合并。
 
-| Area / Current Capability | Target Architecture | Gap | Risk | Migration Requirement | Recommended Action |
-| --- | --- | --- | --- | --- | --- |
-| Character Card：V1/V2/V3 JSON、PNG tEXt，原文/parsed JSON/头像入库，名称唯一 | 版本化 CharacterDefinition + 世界内 CharacterInstance | 卡片兼作运行身份和记忆归属，没有定义版本与实例 | 同一角色多个故事无法隔离；改定义可能改变历史解释 | 保留原文和头像，旧 card ID 映射到定义版本与默认 legacy 实例 | KEEP 解析与本地存储；ADAPT 至 IR；MIGRATE 归属；DEPRECATE 卡名作为身份键 |
-| World Book：内嵌/独立条目绑定 card_id，关键词递归、优先级、预算、depth 投放 | Lore IR 作为可复用设定；WorldState 为另一个实体 | 世界书是静态知识，既没有世界实例也没有真实状态变化 | 把百科条目误当作已发生事件；同卡跨世界共用知识 | 源条目/顺序/来源保留，先关联定义，世界选择具体版本 | KEEP 有界扫描；ADAPT 格式字段和受众；REPLACE “World Book 就是 World” 假设 |
-| Roleplay Session：单活动索引，enter/switch/exit；结束保留摘要 | World 独立存活，SessionBinding 只是一次参与；lease/epoch | 没有 suspend/resume/archive 生命周期；活动范围是整实例 | 同 Profile 不同聊天串角色；结束 session 不足以恢复世界 | 旧 session → 历史绑定；同卡默认 legacy World，歧义显式标记 | KEEP 事务/幂等退出；MIGRATE session；REPLACE 全局活动角色作为运行根 |
-| Roleplay Memory：persona/card/session FK，remember 与退出生成摘要；最近 8 条检索 | world/timeline/audience 的 WorldMemory 与 StoryState | 无 world_id、timeline、类型化 canon；摘要非故事真源 | 同卡多世界串记忆；旧细节退出检索窗口后缺乏结构化进度 | 原文归档不丢；摘要保留为 legacy memory，不自动转 canon | KEEP FK 和来源；MIGRATE 命名空间；ADAPT 检索；DEPRECATE 最近摘要作为故事状态 |
-| Persona / Soul Isolation：persona 查询隔离、RP 不注入生活日志、aside 读取 Soul；自动写 roleplay_meta | 双向显式 World Bridge，类型化真实性，宿主 context lane | 只有文本虚构标签，无可审计许可；aside 无字段范围/目的授权 | 模型将剧情当真实事实；私密 Soul 数据经宿主历史留在 RP | 旧 meta 标 legacy_unreviewed；未来默认 deny，不伪造历史 grant | KEEP 默认分区；ADAPT 数据类型；REPLACE 自动全文摘要提升与无范围 aside |
-| Database Schema：v3 的卡片、条目、session、message、memory；card 删除级联 | World/Timeline 为持久边界，定义共享且版本固定 | 世界/故事对象缺失；卡片生命周期拥有历史 | 删除模板会删除经历；难以审计历史关系和事件 | 副本分阶段迁移、映射与兼容投影；停止旧 writer 后切换 | KEEP SQLite/约束/备份；MIGRATE 数据；DEPRECATE 卡删除即删故事 |
-| Hermes Adapter：原生 /rp、Profile scope、pre/post Hook、turn 去重及 stale 检查 | 通用认证 envelope + capability contract + per-session binding | Profile 不等于参与者；宿主历史/记忆可能超出插件控制 | 跨聊天污染；Hook 失败时只有提示级降级 | 宿主绑定映射到稳定 Soul，历史外部 ID 作 provenance | KEEP 插件边界；ADAPT scope/能力协商；不重写宿主 |
-| OpenClaw Adapter：agentId/workspace、可信来源、原生命令与前置上下文；Node 契约测试 | 与 Hermes 共用 Runtime 行为契约，宿主只负责转换与投递 | Gateway 命令名全局；助手消息记录与 Hermes 不对称；尚未实机证明隔离 | 多实例命令冲突、不同宿主记忆完整性不同 | 保留绑定信息；引入 host_event_id 与消息能力声明 | KEEP 鉴权/作用域检查；ADAPT 命令路由和事件归一；实机验收后再扩大声明 |
-| Import Pipeline：read_local/parse_card/normalize_book 直接写 card 与 entries | Importer → versioned IR → 用户选择定义/世界实例 | 导入、定义和世界创建职责未分；解析结果字段仍接近外部格式 | 被外部格式扩展锁定；隐含改世界状态 | 原包哈希、映射版本、诊断和损失清单；不执行扩展 | KEEP 边界检查；ADAPT 为 IR 提案；DEPRECATE 导入即运行的未来设计 |
-| Prompt Construction：SOUL 规则 + card/lore/persona excerpts，约 23 KB 内部预算 | 从已授权 World/Story/Memory 快照生成表现投影 | Prompt 是唯一组合出的“世界视图”，无 Runtime canon/revision | 对话补写被误当世界更新；长历史下身份混淆 | 保留口吻规则与预算；引用 world/timeline/revision，状态迁移先于渲染切换 | KEEP 元身份与有界上下文；REPLACE Prompt 作为运行核心的路线 |
-| Life State / Scheduler：日计划、静默、领取/prepare/ack；RP 时静默 | Soul World 的生活与现实投递策略；虚构世界单独时钟和授权推进 | config.world 是日常模板，不是 World；调度仍依赖宿主 | 模拟日程升级成现实事实，剧情动作变为现实通知 | days/contacts 来源保留，首次映射 Soul World；未来时钟拆分 | KEEP 原联系账本；ADAPT 时钟/投递边界；不新增后台任务 |
+## 二、已消除与尚存的差距
 
-## 2. Evidence Index
+| 领域 | 旧 PR #3 假设或能力 | 当前 canonical 事实 | 剩余差距及建议归属 |
+| --- | --- | --- | --- |
+| 领域身份 | 卡片兼作角色运行身份 | A 的 World/Timeline/Definition/Instance 与 D 的运行合同已完成 | 不复活 card_id 根；定义升级和资产归 L |
+| 导入 | JSON/PNG 解析后直接投影旧卡片表 | G 已实现 CharacterImportIR、诊断、来源和 Definition 投影 | 原包/头像/完整导入历史归 L；LoreIR 不执行 |
+| World Book | 条目绑定 card，字面触发、递归和预算 | 当前只保留导入知识；World Book 不是 World | J 重建版本、关联、scope、激活、预算和终止规则 |
+| 生命周期 | 整实例单活动 RoleplaySession | D 已实现 World、CharacterInstance、SessionBinding 和进入/退出/挂起/恢复/切换 | 完整 ARCHIVE/DELETE 应用入口不能因类型存在而算完成；另立范围 |
+| 并发与持久化 | 旧 session 检查，无 World revision/epoch | E 已实现 SQLite CAS、每 World OPEN 唯一、runtime_id 重启围栏和历史保留 | 宿主事件和 Story 接受事件去重分别归 H/C |
+| Schema 与部署 | 旧 Schema 3、卡片级联和版本号识别 | E 的 canonical Schema 3 与签名校验、副本迁移、整安装激活、备份/回退已完成 | 旧 Schema 3 不兼容；若确有历史数据救援，L 另提只读映射方案 |
+| Memory | 同卡跨 session 查询，最近摘要代表进度 | A 有真实性/正史类型，D/E 有最小 Values；尚无 World Memory 服务 | B 重建 World/Timeline/Instance、scope/audience 与检索/缓存隔离 |
+| Story | 消息与摘要隐含充当故事状态 | 没有 accepted events 和确定性投影运行层 | C 重建 Story state、关系推进、未完成线索与重启重放 |
+| Soul 隔离与共同体验 | 自动 meta 与无范围 aside | A 有默认拒绝 Bridge 策略，不是完整 Bridge 服务 | F 显式 grant/preview/确认/lineage；自动写 Soul 淘汰 |
+| Prompt | 卡片/Lore/记忆摘录成为唯一世界视图 | D/E 已有可持久快照，但没有 canonical Prompt Runtime | K 从授权结果投影，H 处理宿主历史；Prompt 不作权限边界 |
+| Hermes | Profile 作用域、pre/post Hook 与历史真实探针 | 现有生活 Bridge 不等于角色 World 集成 | H 重建 Principal、绑定、晚到响应、重连和多聊天实机验收 |
+| OpenClaw | 原生命令、前置上下文、Node 合同 | 没有新 World 角色接入的实机验收 | H 处理命令路由、消息记录能力差异、历史污染与 Gateway 验证 |
+| 现实工具和调度 | 角色 active 时阻断照片/生活动作 | 当前生活 Engine 保持独立；未接入自动 Roleplay | H/F/B 明确授权边界；不新增后台任务或将剧情变现实通知 |
+| 文档、CI 与演示 | 旧版本用户说明、平台矩阵和转录 | 历史证据不能证明当前可用体验；main 无旧 workflow | GOV-DOC/GOV-CI 另审；演示资产保留固定 Head，不复制二进制 |
 
-以下链接固定到被审查的 PR head；文件名后的符号是定位线索，避免活动分支变化影响结论。
+## 三、纠正旧优先级结论
 
-| 证据 | 支持的发现 |
-| --- | --- |
-| [rp_cards.py](https://github.com/y19870785/life-engine/blob/ab227f2179eeaa7ded662d612508a98ad5cdf04a/runtime/life_engine/rp_cards.py) `parse_card/read_local` | PNG CRC/大小检查；chara/ccv3；原包与头像；字段规范化，不是完整 V3 实现承诺 |
-| [rp_lore.py](https://github.com/y19870785/life-engine/blob/ab227f2179eeaa7ded662d612508a98ad5cdf04a/runtime/life_engine/rp_lore.py) `normalize_book/activate_lore_entries` | 保守 UTF-8 字节预算、字面关键词、递归与顺序；不是精确 tokenizer |
-| [rp_schema.py](https://github.com/y19870785/life-engine/blob/ab227f2179eeaa7ded662d612508a98ad5cdf04a/runtime/life_engine/rp_schema.py) `TABLES` | 单 active 索引、card/session 复合 FK、删除级联；无 world/timeline 实体 |
-| [rp_sessions.py](https://github.com/y19870785/life-engine/blob/ab227f2179eeaa7ded662d612508a98ad5cdf04a/runtime/life_engine/rp_sessions.py) `remember/finish/record_message` | 自动 meta、最后 3 条摘要/摘录、最多 64 条会话消息、可选 expected_session |
-| [rp_prompt.py](https://github.com/y19870785/life-engine/blob/ab227f2179eeaa7ded662d612508a98ad5cdf04a/runtime/life_engine/rp_prompt.py) `build_prompt` | 同卡最近 8 条记忆、aside 取 Soul 最近记忆、深度插入插件摘录窗口 |
-| [rp_commands.py](https://github.com/y19870785/life-engine/blob/ab227f2179eeaa7ded662d612508a98ad5cdf04a/runtime/life_engine/rp_commands.py) `dispatch` | 角色命令、delete 卡片、aside 返回上下文而非独立模型请求 |
-| [durable.py](https://github.com/y19870785/life-engine/blob/ab227f2179eeaa7ded662d612508a98ad5cdf04a/runtime/life_engine/durable.py) `upgrade/migrate_state/context_text/instance_id` | 副本迁移、缺库保护、宿主相关表现层和路径绑定、中文退出控制 |
-| [bridges.py](https://github.com/y19870785/life-engine/blob/ab227f2179eeaa7ded662d612508a98ad5cdf04a/runtime/life_engine/bridges.py) `HERMES/OPENCLAW` | 原生 API 在 adapter，宿主 scope 与消息记录差异 |
-| [test_roleplay.py](https://github.com/y19870785/life-engine/blob/ab227f2179eeaa7ded662d612508a98ad5cdf04a/tests/test_roleplay.py) | 卡片、触发、状态、隔离、晚到写入、迁移；不能证明未实现的 World Runtime |
-| [PR #3 validation](https://github.com/y19870785/life-engine/blob/ab227f2179eeaa7ded662d612508a98ad5cdf04a/docs/ROLEPLAY-VALIDATION.md) | 历史真实 Hermes 隔离探针说明；本轮未重跑真实模型，不当作在线 Gateway 证据 |
+旧分析要求“Character IR 与 WorldMemory 必须在多世界写入开启前可用”，已不适合作为当前完成判定：G 的 Character IR 和 D/E 的最小隔离状态写入已交付，完整 World Memory 是下一层独立能力。不能倒推 D/E 尚未完成，也不能把最小 Values 写入当作 Memory 或 Story 已完成。
 
-## 3. Priority and Compatibility
+阶段历史为 SP-004/A/G/D/E DONE。E 不再指 Memory；未来 B/J/C/F/K/H 的顺序只作 PROPOSED，见实施计划。新持久字段仍须独立 Schema/迁移审核，本轮不提前分配版本。
 
-先处理边界，再添加叙事功能：world/timeline 标识、明确所有权、writer epoch、默认拒绝桥接是未来进入 World Runtime 的前置门槛。Character IR 与 WorldMemory 必须在多世界写入开启前可用。高级故事线、后台模拟、Timeline Branching 可以推后。
+## 四、兼容性与授权边界
 
-PR #3 可以保留为受控角色扮演预览候选，是否合并由独立审核决定。建议避免继续增加仅以 card_id 为根的新业务状态，避免扩大自动 meta 或 aside 读取范围；不要求本轮改动 PR #3。未来兼容层保留 `/rp` 入口和旧数据读能力，在多世界歧义时要求选 world，不默选可能泄密的世界。
+Schema 版本号相同不代表 Schema 兼容。旧 PR #3 Schema 3 不等于 `SP-004E-world-runtime-v1`，不得猜测迁移或自动修复。旧卡片删除级联、自动 Soul 摘要和卡片/宿主聊天作为 World 根均淘汰。
 
-最大风险不是“没有更多角色字段”，而是把当前的卡片归属和自动摘要复制固化为世界持久性及授权模型。对它们的替换应在映射、回滚、原有功能回归和宿主契约具备之后分阶段进行。
+未来若有历史数据映射需求，必须保全原包与备份、保留来源和歧义，不把旧摘要自动变成 canon 或已授权共同体验；当前没有兼容层交付承诺，也不要求先造兼容层才可关闭历史 PR。
+
+PR #3 的关闭必须等待替代记录及路线图合并、独立审核和单独关闭授权；关闭后仍建议保留分支至少到 Lore/Memory/Host Integration 完成。当前不修改 PR #3，不启动后续能力。
