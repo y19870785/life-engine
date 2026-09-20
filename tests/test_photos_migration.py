@@ -1,3 +1,4 @@
+import contextlib
 import base64
 import json
 import sqlite3
@@ -106,7 +107,7 @@ class PhotosTests(unittest.TestCase):
 
     def test_migration_preserves_source_and_is_idempotent(self):
         source = self.home / "v01.db"
-        with sqlite3.connect(source) as db:
+        with contextlib.closing(sqlite3.connect(source)) as db, db:
             db.executescript("""
                 CREATE TABLE events(id INTEGER PRIMARY KEY,occurred_at TEXT,event_type TEXT,status TEXT,summary TEXT,payload_json TEXT);
                 CREATE TABLE memories(id INTEGER PRIMARY KEY,created_at TEXT,memory_type TEXT,summary TEXT,source TEXT);

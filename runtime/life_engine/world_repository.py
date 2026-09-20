@@ -29,6 +29,11 @@ class FailureCode(str, Enum):
     INVALID_ARGUMENT = 'InvalidArgument'
     TRANSACTION_CLOSED = 'TransactionClosed'
     NESTED_TRANSACTION = 'NestedTransaction'
+    STORAGE_BUSY = 'StorageBusy'
+    STORAGE_CORRUPT = 'StorageCorrupt'
+    SCHEMA_MISMATCH = 'SchemaMismatch'
+    PERSISTENCE_FAILURE = 'PersistenceFailure'
+    RECOVERY_REQUIRED = 'RecoveryRequired'
 
 
 class WorldRuntimeError(DomainError):
@@ -207,27 +212,32 @@ class _MemoryTransaction:
         current = self.get_world(snapshot.world.world_id)
         if current.world.revision != expected_revision or snapshot.world.revision != expected_revision.next():
             fail(FailureCode.REVISION_CONFLICT)
-        if (snapshot.timeline != current.timeline or snapshot.world.owner_id != current.world.owner_id
-                or snapshot.world.soul_id != current.world.soul_id or snapshot.world.kind != current.world.kind):
-            fail(FailureCode.WORLD_MISMATCH)
-        characters = {c.character_instance_id: c for c in snapshot.characters}
-        for previous in current.characters:
-            updated = characters.get(previous.character_instance_id)
-            if updated is None or updated.definition != previous.definition or updated.scope != previous.scope:
-                fail(FailureCode.DEFINITION_VERSION_CONFLICT)
-        sessions = {s.session_id: s for s in snapshot.sessions}
-        for previous in current.sessions:
-            updated = sessions.get(previous.session_id)
-            if (updated is None or updated.principal != previous.principal or updated.scope != previous.scope
-                    or updated.character_instance_id != previous.character_instance_id
-                    or updated.writer_epoch != previous.writer_epoch
-                    or previous.status is BindingStatus.CLOSED and updated.status is not BindingStatus.CLOSED):
-                fail(FailureCode.SESSION_BINDING_CONFLICT)
-        if snapshot.world.writer_epoch.value not in (current.world.writer_epoch.value,
-                                                     current.world.writer_epoch.value + 1):
-            fail(FailureCode.STALE_WRITER_EPOCH)
+        validate_update(current, snapshot)
         self._validate(snapshot)
         self._worlds[snapshot.world.world_id] = snapshot
+
+
+def validate_update(current, snapshot):
+    """校验两个仓储共同遵守的身份、历史与围栏约束。"""
+    if (snapshot.timeline != current.timeline or snapshot.world.owner_id != current.world.owner_id
+            or snapshot.world.soul_id != current.world.soul_id or snapshot.world.kind != current.world.kind):
+        fail(FailureCode.WORLD_MISMATCH)
+    characters = {c.character_instance_id: c for c in snapshot.characters}
+    for previous in current.characters:
+        updated = characters.get(previous.character_instance_id)
+        if updated is None or updated.definition != previous.definition or updated.scope != previous.scope:
+            fail(FailureCode.DEFINITION_VERSION_CONFLICT)
+    sessions = {s.session_id: s for s in snapshot.sessions}
+    for previous in current.sessions:
+        updated = sessions.get(previous.session_id)
+        if (updated is None or updated.principal != previous.principal or updated.scope != previous.scope
+                or updated.character_instance_id != previous.character_instance_id
+                or updated.writer_epoch != previous.writer_epoch
+                or previous.status is BindingStatus.CLOSED and updated.status is not BindingStatus.CLOSED):
+            fail(FailureCode.SESSION_BINDING_CONFLICT)
+    if snapshot.world.writer_epoch.value not in (current.world.writer_epoch.value,
+                                                 current.world.writer_epoch.value + 1):
+        fail(FailureCode.STALE_WRITER_EPOCH)
 
 
 class InMemoryWorldRepository:
