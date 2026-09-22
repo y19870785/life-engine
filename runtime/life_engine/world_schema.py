@@ -1,12 +1,13 @@
-"""SP-004E 独占的 Schema 3；识别、创建与副本迁移，不修复未知数据库。"""
+"""识别历史 Schema 2/3 与 canonical Schema 4；仅迁移副本，不修复未知库。"""
 from contextlib import closing
 from functools import lru_cache
 import sqlite3
 
 from .world_repository import FailureCode as Code, fail
 
-DATA_SCHEMA = 3
-SIGNATURE = 'SP-004E-world-runtime-v1'
+DATA_SCHEMA = 4
+SCHEMA_SIGNATURES = {3: 'SP-004E-world-runtime-v1', 4: 'SP-004B-world-memory-v1'}
+SIGNATURE = SCHEMA_SIGNATURES[4]
 WORLD_DDL = (
     """CREATE TABLE souls (
         soul_id TEXT PRIMARY KEY NOT NULL, owner_id TEXT NOT NULL,
@@ -65,13 +66,17 @@ def structure(db):
         "SELECT type,name,sql FROM sqlite_master WHERE name NOT GLOB 'sqlite_*' ORDER BY type,name") if sql)
 
 
-@lru_cache(maxsize=2)
+@lru_cache(maxsize=3)
 def expected_structure(version):
     from .store import SCHEMA
     with closing(sqlite3.connect(':memory:')) as db:
         db.executescript(SCHEMA)
-        if version == 3:
+        if version in (3, 4):
             for sql in WORLD_DDL:
+                db.execute(sql)
+        if version == 4:
+            from .memory_schema import MEMORY_DDL
+            for sql in MEMORY_DDL:
                 db.execute(sql)
         return structure(db)
 
@@ -80,11 +85,11 @@ def validate_schema(db, expected=DATA_SCHEMA, agent_id=None):
     """先识别再验证；只读检查永远不建表、不迁移、不覆写元数据。"""
     try:
         meta = dict(db.execute('SELECT key,value FROM meta'))
-        if expected not in (2, 3) or meta.get('schema_version') != str(expected):
+        if expected not in (2, 3, 4) or meta.get('schema_version') != str(expected):
             fail(Code.SCHEMA_MISMATCH)
         if structure(db) != expected_structure(expected):
             fail(Code.SCHEMA_MISMATCH)
-        if expected == 3 and meta.get('world_schema') != SIGNATURE:
+        if expected >= 3 and meta.get('world_schema') != SCHEMA_SIGNATURES[expected]:
             fail(Code.SCHEMA_MISMATCH)
         if agent_id is not None and meta.get('agent_id') != agent_id:
             fail(Code.SCHEMA_MISMATCH)
@@ -97,18 +102,21 @@ def validate_schema(db, expected=DATA_SCHEMA, agent_id=None):
         fail(Code.STORAGE_BUSY if code in (5, 6) else Code.SCHEMA_MISMATCH)
 
 
-def create_world_schema(db):
+def create_world_schema(db, version=DATA_SCHEMA):
     for sql in WORLD_DDL:
         db.execute(sql)
-    db.execute("INSERT INTO meta VALUES('world_schema',?)", (SIGNATURE,))
+    db.execute("INSERT INTO meta VALUES('world_schema',?)", (SCHEMA_SIGNATURES[version],))
+    if version == 4:
+        from .memory_schema import create_memory_schema
+        create_memory_schema(db)
 
 
-def migrate_copy(db):
+def migrate_2_to_3(db):
     """仅供 durable 的非活动副本调用；调用者拥有事务和 generation 边界。"""
     validate_schema(db, 2)
     tables = ('days', 'contacts', 'observations', 'memories', 'loops', 'photos', 'meta')
     before = {table: db.execute(f'SELECT * FROM {table} ORDER BY rowid').fetchall() for table in tables}
-    create_world_schema(db)
+    create_world_schema(db, 3)
     db.execute("UPDATE meta SET value='3' WHERE key='schema_version'")
     for table, rows in before.items():
         actual = db.execute(f'SELECT * FROM {table} ORDER BY rowid').fetchall()
@@ -116,6 +124,30 @@ def migrate_copy(db):
             actual = [(k, '2' if k == 'schema_version' else v) for k, v in actual if k != 'world_schema']
         if actual != rows:
             fail(Code.STORAGE_CORRUPT)
-    validate_schema(db)
+    validate_schema(db, 3)
     if db.execute('PRAGMA integrity_check').fetchone()[0] != 'ok':
         fail(Code.STORAGE_CORRUPT)
+
+
+def migrate_3_to_4(db):
+    """仅迁移已验证的副本；不修改任何旧业务行或触发 World recovery。"""
+    from .memory_schema import create_memory_schema
+    from .world_sqlite_repository import validate_world_data
+    validate_schema(db, 3)
+    validate_world_data(db)
+    create_memory_schema(db)
+    db.execute("UPDATE meta SET value='4' WHERE key='schema_version'")
+    db.execute("UPDATE meta SET value=? WHERE key='world_schema'", (SIGNATURE,))
+    validate_schema(db, 4)
+
+
+def migrate_copy(db):
+    """副本升级的兼容入口；每个历史阶段分别识别、迁移、验证。"""
+    version = db.execute("SELECT value FROM meta WHERE key='schema_version'").fetchone()[0]
+    if version == '2':
+        migrate_2_to_3(db)
+        version = '3'
+    if version == '3':
+        migrate_3_to_4(db)
+    else:
+        validate_schema(db, 4)

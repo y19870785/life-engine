@@ -85,3 +85,9 @@ retention 首版默认保留，不自动删候选/旧正文。未来显式保留
 ## 后续工作
 
 B1 增加 Memory 类型及 Owner 接受操作；C 才能开放 Story 来源验证和叙事委托政策，F 才能开放 Bridge。相关：[主架构](../SP-004B-WORLD-MEMORY.md)、[访问隔离](SP-004B-002-SCOPE-AUDIENCE-ISOLATION.md)。
+
+## B1 实现状态
+
+IMPLEMENTED / PENDING_INDEPENDENT_REVIEW。固定 Base 为 `4d628ca1b7b68609cd6fcf95e835c25ffa638c6b`。本节追加实施证据，不重写上述 B0 历史决策。
+
+领域对象位于 [memory.py](../../../runtime/life_engine/memory.py)，接受、拒绝与替代由 [MemoryRuntime](../../../runtime/life_engine/memory_runtime.py) 实现。后继保留来源、增加正文版本并记录管理操作。观测适配器和自动提取未实现，无来源证明的 OBSERVATION 拒绝。验收见 [领域测试](../../../tests/test_memory_domain.py) 与 [运行测试](../../../tests/test_memory_runtime.py)。

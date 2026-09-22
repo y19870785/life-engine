@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS photos (
 
 class Store:
     def __init__(self, path, agent_id):
-        from .world_schema import create_world_schema, validate_schema
+        from .world_schema import DATA_SCHEMA, create_world_schema, validate_schema
         self.path = Path(path)
         existed = self.path.exists()
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -39,7 +39,7 @@ class Store:
                     if query.strip():
                         db.execute(query)
                 db.execute("INSERT INTO meta VALUES ('agent_id',?)", (agent_id,))
-                db.execute("INSERT INTO meta VALUES ('schema_version','3')")
+                db.execute("INSERT INTO meta VALUES ('schema_version',?)", (str(DATA_SCHEMA),))
                 create_world_schema(db)
         self.agent_id = agent_id
 

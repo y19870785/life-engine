@@ -101,3 +101,9 @@ Schema 4 已有 Memory 写入后回退 3 不承诺无损：新 Memory 留在保�
 ## 后续工作
 
 B1 在独立任务授权后落实 Schema 4 结构、校验、迁移与上述最低恢复门禁。物理 DDL、控制记录编码和错误码需实现测试，但不能改变本 ADR 的版本、激活与不复活语义。相关：[主架构](../SP-004B-WORLD-MEMORY.md)、[并发与视图](SP-004B-003-REVISION-QUERY-CACHE.md)、[E 恢复围栏](SP-004E-001-RESTART-SESSION-RECOVERY.md)。
+
+## B1 实现状态
+
+IMPLEMENTED / PENDING_INDEPENDENT_REVIEW。固定 Base 为 `4d628ca1b7b68609cd6fcf95e835c25ffa638c6b`。本节追加实施证据，不重写上述 B0 历史决策。
+
+[world_schema.py](../../../runtime/life_engine/world_schema.py) 保留 2/3 识别，新增独立 3→4 路径；[durable.py](../../../runtime/life_engine/durable.py) 执行新 generation 和整安装激活。控制账本位于安装根 control/memory-control.db，独立锚位于 control/identity.json，格式版本 1，均不随业务备份回滚。意图后正文库失败使用显式 reconcile 收敛；账本与锚之间失败则隔离，首版不自动修复未知控制状态。验收见 [迁移测试](../../../tests/test_schema4_migration.py) 和 [删除恢复测试](../../../tests/test_memory_restore.py)。

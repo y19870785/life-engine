@@ -100,3 +100,9 @@ H 若不能证明 stable principal/session、message provenance、isolated conte
 ## 后续工作
 
 B1 实现受信服务合同和 Owner/会话最小权限；F/H 分别实现 Bridge 与宿主能力验证。相关：[主架构](../SP-004B-WORLD-MEMORY.md)、[语义](SP-004B-001-MEMORY-SEMANTICS.md)。
+
+## B1 实现状态
+
+IMPLEMENTED / PENDING_INDEPENDENT_REVIEW。固定 Base 为 `4d628ca1b7b68609cd6fcf95e835c25ffa638c6b`。本节追加实施证据，不重写上述 B0 历史决策。
+
+类型化受众与单一观看身份已实现；SQL 候选先限制完整 Scope 和 audience，直接 ID 使用同一授权查询。PRINCIPAL 因缺少可信登记服务拒绝，USER 不能被角色读取。未实现跨域、缓存、分页、导出或真实宿主接线。验收见 [运行测试](../../../tests/test_memory_runtime.py) 与 [仓储测试](../../../tests/test_memory_sqlite_repository.py)。
