@@ -29,14 +29,14 @@ def checked(method):
     return call
 
 
-def authorize(tx, context, *, owner=False):
+def authorize(tx, context, *, owner=False, deletion=False):
     if type(context) not in (OwnerMemoryContext, SessionMemoryContext) or (owner and type(context) is not OwnerMemoryContext):
         deny(MC.AUTHORIZATION_DENIED)
     scope = context.scope
     world = tx.world.get_world(scope.world_id)
     if world.timeline.scope != scope or context.principal.owner_id != scope.owner_id:
         deny(MC.AUTHORIZATION_DENIED)
-    if world.world.status is WorldStatus.TOMBSTONED:
+    if world.world.status is WorldStatus.TOMBSTONED and not (deletion and type(context) is OwnerMemoryContext):
         deny(MC.NOT_AVAILABLE)
     if type(context) is SessionMemoryContext:
         binding = tx.world.get_session(context.session_id)

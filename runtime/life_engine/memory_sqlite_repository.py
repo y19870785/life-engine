@@ -234,7 +234,7 @@ class SQLiteMemoryRepository:
         require(identity,IdempotencyIdentity)
         check_id(memory_id,IdKind.MEMORY)
         with self.transaction() as tx:
-            authorize(tx,context,owner=True)
+            authorize(tx,context,owner=True,deletion=True)
             stamp = fingerprint(['delete',scope_values(context.scope),str(memory_id)])
             replay = tx.replay(context,identity,stamp)
             if replay:

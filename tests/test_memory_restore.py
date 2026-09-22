@@ -6,6 +6,22 @@ from life_engine.memory_repository import MemoryRuntimeError,MemoryFailure as MC
 
 
 class MemoryRestoreTests(MemoryFixture,unittest.TestCase):
+    def test_tombstoned_world_denies_read_but_allows_owner_deletion(self):
+        from dataclasses import replace
+        record = self.create()
+        closed = self.world.exit(self.actor,self.a.world.world_id,self.a.timeline.scope.timeline_id,
+            self.session.session_id,self.a.world.revision,self.a.world.writer_epoch)
+        with self.world_repo.transaction() as tx:
+            tx.save_world(replace(closed,world=replace(closed.world,status=WorldStatus.TOMBSTONED,
+                          revision=closed.world.revision.next())),closed.world.revision)
+        with self.assertRaises(MemoryRuntimeError):
+            self.memory.query(self.owner,history=True)
+        receipt = self.delete(record)
+        self.assertEqual(receipt.revision.value,2)
+        with self.assertRaises(MemoryRuntimeError):
+            self.memory.get_memory(self.session,record.memory_id)
+        d.db_check(self.path)
+
     def backup(self):
         with d.locked(self.root,'management'),d.locked(self.root,self.key):
             return d.snapshot(self.root,d.registry(self.root),self.inst)
