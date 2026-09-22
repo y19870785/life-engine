@@ -113,7 +113,7 @@ def locked(root, key, timeout=15):
 
 def registry(root, *, allow_schema2=False):
     cfg = read(root / 'registry.json')
-    if cfg.get('format') != FORMAT or cfg.get('data_schema') not in ((2, DATA_SCHEMA) if allow_schema2 else (DATA_SCHEMA,)):
+    if cfg.get('format') != FORMAT or cfg.get('data_schema') not in ((2, 3, DATA_SCHEMA) if allow_schema2 else (DATA_SCHEMA,)):
         raise ValueError('Unsupported deployment/data schema; keep the existing installation')
     safe_name(cfg['release'])
     for key, instance in cfg['instances'].items():
@@ -152,8 +152,11 @@ def db_check(path, agent_id=None, *, expected_schema=DATA_SCHEMA):
         db.execute('PRAGMA foreign_keys=ON')
         db.execute('BEGIN')
         validate_schema(db, expected_schema, agent_id)
-        if expected_schema == 3:
+        if expected_schema >= 3:
             validate_world_data(db)
+        if expected_schema == 4:
+            from .memory_sqlite_repository import validate_memory_data
+            validate_memory_data(db)
 
 
 def copy_state(source, target, *, expected_schema=DATA_SCHEMA):
@@ -212,6 +215,11 @@ def state_check(data, instance, *, expected_schema=DATA_SCHEMA):
 def snapshot(root, reg, instance, destination=None, reason='manual'):
     """Caller holds this instance's lock, preventing managed writes during copy."""
     data = state_home(root, instance)
+    control_watermark = None
+    if reg['data_schema'] == 4:
+        from .memory_control import control
+        with control(root,reg.get('memory_install_id')) as (_,entries):
+            control_watermark = len(entries)
     destination = absolute(destination or root / 'backups')
     if destination == data or destination.is_relative_to(data):
         raise ValueError('Backup destination must be outside the active state')
@@ -229,6 +237,8 @@ def snapshot(root, reg, instance, destination=None, reason='manual'):
             'agent_id': instance['agent_id'], 'source_home': str(data), 'reason': reason,
             'release': reg['release'], 'created_at': datetime.now(timezone.utc).isoformat(),
             'files': checksums,
+            'memory_control_watermark': control_watermark,
+            'memory_install_id': reg.get('memory_install_id'),
         })
         os.replace(temporary, final)
         sync_dir(destination)
@@ -254,6 +264,27 @@ def verify_backup(path, instance, *, expected_schema=DATA_SCHEMA):
     return manifest
 
 
+def reconcile_memory_generation(root,reg,instance,data,manifest=None):
+    """激活副本前使用当前控制账本重放删除；不回滚管理域。调用方已持协调锁。"""
+    from .memory_control import control
+    from .memory_sqlite_repository import reconcile_db
+    with control(root,reg.get('memory_install_id')) as (_,entries):
+        if manifest is not None:
+            watermark = manifest.get('memory_control_watermark')
+            if (manifest.get('memory_install_id') != reg['memory_install_id'] or
+                    type(watermark) is not int or not 0<=watermark<=len(entries)):
+                raise ValueError('备份控制域身份或水位无法验证')
+        path = data / 'agents' / instance['agent_id'] / 'life.db'
+        with contextlib.closing(sqlite3.connect(path)) as db:
+            with db:
+                db.execute('BEGIN IMMEDIATE')
+                current = db.execute("SELECT value FROM meta WHERE key='last_applied_memory_control_seq'").fetchone()
+                if current is None or not current[0].isdigit() or int(current[0])>len(entries):
+                    raise ValueError('数据库控制水位无法验证')
+                reconcile_db(db,entries,instance['id'])
+    db_check(path,instance['agent_id'])
+
+
 def restore(root, instance_key, backup):
     root = absolute(root)
     with locked(root, 'management'), locked(root, instance_key):
@@ -267,6 +298,7 @@ def restore(root, instance_key, backup):
         rebase_photos(data, manifest['source_home'])
         candidate = dict(instance, generation=generation)
         state_check(data, candidate)
+        reconcile_memory_generation(root,reg,candidate,data,manifest)
         # Restoring history may undo dedupe records. Pause contact until the owner
         # reconciles recent actual deliveries and explicitly resumes.
         from .store import Store
@@ -302,7 +334,8 @@ def release_install(root, package):
         stage.mkdir(parents=True, mode=0o700)
         for path, content in contents.items():
             atomic_write(stage / relative(path), content)
-        write(stage / 'release.json', {'version': __version__, 'data_schema': DATA_SCHEMA, 'files': expected})
+        write(stage / 'release.json', {'version': __version__, 'data_schema': DATA_SCHEMA,
+                                      'memory_control_version':1, 'files': expected})
         os.replace(stage, release)
         sync_dir(release.parent)
     finally:
@@ -315,13 +348,16 @@ def probe_release(root, release, executable, *, expected_schema=DATA_SCHEMA):
     manifest = read(path / 'release.json')
     if manifest.get('data_schema') != expected_schema:
         raise ValueError('Release has an incompatible data schema')
+    if expected_schema==4 and manifest.get('memory_control_version')!=1:
+        raise ValueError('Release 不支持当前 Memory 删除控制协议')
     for name, expected in manifest['files'].items():
         if digest((path / relative(name)).read_bytes()) != expected:
             raise ValueError('Release integrity check failed')
     done = subprocess.run([executable, '-c',
         'import sys; sys.path.insert(0, sys.argv[1]); from life_engine import cli, deploy_cli, durable\n'
         'if durable.DATA_SCHEMA != int(sys.argv[2]): raise ValueError("SchemaMismatch")\n'
-        'if int(sys.argv[2]) == 3: from life_engine.world_sqlite_repository import SQLiteWorldRepository\n',
+        'if int(sys.argv[2]) >= 3: from life_engine.world_sqlite_repository import SQLiteWorldRepository\n'
+        'if int(sys.argv[2]) == 4: from life_engine.memory_runtime import MemoryRuntime\n',
         str(path / 'runtime'), str(expected_schema)],
         capture_output=True, text=True, encoding='utf-8', timeout=20, shell=False)
     if done.returncode:
@@ -384,7 +420,7 @@ def create_install(package, root, cfg, *, host_agent_id='', source=None, workflo
     if cfg['integration']['adapter'] == 'openclaw' and not host_agent_id:
         raise ValueError('OpenClaw requires its actual host agentId')
     if root.exists() and not (root / 'registry.json').exists():
-        extra = {p.name for p in root.iterdir()} - {'locks', 'releases', 'life.py', 'manage.py', 'bridges', 'instances'}
+        extra = {p.name for p in root.iterdir()} - {'locks', 'releases', 'life.py', 'manage.py', 'bridges', 'instances', 'control'}
         if extra:
             raise ValueError('Target is not a recognized Life Engine installation')
     root.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -395,6 +431,8 @@ def create_install(package, root, cfg, *, host_agent_id='', source=None, workflo
             'python': str(Path(getattr(sys, '_base_executable', sys.executable)).resolve()),
         }
         old = reg['instances'].get(key)
+        from .memory_control import initialize_control
+        initialize_control(root,reg)
         release = release_install(root, package)
         if reg.get('release') and reg['release'] != release:
             raise ValueError('This package is a different runtime release; run upgrade before adding or reconfiguring an instance')
@@ -478,8 +516,8 @@ def migrate_generation(root, data, instance):
     if any(data.resolve() == state_home(root, inst).resolve() for inst in active['instances'].values()):
         raise ValueError('禁止在活动 generation 中执行 Schema 迁移')
     expected = root / 'instances' / instance['id'] / 'data' / instance['generation']
-    if data != expected or not re.fullmatch(r'schema3-[0-9a-f]{32}', instance['generation']):
-        raise ValueError('迁移目标必须是本安装的新 Schema 3 generation')
+    if data != expected or not re.fullmatch(r'schema4-[0-9a-f]{32}', instance['generation']):
+        raise ValueError('迁移目标必须是本安装的新 Schema 4 generation')
     path = data / 'agents' / instance['agent_id'] / 'life.db'
     with contextlib.closing(sqlite3.connect(path)) as db:
         db.execute('PRAGMA foreign_keys=ON')
@@ -501,18 +539,20 @@ def upgrade(root, package):
             stack.enter_context(locked(root, key))
         for key, inst in sorted(reg['instances'].items()):
             state_check(state_home(root, inst), inst, expected_schema=schema)
-            saved = snapshot(root, reg, inst, reason='before-schema-3-migration' if schema == 2 else 'before-upgrade')
+            saved = snapshot(root, reg, inst, reason='before-schema-4-migration' if schema < DATA_SCHEMA else 'before-upgrade')
             verify_backup(saved, inst, expected_schema=schema)
             backups.append(str(saved))
         release = release_install(root, package)
         probe_release(root, release, reg['python'])
         rollback_point = None
-        if schema == 2:
+        from .memory_control import initialize_control
+        initialize_control(root,reg)
+        if schema < DATA_SCHEMA:
             for key, inst in sorted(reg['instances'].items()):
                 old_data = state_home(root, inst)
-                candidate = dict(inst, generation='schema3-' + uuid.uuid4().hex)
+                candidate = dict(inst, generation='schema4-' + uuid.uuid4().hex)
                 data = root / 'instances' / key / 'data' / candidate['generation']
-                copy_state(old_data, data, expected_schema=2)
+                copy_state(old_data, data, expected_schema=schema)
                 migrate_generation(root, data, candidate)
                 rebase_photos(data, old_data)
                 state_check(data, candidate)
@@ -540,19 +580,23 @@ def rollback_schema(root, checkpoint):
         active = registry(root)
         record = read(checkpoint)
         previous = record['previous']
-        if record.get('format') != FORMAT or previous.get('data_schema') != 2:
+        if record.get('format') != FORMAT or previous.get('data_schema') not in (2,3):
             raise ValueError('Schema 回退记录不兼容')
         if active['instances'] != record['activated_instances']:
             raise ValueError('实例或 generation 已变化；拒绝使用过期回退记录')
         for key in sorted(active['instances']):
             stack.enter_context(locked(root, key))
-        probe_release(root, previous['release'], previous['python'], expected_schema=2)
+        from .memory_control import control
+        with control(root,active.get('memory_install_id')) as (_,entries):
+            if entries:
+                raise ValueError('旧 release 不执行当前删除控制合同；拒绝在线跨 Schema 回退')
+        probe_release(root, previous['release'], previous['python'], expected_schema=previous['data_schema'])
         for key, inst in previous['instances'].items():
-            state_check(state_home(root, inst), inst, expected_schema=2)
+            state_check(state_home(root, inst), inst, expected_schema=previous['data_schema'])
         for inst in active['instances'].values():
             snapshot(root, active, inst, reason='before-schema-rollback')
         write(root / 'registry.json', previous)
-        return {'ok': True, 'release': previous['release'], 'data_schema': 2, 'old_generations_retained': True}
+        return {'ok': True, 'release': previous['release'], 'data_schema': previous['data_schema'], 'old_generations_retained': True}
 
 
 def health(root, key=None):
@@ -577,6 +621,14 @@ def health(root, key=None):
         with locked(root, ident):
             try:
                 state_check(state_home(root, instance), instance)
+                from .memory_control import control
+                with control(root,reg.get('memory_install_id')) as (_,entries):
+                    path = state_home(root,instance) / 'agents' / instance['agent_id'] / 'life.db'
+                    with contextlib.closing(sqlite3.connect(path.as_uri()+'?mode=ro',uri=True)) as db:
+                        applied = dict(db.execute('SELECT sequence,fingerprint FROM memory_applied_controls'))
+                        for entry in entries:
+                            if entry['instance_id']==ident and applied.get(entry['sequence'])!=entry['fingerprint']:
+                                raise ValueError('Memory 删除控制需要协调恢复')
             except (ValueError, OSError, sqlite3.Error) as exc:
                 errors.append(ident + ': ' + str(exc))
                 continue

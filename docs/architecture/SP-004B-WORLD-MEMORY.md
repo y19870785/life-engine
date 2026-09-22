@@ -1,10 +1,10 @@
-# SP-004B — World Memory 架构与 B0 冻结候选
+# SP-004B — World Memory 架构与实现状态
 
 ## 一、状态、基线与文档职责
 
-阶段：SP-004B0。固定 Base：`4372b557dc8e3cc498098b6fe26e13df51ce802e`。状态：**架构冻结候选 / PENDING_INDEPENDENT_REVIEW**。本文对方案作出明确选择，等待 ChatGPT / 小雪独立审核；不是实施完成或合并授权。B1 尚未开始。
+架构阶段 SP-004B0 已合并为 `4d628ca1b7b68609cd6fcf95e835c25ffa638c6b`；该提交是 SP-004B1 的固定 Base。B1 状态：**IMPLEMENTED / PENDING_INDEPENDENT_REVIEW**。下文保留 B0 的设计依据与未来扩展边界，当前实际实现见第十一节；不表示独立审核通过或授权合并。
 
-当前 SP-004/A/G/D/E/R、GOV-CI0 已合并。当前 `DATA_SCHEMA = 3`、`SIGNATURE = SP-004E-world-runtime-v1` 不变。未来持久 Memory 必须进入 Schema 4；本文没有 DDL、运行代码或迁移实现。
+SP-004/A/G/D/E/R、GOV-CI0 已合并。B1 实现分支的 `DATA_SCHEMA = 4`、`SIGNATURE = SP-004B-world-memory-v1`。历史 Schema 3 的签名与结构保持冻结，仍可独立验证；只在新 generation 副本中迁移。
 
 旧阶段文档中的 PENDING、Schema 2、PR #3 OPEN 等是当时记录。当前 [PR #3](https://github.com/y19870785/life-engine/pull/3) 为 CLOSED / NOT MERGED，历史 Head 为 `ab227f2179eeaa7ded662d612508a98ad5cdf04a`，只能只读参考。本轮不重写历史记录，不复活其 card/session 根、自动 EXIT 元记忆或旧 Schema 3。
 
@@ -197,8 +197,29 @@ B1 不包含 embeddings、vector DB、LLM 自动提取、Story/Lore/Bridge/Promp
 
 后续必须新增的合同验收包括：同定义双 World、角色 A/B/用户视角、UUID 猜测、来源伪造、同修订双连接竞争、EXIT 与写入竞争、幂等重试、替代失败原子性、缓存/分页撤销、索引落后、摘要来源撤销、恢复与删除控制记录故障、多实例迁移失败、旧 Schema 拒绝和 Windows 连接清理。现有 [领域测试](../../tests/test_domain.py)、[运行测试](../../tests/test_world_runtime.py)、[SQLite 测试](../../tests/test_world_sqlite_repository.py)、[迁移测试](../../tests/test_schema3_migration.py) 只锁定 A/D/E 基础，不能冒充上述未来 Memory 验收。
 
-## 十、本阶段交付限制
+## 十、B0 历史交付限制
 
-仅主文档及四份 ADR；Runtime/tests/CI 不修改。DATA_SCHEMA before/after 均为 3，Schema impact = NONE AT RUNTIME，Migration = NOT IMPLEMENTED。未来 Schema 4 是架构选择，独立审核通过后才成为接受的架构决策；不是已运行的 Schema。
+B0 当时仅交付主文档及四份 ADR，Runtime/tests/CI 未修改，DATA_SCHEMA before/after 均为 3。该段是历史记录，不用于描述 B1 实现状态。
 
 未冻结的物理细节仅为 B1 的列类型/索引组合/具体序列编码、最终内容大小上限与错误码拼写；不得借这些实施选择重议已明确的所有权、访问、接受权、修订和恢复安全合同。未来 C 的叙事委托政策及 F 的 Bridge 服务另行设计，不阻塞 B1 的 Owner 路径。
+
+## 十一、B1 实现与运行限制
+
+实现状态为 **IMPLEMENTED / PENDING_INDEPENDENT_REVIEW**，没有启动 C/J/F/K/H。入口是受信进程内的 [MemoryRuntime](../../runtime/life_engine/memory_runtime.py)，不是宿主工具或登录接口。OwnerMemoryContext 是管理路径断言；SessionMemoryContext 绑定单一观看身份。不能把这两个构造器开放给模型，也不能声称 Principal 本身是凭据。
+
+- [memory.py](../../runtime/life_engine/memory.py)：类型化 Memory ID、七种用途、四种生命周期、非空规范受众、主题、独立修订和不可变记录。
+- [memory_repository.py](../../runtime/life_engine/memory_repository.py)：仓储合同和固定 Memory 错误。
+- [memory_sqlite_repository.py](../../runtime/life_engine/memory_sqlite_repository.py)：附着既有 World runtime_id；管理锁 → 实例锁 → 控制库 → life.db 的固定次序；BEGIN IMMEDIATE 覆盖授权、当前会话、CAS、正文与回执。每次操作显式释放连接。
+- [memory_schema.py](../../runtime/life_engine/memory_schema.py)：八张新增表，含集合状态、正文、受众、主题、lineage、操作、幂等和已应用控制记录。创建 Timeline 的触发器同时建立 revision=0 集合；不修改历史 World DDL。
+- [memory_control.py](../../runtime/life_engine/memory_control.py)：安装管理域的 `control/memory-control.db` 和 `control/identity.json`，格式版本 1。SQLite 记录单调序号、安装与实例身份、Scope、目标、来源/幂等阻断引用、操作者、时间、哈希链和完成状态；不记录正文。独立锚记录最后序号与摘要，不能随业务恢复覆盖。
+- [world_schema.py](../../runtime/life_engine/world_schema.py) 与 [durable.py](../../runtime/life_engine/durable.py)：分别识别 2/3/4，依次执行 2→3 验证→4 验证；保留旧生活 memories、旧 generation 和 release。全部实例验证后一次更新 registry。Schema 4 release manifest 声明删除控制协议版本。
+
+删除先检查 Owner、Scope、CAS，再提交控制意图和同步锚；之后在 life.db 中写 tombstone、审计、回执与控制水位。跨文件不是 ACID：意图后故障立即阻断受影响集合，调用受信 `repository.reconcile()` 幂等收敛。账本提交与锚更新之间失败则隔离拒绝，不能自动相信较旧锚；需维护方核验并恢复完整控制域，首版不提供自动修复工具。恢复旧备份先在副本重放当前控制序列；来源和原操作身份阻断可覆盖“恢复到创建前再重放”。有删除控制记录时拒绝退回不执行该协议的旧 Schema release。
+
+查询采用完整 Scope 与受众 SQL 预过滤，确定性 ID 排序、子串匹配。默认仅 LIVE/ACCEPTED；Owner 可显式查看单 Scope 的审阅历史，但 tombstone 不返回正文，来源被删除的派生记录也不可见。查询持有控制锁和 SQLite 写保留锁，World EXIT、Memory mutation、删除与恢复无法在授权和结果构造中插入。返回后已交付的字节不能撤回。
+
+输入限制：正文 65,536 UTF-8 字节；查询 1,024 字节；受众、主题、直接 lineage 各最多 32 项；文本主题 512 字节；Provenance 来源标识与幂等来源各 512 字节、槽位 128 字节；返回 limit 为 1–100。查询每次最多检查 1,000 条已限域、限受众的匹配候选，依赖可见性遍历最多 1,000 个节点，越界拒绝。无 batch、分页、导出、缓存、FTS、向量或 embedding。结果可能少于 limit，不声明已穷尽集合，也不返回全集合计数。
+
+会话入口仅接受有当前绑定来源的 MODEL/CANDIDATE，默认实例或 Soul 私有。Owner 明确入口支持 USER_REPORT、MODEL、SIMULATION、IMPORT、LEGACY、OWNER_COMMAND，并保留各自真实性约束。OBSERVATION 没有可信采集适配器，首版拒绝其写入；PRINCIPAL 受众没有登记验证服务，同样拒绝。StoryEvent 与 BRIDGE 来源始终拒绝；不实现跨域共同体验生成。以上是拒绝未验证入口，不是伪造外部集成。
+
+新增验收：[领域](../../tests/test_memory_domain.py)、[授权服务](../../tests/test_memory_runtime.py)、[仓储](../../tests/test_memory_sqlite_repository.py)、[删除恢复](../../tests/test_memory_restore.py)、[Schema 4 迁移](../../tests/test_schema4_migration.py)。全部使用原创合成数据；现有 World 生命周期、卡片导入和宿主模拟测试继续保留。通过本地或 CI 测试不等于真实宿主已接入 Memory。

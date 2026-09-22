@@ -25,6 +25,7 @@ class IdKind(Enum):
     SESSION = 'session'
     EVENT = 'event'
     GRANT = 'grant'
+    MEMORY = 'memory'
 
 
 @dataclass(frozen=True)

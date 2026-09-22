@@ -107,3 +107,9 @@ Memory canonical record/控制状态才是真源。FTS、keyword、summary index
 ## 后续工作
 
 B1 定义专门 Memory 事务协议与值类型；具体 SQL/索引布局需故障与竞争测试验证，不在 B0 固定 DDL。相关：[主架构](../SP-004B-WORLD-MEMORY.md)、[访问隔离](SP-004B-002-SCOPE-AUDIENCE-ISOLATION.md)、[恢复合同](SP-004B-004-SCHEMA-4-MIGRATION.md)。
+
+## B1 实现状态
+
+IMPLEMENTED / PENDING_INDEPENDENT_REVIEW。固定 Base 为 `4d628ca1b7b68609cd6fcf95e835c25ffa638c6b`。本节追加实施证据，不重写上述 B0 历史决策。
+
+[SQLiteMemoryRepository](../../../runtime/life_engine/memory_sqlite_repository.py) 附着既有 runtime_id；独立集合 CAS、记录和幂等回执同事务。管理锁、实例锁、控制库与 life.db 按序持有，查询构造投影期间不能插入生命周期写入或删除。首版不实现派生索引或缓存；角色查询结果不含全集合 revision。验收见 [仓储测试](../../../tests/test_memory_sqlite_repository.py)。

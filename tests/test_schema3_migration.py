@@ -109,7 +109,7 @@ class MigrationTests(unittest.TestCase):
         new_inst = active['instances'][inst['id']]
         new_data = d.state_home(self.root, new_inst)
         after = self.rows(new_data)
-        self.assertEqual(active['data_schema'], 3)
+        self.assertEqual(active['data_schema'], d.DATA_SCHEMA)
         self.assertNotEqual(new_inst['generation'], inst['generation'])
         self.assertEqual({k:v for k,v in new_inst.items() if k != 'generation'},
                          {k:v for k,v in inst.items() if k != 'generation'})
@@ -121,7 +121,7 @@ class MigrationTests(unittest.TestCase):
         self.assertEqual(self.rows(data), before)
         saved = Path(result['backups'][0])
         manifest = d.verify_backup(saved, inst, expected_schema=2)
-        self.assertEqual(manifest['reason'], 'before-schema-3-migration')
+        self.assertEqual(manifest['reason'], 'before-schema-4-migration')
         self.old_run('from life_engine.durable import verify_backup; import json; '
                      'verify_backup(sys.argv[2],json.loads(sys.argv[3]))', saved, json.dumps(inst))
         self.assertTrue(d.health(self.root)['ok'])
