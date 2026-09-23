@@ -7,7 +7,8 @@ from unittest.mock import patch
 import sqlite3
 import unittest
 
-from memory_fixture import MemoryFixture, d, DomainId, IdKind, Principal, Provenance, SourceType, RealityStatus, CanonStatus
+from memory_fixture import (MemoryFixture, d, DomainId, IdKind, Principal, Provenance,
+    SourceType, RealityStatus, CanonStatus, WriterEpoch, MemoryAudience, AudienceKind)
 from life_engine.story import (FactPayload, CharacterPayload, RelationshipPayload, ThreadPayload,
     NarrativePayload, OwnerStoryContext, SessionStoryContext, StoryEventKind as K,
     StoryEventProposal, StoryIdempotencyIdentity, StoryRevision)
@@ -100,6 +101,41 @@ class StoryRuntimeTests(MemoryFixture,unittest.TestCase):
                 self.proposal(K.NARRATIVE_EVENT,NarrativePayload('晚到')),
                 StoryIdempotencyIdentity('synthetic','late'))
         self.assertEqual(caught.exception.code,SC.SESSION_STALE)
+
+    def test_wrong_principal_viewer_epoch_and_cross_world_correction(self):
+        first=self.accept(K.NARRATIVE_EVENT,NarrativePayload('世界甲'))
+        wrong=replace(self.story_session,principal=Principal(DomainId.new(IdKind.PRINCIPAL),self.actor.owner_id))
+        wrong_viewer=replace(self.story_session,viewer=MemoryAudience(AudienceKind.CHARACTER_INSTANCE,
+            DomainId.new(IdKind.CHARACTER)))
+        wrong_epoch=replace(self.story_session,writer_epoch=WriterEpoch(self.story_session.writer_epoch.value+1))
+        for context in (wrong,wrong_viewer,wrong_epoch):
+            with self.subTest(context=context),self.assertRaises(StoryRuntimeError) as caught:
+                self.story.get_story_projection(context)
+            self.assertEqual(caught.exception.code,SC.SESSION_STALE)
+        other=self.make_world()
+        other_owner=OwnerStoryContext(self.actor,other.timeline.scope)
+        receipt=self.story.accept_story_event(other_owner,StoryRevision(),
+            self.proposal(K.NARRATIVE_EVENT,NarrativePayload('世界乙')),
+            StoryIdempotencyIdentity('synthetic','other'))
+        with self.assertRaises(StoryRuntimeError) as caught:
+            self.accept(K.NARRATIVE_EVENT,NarrativePayload('跨界修正'),'cross',supersedes=receipt.event_id)
+        self.assertEqual(caught.exception.code,SC.EVENT_CONFLICT)
+        self.assertEqual(self.story.get_story_state(self.story_owner).revision.value,first.revision.value)
+
+    def test_lore_and_memory_revisions_do_not_follow_story(self):
+        from life_engine.lore import OwnerLoreContext
+        from life_engine.lore_runtime import LoreRuntime
+        from life_engine.lore_sqlite_repository import SQLiteLoreRepository
+        lore_repo=SQLiteLoreRepository(self.root,self.key,runtime_id=self.world_repo.runtime_id)
+        lore=LoreRuntime(lore_repo)
+        before_lore=lore.list_owner_bindings(OwnerLoreContext(self.actor,self.a.timeline.scope))[0]
+        before_memory=self.memory.collection_revision(self.owner)
+        before_world=self.world.snapshot(self.actor,self.a.world.world_id)
+        self.accept(K.WORLD_FACT_SET,FactPayload('setting','weather','rain'))
+        self.assertEqual(lore.list_owner_bindings(OwnerLoreContext(self.actor,self.a.timeline.scope))[0],before_lore)
+        self.assertEqual(self.memory.collection_revision(self.owner),before_memory)
+        self.assertEqual(self.world.snapshot(self.actor,self.a.world.world_id),before_world)
+        lore_repo.close()
 
     def test_invalid_subject_and_supersedes_rollback(self):
         before=self.story.get_story_state(self.story_owner)
