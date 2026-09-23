@@ -19,3 +19,7 @@ EXIT、SUSPEND、SWITCH、重启和 restore 都使旧 Session 失效；Story 接
 ## 后果与验证
 
 时钟从 WorldTimeline 最小字段中暂时分离，避免 C1 侵入既有 World CAS，但未来统一需显式映射。C1 必须验收初始 0、逐事件 +1、墙钟/ACTIVE 空转/SUSPEND 无变化、重启与 restore 精确恢复、旧 epoch/旧 runtime 拒绝、EXIT/SWITCH 与接受竞争不产生越界事件。
+
+## C1 实现状态
+
+C1 候选每接受一条事件推进独立 StoryRevision、事件序号和 StoryClock；不写 `world_timelines.logical_tick`，Session 接受在稳定 SQLite 事务中核对运行代次与 WriterEpoch。状态为 **IMPLEMENTED / PENDING_INDEPENDENT_REVIEW**，原决策不变。

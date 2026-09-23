@@ -28,6 +28,7 @@ class IdKind(Enum):
     MEMORY = 'memory'
     LORE_BOOK = 'lore_book'
     LORE_ENTRY = 'lore_entry'
+    STORY_THREAD = 'story_thread'
 
 
 @dataclass(frozen=True)

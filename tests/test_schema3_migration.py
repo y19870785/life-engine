@@ -121,7 +121,7 @@ class MigrationTests(unittest.TestCase):
         self.assertEqual(self.rows(data), before)
         saved = Path(result['backups'][0])
         manifest = d.verify_backup(saved, inst, expected_schema=2)
-        self.assertEqual(manifest['reason'], 'before-schema-5-migration')
+        self.assertEqual(manifest['reason'], 'before-schema-6-migration')
         self.old_run('from life_engine.durable import verify_backup; import json; '
                      'verify_backup(sys.argv[2],json.loads(sys.argv[3]))', saved, json.dumps(inst))
         self.assertTrue(d.health(self.root)['ok'])
@@ -202,7 +202,7 @@ class MigrationTests(unittest.TestCase):
             d.rollback_code(self.root, old['release'])
         with self.assertRaises(ValueError):
             d.rollback_schema(self.root, Path(result['schema_rollback']))
-        self.assertEqual(d.registry(self.root)['data_schema'],5)
+        self.assertEqual(d.registry(self.root)['data_schema'],6)
         self.assertTrue(d.state_home(self.root, new['instances'][inst['id']]).exists())
         self.assertTrue(data.exists())
 

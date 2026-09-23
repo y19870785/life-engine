@@ -17,3 +17,7 @@ Thread 可表达未完成任务、承诺、悬念或线索，有 `OPEN/RESOLVED/
 ## 后果与验证
 
 清楚保留了“世界当前事实”和“角色可记住什么”的区别，但 C1 必须对 Session 投影入口维持内部授权边界，未来 K 还需用途过滤。C1 验收 set/remove、非法实例/跨 World 主体、关系方向、thread open/update/resolve/cancel、非法状态迁移、叙事不改结构、同定义双 World 隔离及旧 Values 不产生 Story 真相。
+
+## C1 实现状态
+
+C1 候选以类型化事件投影 World fact、CharacterInstance 状态、有向关系和 OPEN/RESOLVED/CANCELLED 线索；纯叙事事件不改结构化值，旧 CharacterInstance Values 不参与 Story。状态为 **IMPLEMENTED / PENDING_INDEPENDENT_REVIEW**，原决策不变。

@@ -105,3 +105,11 @@ C1 可实现：Story 领域值、独立修订/时钟、类型化事件及来源�
 C1 不实现：LLM 抽取/自动接受、Story↔Memory 自动派生、Lore 自动转换、Prompt Runtime、Bridge、Hermes/OpenClaw、NPC 自主模拟、离线/墙钟剧情推进、AI 关系打分、情绪/规划引擎、向量库、聊天全文存档、物理删除或全系统事件溯源。
 
 留给 C1 任务书复核的**物理参数**：payload/叙事/投影最终字节上限，投影校验频率、索引与 snapshot token 格式。它们不得改变本文的真源、接受权、隔离、确定性、时钟和原子提交合同。C0 不启动 C1，不改 README，也不把架构提案宣称为已可用功能。
+
+## C1 实现状态
+
+以 canonical main `10b75a6f8fe6fd94b98e82a6e903cdcfcb8c6d1e` 为固定 Base 的 C1 候选已实现类型化 StoryEvent、Owner/Session 显式接受、独立 StoryRevision/StoryClock、数据库 CAS、幂等、不可变日志、纯 reducer、可重放投影、前向修正和有界 Owner 审计。Session 仅取得当前 Scope 的内部 StoryProjection；该投影不是可直接注入模型的角色知识视图。
+
+候选 Schema 6 签名为 `SP-004C-story-runtime-v1`，投影版本为 `SP-004C-story-projection-v1`。5→6 只在新 generation 为已有 Scope 建零修订空投影，不回填旧 Values、Memory 或 Lore。现有 Memory 删除控制与 Lore 固定版本绑定继续验证。`story_event_subjects` 未建表：首版所有结构化主体均在类型化 payload 内，日志和投影通过完整重放核对，避免第二处可变主体真源。
+
+本实现不包含模型自动事件抽取、Story↔Memory 自动派生、Lore 自动确权、Prompt Runtime、Bridge 或宿主集成。状态为 **IMPLEMENTED / PENDING_INDEPENDENT_REVIEW**；只有独立审核和合并后才能记为 DONE。
