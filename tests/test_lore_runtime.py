@@ -17,7 +17,7 @@ from life_engine.import_ir import JsonValue, LoreIR
 from life_engine.lore import (LoreActivationRequest, LoreBindingRevision, LoreBookVersion,
     LoreRegistrationIdentity, OwnerLoreContext, SessionLoreContext, LoreDiagnostic,
     LoreMemoryProjection, LoreBudget)
-from life_engine.memory import MemoryAudience, AudienceKind
+from life_engine.memory import MemoryAudience, AudienceKind, IdempotencyIdentity
 from life_engine.lore_repository import LoreRuntimeError, LoreFailure
 from life_engine.lore_runtime import LoreRuntime
 from life_engine.lore_sqlite_repository import SQLiteLoreRepository
@@ -274,6 +274,38 @@ class LoreRuntimeTests(MemoryFixture,unittest.TestCase):
         self.assertFalse(self.lore.list_owner_bindings(self.lore_owner)[1][0].enabled)
         self.assertTrue(self.lore.list_owner_bindings(other)[1][0].enabled)
 
+    def test_cross_book_recursion_and_same_definition_second_world(self):
+        first=self.register(synthetic_lore({'triggers':['开端'],'text':'中继'}),'book-a')
+        second=self.register(synthetic_lore({'triggers':['中继'],'text':'终章'}),'book-b')
+        self.lore.bind(self.lore_owner,first.book_id,first.book_version,2,LoreBindingRevision(),
+            LoreRegistrationIdentity('test','bind-a'))
+        self.lore.bind(self.lore_owner,second.book_id,second.book_version,1,LoreBindingRevision(1),
+            LoreRegistrationIdentity('test','bind-b'))
+        result=self.activate('开端',revision=LoreBindingRevision(2))
+        self.assertEqual(tuple(e.text for e in result.entries),('中继','终章'))
+        self.assertEqual(tuple(e.round for e in result.entries),(0,1))
+        other=self.make_world()
+        self.assertEqual(other.characters[0].definition,self.a.characters[0].definition)
+        binding=other.sessions[-1]
+        context=SessionLoreContext(self.actor,other.timeline.scope,binding.session_id,binding.writer_epoch,
+            self.world_repo.runtime_id,MemoryAudience(AudienceKind.CHARACTER_INSTANCE,binding.character_instance_id))
+        isolated=self.lore.activate(LoreActivationRequest(context,('开端 中继',),LoreBindingRevision()))
+        self.assertEqual(isolated.entries,())
+
+    def test_order_tie_break_uses_book_and_entry_ids(self):
+        first=self.register(synthetic_lore({'triggers':['同词'],'text':'甲','order':0},
+            {'triggers':['同词'],'text':'乙','order':0}),'order-a')
+        second=self.register(synthetic_lore({'triggers':['同词'],'text':'丙','order':0}),'order-b')
+        self.lore.bind(self.lore_owner,first.book_id,first.book_version,0,LoreBindingRevision(),
+            LoreRegistrationIdentity('test','order-bind-a'))
+        self.lore.bind(self.lore_owner,second.book_id,second.book_version,0,LoreBindingRevision(1),
+            LoreRegistrationIdentity('test','order-bind-b'))
+        result=self.activate('同词',revision=LoreBindingRevision(2))
+        keys=tuple((e.book_id.value.bytes,e.entry_id.value.bytes) for e in result.entries)
+        self.assertEqual(keys,tuple(sorted(keys)))
+        self.assertEqual(tuple(e.entry_id for e in result.entries),
+            tuple(e.entry_id for e in self.activate('同词',revision=LoreBindingRevision(2)).entries))
+
     def test_corrupt_lore_data_and_structure_fail_closed(self):
         receipt=self.register(synthetic_lore({'triggers':['词'],'text':'正文'}))
         with closing(sqlite3.connect(self.path)) as db:
@@ -292,6 +324,22 @@ class LoreRuntimeTests(MemoryFixture,unittest.TestCase):
               patch('re.search',side_effect=AssertionError('禁止正则'))):
             result=self.activate('安全词')
         self.assertEqual(tuple(e.text for e in result.entries),(payload,))
+
+    def test_hidden_and_deleted_memory_never_enter_fresh_projection(self):
+        receipt=self.register(synthetic_lore({'triggers':['萤火'],'text':'只由可见记忆触发'}))
+        self.bind(receipt)
+        memory=self.create('萤火来源',content='萤火')
+        def activate_from_fresh_query():
+            projection=LoreMemoryProjection.from_session_result(self.session,self.memory.query(self.session))
+            return self.lore.activate(LoreActivationRequest(self.lore_session,(),LoreBindingRevision(1),
+                memory_projection=projection))
+        self.assertEqual(len(activate_from_fresh_query().entries),1)
+        hidden=self.memory.hide_memory(self.owner,memory.memory_id,memory.revision,
+            IdempotencyIdentity('test-hide','one'))
+        self.assertEqual(activate_from_fresh_query().entries,())
+        self.memory.delete_memory(self.owner,memory.memory_id,hidden.revision,
+            IdempotencyIdentity('test-delete','one'))
+        self.assertEqual(activate_from_fresh_query().entries,())
 
     def test_exit_cannot_commit_inside_activation_boundary(self):
         receipt=self.register(synthetic_lore({'triggers':['门'],'text':'设定'}))
