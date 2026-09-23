@@ -1,5 +1,13 @@
 # v0.3 验证记录
 
+## 当前 canonical main 自动验证
+
+基线：`d89b362701e614415354c38302a102f593a0a0a7`（SP-004B1 合并提交）。[GitHub Actions 运行记录](https://github.com/y19870785/life-engine/actions/runs/35748952847) 已完成且通过：Ubuntu / Python 3.11、Ubuntu / Python 3.12、Windows / Python 3.11、Windows / Python 3.12。完整 `unittest` 共 217 项；Windows 为 216 项通过、1 项既有平台跳过。
+
+这些自动测试覆盖代码合同与模拟宿主，不等于真实 Hermes / OpenClaw Gateway、聊天渠道、GPU 出图或发送回执闭环验收；也不表示新的 World Memory 已自动接入宿主每轮聊天。
+
+## 2026-09-13 历史验证
+
 测试环境：Linux，Python 3.12.14，Node.js 24.19.0。验证日期：2026-09-13。
 
 执行：python -m unittest discover -s tests -q。
