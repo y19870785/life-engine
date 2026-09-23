@@ -2,9 +2,9 @@
 
 **让你的 Hermes / OpenClaw Agent 记住一些共同经历，在合适的时候主动联系你，并延续自己的角色日常。**
 
-Life Engine 是安装在已有 Agent 上的扩展。你继续使用原来的聊天渠道、模型和角色设定；它在背后保存状态、记录待跟进的话题，并帮助 Agent 判断什么时候适合开口。
+Life Engine 是运行在已有 Hermes / OpenClaw Agent 旁边的持久状态与角色世界运行层。你继续使用原来的聊天渠道、模型和角色设定；它保存状态和待跟进话题，为主动联系提供依据，并为可恢复的 World 与隔离记忆提供底层 Runtime。
 
-> **v0.3 开发预览**：已有可运行代码和自动化测试，尚未完成真实宿主、聊天渠道与 GPU 联调。已发现数据库缺失后自动建空库等问题，正式部署前请先查看 [已知问题](docs/KNOWN-ISSUES.md)。
+> **v0.3 开发预览**：已有可运行 Runtime、自动测试、持久 World Runtime 与 World Memory 基础设施。真实 Hermes / OpenClaw 的 World Memory 自动接线，以及 Story、Lore、Bridge 和 Prompt Runtime 仍在开发中；真实聊天渠道与 GPU 也尚未完成验收。请查看 [已知问题](docs/KNOWN-ISSUES.md)。
 
 ## 用起来是什么感觉？
 
@@ -24,17 +24,25 @@ Life Engine 是安装在已有 Agent 上的扩展。你继续使用原来的聊�
 
 | 能力 | 实际作用 | 当前边界 |
 | --- | --- | --- |
-| 精选记忆 | 保存偏好、共同经历和没聊完的话题，供后续聊天使用 | 需要 Agent 调工具记录，不会自动记住所有聊天 |
+| 日常记录 | 保存现有主动联系系统使用的简单记忆、观察和待跟进事项 | 与新的 World Memory 是不同层；需要 Agent 调工具记录 |
+| World Memory | 按 World、Timeline 和可见范围保存、查询长期记忆 | Runtime 已实现，尚未自动接入真实每轮 Prompt |
+| World 隔离 | Soul World 与各 Roleplay World 默认隔离；同一 World 内按可见范围区分角色视角 | 跨 World 共享尚未实现，未来由 Bridge 控制 |
 | 主动联系 | 考虑联系窗口、安静时段、最近聊天和次数上限，决定是否开口 | 需要宿主定时任务，不保证每天发满次数 |
 | 角色日常 | 提供当前活动、地点和稳定的当天视觉设定 | 是来自预设作息和随机选择的虚拟状态 |
 | 工作跟进 | 对已记录且到期的事项发起跟进 | 仍受联系窗口限制，不适合准点提醒 |
 | 情境照片 | 把角色形象与当时状态带入 ComfyUI 工作流 | 默认关闭，需要自己的可用工作流 |
-| 持续保存 | 独立保存记忆、配置和照片，支持备份、升级与恢复 | 依赖持久磁盘和备份，缺库保护仍需修复 |
+| 备份与恢复 | 保存状态、配置和照片，使用数据代次备份、迁移与恢复 | 依赖持久磁盘、有效备份及完整删除控制状态 |
 
 你可以选择两种模式：
 
 - **陪伴模式**：希望角色有日常延续感，偶尔主动聊天。作息和照片由你配置。
 - **工作模式**：跟进已记录的事情，不生成虚拟私人生活；没有到期待办时保持静默。
+
+## World Memory 是什么？
+
+Life Engine 已有独立的 World Memory 层。一条记忆除了正文，还属于明确的 Soul、World 和 Timeline，并规定哪些角色或用户视角可以读取。同一世界的公共知识、单个角色的私有记忆和用户管理视角各有可见范围。同一张 Character Card 可导入为 CharacterDefinition，再在不同 World 中创建 CharacterInstance；它们不会因为卡片或定义相同就自动共享经历。
+
+Soul World 与 Roleplay World 默认不互相读取记忆。当前还没有跨 World Bridge。被记录为 Memory 也不等于剧情状态自动改变；后续 Story Runtime 才负责已接受事件和世界状态。现有主动联系系统的轻量日常记录、Hermes / OpenClaw 自己的聊天历史、World Memory 是三层不同的数据。
 
 ## 它怎样和 Agent 配合？
 
@@ -52,9 +60,13 @@ Life Engine 检查状态、联系窗口和最近聊天
      宿主通过你指定的聊天渠道发送
 ```
 
-每轮聊天时，插件也会尝试补入当前状态和近期记忆。只有渠道、发送者身份明确匹配，且宿主提供可靠信息时，才自动记录你最近联系过它。
+现有插件会尝试向宿主补入旧生活状态和近期日常记录；新的 World Memory 尚未自动进入每轮真实聊天的 Prompt。只有渠道、发送者身份明确匹配，且宿主提供可靠信息时，才自动记录你最近联系过它。
 
 **模型负责理解与表达，Life Engine 负责状态和联系规则，Hermes / OpenClaw 负责调度与发送。** 安装扩展不会直接提升模型的推理能力；记忆记录和发送回执仍需要接入配合。
+
+## 现在还没有什么？
+
+World Memory 已有持久化、按范围授权的查询、用户管理入口和会话候选写入，但不会自动提取所有聊天，也没有语义向量检索或自动宿主注入。Story Runtime、Lore / World Book 激活、跨 World Bridge、Prompt Runtime，以及完整 Hermes / OpenClaw 角色模式接入尚未实现。Character Card 的安全导入与定义基础已具备；完整 Roleplay Prompt、World Book 执行和真实宿主模式切换仍在后续阶段。
 
 ## 开始使用
 
@@ -104,7 +116,7 @@ python "/永久目录/manage.py" connect --instance "实例ID"
 
 **重启之后还记得吗？**
 
-已保存的数据位于独立目录，普通宿主重启后会重新读取。升级会先备份再切换代码。不过当前存在缺库时误建空库的问题，持久化功能还不能保证所有故障下的数据安全。
+已保存的数据位于独立持久目录，普通宿主重启后会重新读取。当前持久化会检测活动数据库缺失、校验 Schema，并在升级与迁移时复制、验证和原子切换数据代次；旧代次保留作为恢复边界。World Memory 删除还有独立于业务代次的控制记录，正常恢复旧备份不会让已删除记忆重新进入应用查询。仍需持久磁盘、有效备份和完整控制状态；这不能擦除自行复制的旧备份、系统快照或已经发给外部模型的数据。
 
 **关机时还能主动联系吗？**
 
@@ -116,7 +128,7 @@ python "/永久目录/manage.py" connect --instance "实例ID"
 
 **记忆有多强？**
 
-目前主要提供最近几条已记录的记忆和待跟进话题，没有按当前话题进行长期记忆检索。是否记下重要内容，还依赖 Agent 正确调用工具。
+现有主动联系功能使用轻量日常记录和待跟进话题。新的 World Memory Runtime 已能按世界、时间线和可见范围持久保存并授权查询长期记忆，但尚未自动接入 Hermes / OpenClaw 的每轮真实 Prompt，也不会自动从全部聊天提取记忆；目前没有语义向量检索。
 
 **生成了图片，就代表已经发给我了吗？**
 
@@ -128,12 +140,14 @@ python "/永久目录/manage.py" connect --instance "实例ID"
 | --- | --- |
 | 让本机 Agent 帮你接入 | [接入任务说明](START-HERE.md) |
 | 备份、恢复、升级、配置插件 | [维护说明](docs/OPERATIONS.md) |
-| 了解当前缺陷和 Windows 测试结果 | [已知问题](docs/KNOWN-ISSUES.md) |
-| 查看原有 Linux 与模拟宿主测试记录 | [验证记录](docs/VALIDATION.md) |
+| 了解当前缺陷与历史测试记录 | [已知问题](docs/KNOWN-ISSUES.md) |
+| 查看当前 CI 与历史模拟宿主验证 | [验证记录](docs/VALIDATION.md) |
+| 了解 World Memory 架构 | [World Memory 架构](docs/architecture/SP-004B-WORLD-MEMORY.md) |
+| 查看开发阶段与后续路线 | [实施计划](docs/planning/SP-004-IMPLEMENTATION-PLAN.md) |
 | 查看配置样例 | [examples](examples/) |
 | 查看宿主接口参考来源 | [接口来源](docs/SOURCES.md) |
 | 维护旧版安装 | [v0.2 说明](V02-README.md) |
 
-源码位于 `runtime/life_engine/`，测试位于 `tests/`。开发者可运行 `python -m unittest discover -s tests -q`。2026-09-13 本机 Windows 检查为 50 项测试、5 项清理阶段错误、1 项跳过，详情见已知问题。
+源码位于 `runtime/life_engine/`，测试位于 `tests/`。开发者可运行 `python -m unittest discover -s tests -q`。当前 canonical main 的 CI 在 Ubuntu / Windows、Python 3.11 / 3.12 四矩阵运行完整测试并通过；数量与最新结果以 [GitHub Actions](https://github.com/y19870785/life-engine/actions) 为准。
 
 仓库保留 Apache-2.0 许可证，导入源码的 MIT 许可和版权声明另行保留。适用范围与来源见 [NOTICE.md](NOTICE.md)。
