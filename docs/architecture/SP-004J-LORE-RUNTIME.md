@@ -75,3 +75,11 @@ J0 不修改数据库。若 J1 增加 canonical 表，必须升级 `DATA_SCHEMA`
 | 持久化 | 重启保留绑定；恢复保留固定版本；新书版本不改旧绑定；Schema 迁移仅在副本中，旧 schema validator 保留。 |
 
 J1 允许实现领域值对象、受信登记与规范化、不可变版本、WorldScope 绑定、Owner 管理、会话激活、安全字面触发、常驻／禁用、selective、有限递归、固定顺序、硬预算、诊断、持久化迁移与测试。J1 不实施 Story／Relationship、Prompt Runtime、Host Integration、Bridge、自动 Memory／Story 创建、LLM Lore 解释、embedding／向量库、regex、JavaScript／插件／宏、联网或任意文件导入、外部书自动解析、SillyTavern 全行为兼容、原 PNG 资产归档或 Definition 自动升级。独立审核后才能把这些提案转成 J1 实施任务。
+
+## J1 实现状态
+
+状态：**IMPLEMENTED / PENDING_INDEPENDENT_REVIEW**。J0 的设计状态与历史决策保留在上文；本节只记录 SP-004J1 的实现。`LoreIR` 经受信注册转为不可变 `LoreBookVersion` 与 `LoreEntryDefinition`，Owner 以独立于 World 和 Memory 修订的 `LoreBindingRevision` 显式绑定。`SQLiteLoreRepository` 附着现有 `world_runtime_id`，不触发第二次 World 重启恢复。Session 激活在一个不修改数据的 SQLite 事务内校验 World、Session、viewer、WriterEpoch、运行代次、generation 和绑定修订，然后仅扫描该 Scope 的固定版本。该事务使用 `BEGIN IMMEDIATE`：现有 `WorldRuntime` 可直接写同一数据库而不持安装锁，因此激活须占用 SQLite 写入围栏，避免 EXIT 或换版在核验与结果构造之间提交。
+
+Schema 5 签名为 `SP-004J-lore-runtime-v1`。Schema 2/3/4 结构验证维持原合同；副本按 `2→3→4→5` 顺序升级，多实例全部通过后才切换 registry。新 Lore 结构包括资产、不可变版本与条目、独立触发词、绑定状态、管理审计与幂等记录。Schema 4 升级只给现有 Scope 补零修订，不回填任何 Lore。Schema 5 备份继续保存 Memory 控制水位与安装标识，恢复前继续重放 Memory 删除控制；Lore 本身没有物理删除账本，恢复 Schema 5 旧备份会精确回到当时的 Lore 版本和绑定。自动将 Schema 5 数据降级到 Schema 4 被拒绝。
+
+首版安全子集仅做 Unicode 字面匹配、常驻、禁用、简单 selective 与有界递归。未知可执行来源设置与 regex 条目保留来源摘要，但运行禁用；不解释扩展，也不从外部文件、URL 或 Memory 数据库抓取触发语料。扫描工作量按每次字面比较的语料 UTF-8 字节数计，先核对预算再比较。输出条目整条纳入，超预算立即停止，不跳去填入更短条目。激活结果只是一份不可信内容投影，不写 World、Memory、Story 或 Lore。资产退役／删除、Definition 默认书引用与真实宿主接入留待后续任务。

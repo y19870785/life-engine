@@ -76,14 +76,16 @@ class Schema4MigrationTests(unittest.TestCase):
             before = {t:db.execute('SELECT * FROM '+t).fetchall() for t in ('days','contacts','observations','memories','loops','photos','souls','worlds','world_timelines','character_definitions','character_instances','session_bindings')}
         result = d.upgrade(self.root,ROOT)
         new = d.registry(self.root)
-        self.assertEqual(new['data_schema'],4)
+        self.assertEqual(new['data_schema'],5)
         self.assertNotEqual(new['instances'][inst['id']]['generation'],inst['generation'])
         with closing(sqlite3.connect(d.state_home(self.root,new['instances'][inst['id']])/'agents/synthetic/life.db')) as db:
-            validate_schema(db,4)
+            validate_schema(db,5)
             for table,rows in before.items():
                 self.assertEqual(db.execute('SELECT * FROM '+table).fetchall(),rows)
             self.assertEqual(db.execute('SELECT count(*) FROM world_memories').fetchone()[0],0)
             self.assertEqual(db.execute('SELECT revision FROM memory_collection_state').fetchall(),[(0,)])
+            self.assertEqual(db.execute('SELECT revision FROM lore_binding_state').fetchall(),[(0,)])
+            self.assertEqual(db.execute('SELECT count(*) FROM lore_books').fetchone()[0],0)
         d.db_check(oldpath,expected_schema=3)
         self.assertTrue(Path(result['backups'][0]).exists())
         saved = (self.root/'registry.json').read_bytes()
@@ -127,10 +129,11 @@ class Schema4MigrationTests(unittest.TestCase):
             d.restore(self.root,inst['id'],Path(result['backups'][0]))
         self.assertEqual((self.root/'registry.json').read_bytes(),before)
 
-    def test_schema_rollback_requires_old_release_and_generation(self):
+    def test_schema5_refuses_automatic_downgrade(self):
         old,inst,data = self.install()
         result = d.upgrade(self.root,ROOT)
         with self.assertRaises(ValueError):
             d.rollback_code(self.root,old['release'])
-        d.rollback_schema(self.root,Path(result['schema_rollback']))
-        self.assertEqual(d.registry(self.root,allow_schema2=True),old)
+        with self.assertRaises(ValueError):
+            d.rollback_schema(self.root,Path(result['schema_rollback']))
+        self.assertEqual(d.registry(self.root)['data_schema'],5)

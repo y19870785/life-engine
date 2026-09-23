@@ -1,13 +1,14 @@
-"""识别历史 Schema 2/3 与 canonical Schema 4；仅迁移副本，不修复未知库。"""
+"""识别历史 Schema 2/3/4 与 canonical Schema 5；仅迁移副本。"""
 from contextlib import closing
 from functools import lru_cache
 import sqlite3
 
 from .world_repository import FailureCode as Code, fail
 
-DATA_SCHEMA = 4
-SCHEMA_SIGNATURES = {3: 'SP-004E-world-runtime-v1', 4: 'SP-004B-world-memory-v1'}
-SIGNATURE = SCHEMA_SIGNATURES[4]
+DATA_SCHEMA = 5
+SCHEMA_SIGNATURES = {3: 'SP-004E-world-runtime-v1', 4: 'SP-004B-world-memory-v1',
+                     5: 'SP-004J-lore-runtime-v1'}
+SIGNATURE = SCHEMA_SIGNATURES[5]
 WORLD_DDL = (
     """CREATE TABLE souls (
         soul_id TEXT PRIMARY KEY NOT NULL, owner_id TEXT NOT NULL,
@@ -66,17 +67,21 @@ def structure(db):
         "SELECT type,name,sql FROM sqlite_master WHERE name NOT GLOB 'sqlite_*' ORDER BY type,name") if sql)
 
 
-@lru_cache(maxsize=3)
+@lru_cache(maxsize=4)
 def expected_structure(version):
     from .store import SCHEMA
     with closing(sqlite3.connect(':memory:')) as db:
         db.executescript(SCHEMA)
-        if version in (3, 4):
+        if version in (3, 4, 5):
             for sql in WORLD_DDL:
                 db.execute(sql)
-        if version == 4:
+        if version >= 4:
             from .memory_schema import MEMORY_DDL
             for sql in MEMORY_DDL:
+                db.execute(sql)
+        if version == 5:
+            from .lore_schema import LORE_DDL
+            for sql in LORE_DDL:
                 db.execute(sql)
         return structure(db)
 
@@ -85,7 +90,7 @@ def validate_schema(db, expected=DATA_SCHEMA, agent_id=None):
     """先识别再验证；只读检查永远不建表、不迁移、不覆写元数据。"""
     try:
         meta = dict(db.execute('SELECT key,value FROM meta'))
-        if expected not in (2, 3, 4) or meta.get('schema_version') != str(expected):
+        if expected not in (2, 3, 4, 5) or meta.get('schema_version') != str(expected):
             fail(Code.SCHEMA_MISMATCH)
         if structure(db) != expected_structure(expected):
             fail(Code.SCHEMA_MISMATCH)
@@ -106,9 +111,12 @@ def create_world_schema(db, version=DATA_SCHEMA):
     for sql in WORLD_DDL:
         db.execute(sql)
     db.execute("INSERT INTO meta VALUES('world_schema',?)", (SCHEMA_SIGNATURES[version],))
-    if version == 4:
+    if version >= 4:
         from .memory_schema import create_memory_schema
         create_memory_schema(db)
+    if version == 5:
+        from .lore_schema import create_lore_schema
+        create_lore_schema(db)
 
 
 def migrate_2_to_3(db):
@@ -137,17 +145,48 @@ def migrate_3_to_4(db):
     validate_world_data(db)
     create_memory_schema(db)
     db.execute("UPDATE meta SET value='4' WHERE key='schema_version'")
-    db.execute("UPDATE meta SET value=? WHERE key='world_schema'", (SIGNATURE,))
+    db.execute("UPDATE meta SET value=? WHERE key='world_schema'", (SCHEMA_SIGNATURES[4],))
     validate_schema(db, 4)
+
+
+def migrate_4_to_5(db):
+    """在已验证的副本中增加空 Lore 资产表和每 Scope 零修订。"""
+    from .lore_schema import create_lore_schema
+    from .memory_sqlite_repository import validate_memory_data
+    from .world_sqlite_repository import validate_world_data
+    from .lore_sqlite_repository import validate_lore_data
+    validate_schema(db, 4)
+    validate_world_data(db)
+    validate_memory_data(db)
+    create_lore_schema(db)
+    db.execute("UPDATE meta SET value='5' WHERE key='schema_version'")
+    db.execute("UPDATE meta SET value=? WHERE key='world_schema'", (SIGNATURE,))
+    validate_schema(db, 5)
+    validate_world_data(db)
+    validate_memory_data(db)
+    validate_lore_data(db)
+    if db.execute('PRAGMA integrity_check').fetchone()[0] != 'ok':
+        fail(Code.STORAGE_CORRUPT)
 
 
 def migrate_copy(db):
     """副本升级的兼容入口；每个历史阶段分别识别、迁移、验证。"""
-    version = db.execute("SELECT value FROM meta WHERE key='schema_version'").fetchone()[0]
+    try:
+        row = db.execute("SELECT value FROM meta WHERE key='schema_version'").fetchone()
+    except sqlite3.DatabaseError:
+        fail(Code.SCHEMA_MISMATCH)
+    if row is None:
+        fail(Code.SCHEMA_MISMATCH)
+    version = row[0]
     if version == '2':
         migrate_2_to_3(db)
         version = '3'
     if version == '3':
         migrate_3_to_4(db)
-    else:
-        validate_schema(db, 4)
+        version = '4'
+    if version == '4':
+        migrate_4_to_5(db)
+        version = '5'
+    if version != '5':
+        fail(Code.SCHEMA_MISMATCH)
+    validate_schema(db, 5)

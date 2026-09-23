@@ -14,6 +14,10 @@ Soul 与 Roleplay 默认完全分隔：相同 Owner、书版本、Definition、�
 
 会话激活读取存储内最新 WorldSnapshot 与 SessionBinding，校验 Principal、Scope、World ACTIVE、Session OPEN、session viewer 对应当前 CharacterInstance 或 Soul、WriterEpoch、`runtime_id` 和当前 generation。Owner 管理上下文只用于显式管理或审计，不得拿 Owner 全量视图生成角色激活结果。SUSPENDED、ARCHIVED、TOMBSTONED World 禁止普通激活；Owner 可为解绑／删除及审计读取绑定，但不生成普通结果。直接按 EntryId 取会话条目也须检查当前绑定和 Scope，不能做全局 ID 探针。
 
+## J1 实现状态
+
+**IMPLEMENTED / PENDING_INDEPENDENT_REVIEW**。每个 WorldScope 的 `lore_binding_state` 从零开始，由数据库 CAS 管理。`lore_world_bindings` 对完整 Scope 与 BookId 唯一；同书同时只能绑定一个版本，换版必须显式 `rebind`。管理操作在 `BEGIN IMMEDIATE` 中核对 Owner、Scope 和版本并写审计、幂等与修订；普通激活在稳定只读事务内先核对会话围栏，再读取该 Scope 的绑定。Owner 可查看其资产；Session 没有直接条目探测或资产列举入口。Definition 默认书引用未实施。
+
 结果绑定安装身份、generation、runtime_id、完整 Scope、session_id、WriterEpoch、World.revision、LoreBindingRevision、书版本集合，以及可选 Memory 查询版本。未来 K 在把结果加入 Prompt 前重验这些值；EXIT、SUSPEND、SWITCH、重启和恢复使旧结果失效。会话身份检查应与取绑定和结果构造处于一致读取边界。结果的版本标签是陈旧检测材料，不是无需再校验的授权票据。
 
 ## Memory 与缓存
