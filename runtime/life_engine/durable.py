@@ -113,7 +113,7 @@ def locked(root, key, timeout=15):
 
 def registry(root, *, allow_schema2=False):
     cfg = read(root / 'registry.json')
-    if cfg.get('format') != FORMAT or cfg.get('data_schema') not in ((2, 3, 4, DATA_SCHEMA) if allow_schema2 else (DATA_SCHEMA,)):
+    if cfg.get('format') != FORMAT or cfg.get('data_schema') not in ((2, 3, 4, 5, DATA_SCHEMA) if allow_schema2 else (DATA_SCHEMA,)):
         raise ValueError('Unsupported deployment/data schema; keep the existing installation')
     safe_name(cfg['release'])
     for key, instance in cfg['instances'].items():
@@ -160,6 +160,9 @@ def db_check(path, agent_id=None, *, expected_schema=DATA_SCHEMA):
         if expected_schema >= 5:
             from .lore_sqlite_repository import validate_lore_data
             validate_lore_data(db)
+        if expected_schema >= 6:
+            from .story_sqlite_repository import validate_story_data
+            validate_story_data(db)
 
 
 def copy_state(source, target, *, expected_schema=DATA_SCHEMA):
@@ -361,7 +364,8 @@ def probe_release(root, release, executable, *, expected_schema=DATA_SCHEMA):
         'if durable.DATA_SCHEMA != int(sys.argv[2]): raise ValueError("SchemaMismatch")\n'
         'if int(sys.argv[2]) >= 3: from life_engine.world_sqlite_repository import SQLiteWorldRepository\n'
         'if int(sys.argv[2]) >= 4: from life_engine.memory_runtime import MemoryRuntime\n'
-        'if int(sys.argv[2]) >= 5: from life_engine.lore_runtime import LoreRuntime\n',
+        'if int(sys.argv[2]) >= 5: from life_engine.lore_runtime import LoreRuntime\n'
+        'if int(sys.argv[2]) >= 6: from life_engine.story_runtime import StoryRuntime\n',
         str(path / 'runtime'), str(expected_schema)],
         capture_output=True, text=True, encoding='utf-8', timeout=20, shell=False)
     if done.returncode:
@@ -520,8 +524,8 @@ def migrate_generation(root, data, instance):
     if any(data.resolve() == state_home(root, inst).resolve() for inst in active['instances'].values()):
         raise ValueError('禁止在活动 generation 中执行 Schema 迁移')
     expected = root / 'instances' / instance['id'] / 'data' / instance['generation']
-    if data != expected or not re.fullmatch(r'schema5-[0-9a-f]{32}', instance['generation']):
-        raise ValueError('迁移目标必须是本安装的新 Schema 5 generation')
+    if data != expected or not re.fullmatch(r'schema6-[0-9a-f]{32}', instance['generation']):
+        raise ValueError('迁移目标必须是本安装的新 Schema 6 generation')
     path = data / 'agents' / instance['agent_id'] / 'life.db'
     with contextlib.closing(sqlite3.connect(path)) as db:
         db.execute('PRAGMA foreign_keys=ON')
@@ -543,7 +547,7 @@ def upgrade(root, package):
             stack.enter_context(locked(root, key))
         for key, inst in sorted(reg['instances'].items()):
             state_check(state_home(root, inst), inst, expected_schema=schema)
-            saved = snapshot(root, reg, inst, reason='before-schema-5-migration' if schema < DATA_SCHEMA else 'before-upgrade')
+            saved = snapshot(root, reg, inst, reason='before-schema-6-migration' if schema < DATA_SCHEMA else 'before-upgrade')
             verify_backup(saved, inst, expected_schema=schema)
             backups.append(str(saved))
         release = release_install(root, package)
@@ -554,7 +558,7 @@ def upgrade(root, package):
         if schema < DATA_SCHEMA:
             for key, inst in sorted(reg['instances'].items()):
                 old_data = state_home(root, inst)
-                candidate = dict(inst, generation='schema5-' + uuid.uuid4().hex)
+                candidate = dict(inst, generation='schema6-' + uuid.uuid4().hex)
                 data = root / 'instances' / key / 'data' / candidate['generation']
                 copy_state(old_data, data, expected_schema=schema)
                 migrate_generation(root, data, candidate)
@@ -584,10 +588,10 @@ def rollback_schema(root, checkpoint):
         active = registry(root)
         record = read(checkpoint)
         previous = record['previous']
-        if record.get('format') != FORMAT or previous.get('data_schema') not in (2,3,4):
+        if record.get('format') != FORMAT or previous.get('data_schema') not in (2,3,4,5):
             raise ValueError('Schema 回退记录不兼容')
-        if active['data_schema'] == 5 and previous['data_schema'] < 5:
-            raise ValueError('Schema 5 不提供自动降级；Lore 数据必须保留')
+        if active['data_schema'] == 6 and previous['data_schema'] < 6:
+            raise ValueError('Schema 6 不提供自动降级；Story 数据必须保留')
         if active['instances'] != record['activated_instances']:
             raise ValueError('实例或 generation 已变化；拒绝使用过期回退记录')
         for key in sorted(active['instances']):
