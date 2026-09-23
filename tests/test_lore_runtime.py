@@ -11,7 +11,7 @@ import unittest
 from memory_fixture import MemoryFixture, d, ROOT, SQLiteWorldRepository
 from life_engine.world_runtime import WorldRuntime
 from life_engine.domain import (DomainId, IdKind, Provenance, SourceType, RealityStatus,
-    WorldScope, World, WorldKind, WorldTimeline, Revision, WriterEpoch)
+    WorldScope, World, WorldKind, WorldTimeline, Revision, WriterEpoch, Principal)
 from life_engine.world_repository import WorldSnapshot
 from life_engine.import_ir import JsonValue, LoreIR
 from life_engine.lore import (LoreActivationRequest, LoreBindingRevision, LoreBookVersion,
@@ -340,6 +340,56 @@ class LoreRuntimeTests(MemoryFixture,unittest.TestCase):
         self.memory.delete_memory(self.owner,memory.memory_id,hidden.revision,
             IdempotencyIdentity('test-delete','one'))
         self.assertEqual(activate_from_fresh_query().entries,())
+
+    def test_binding_management_full_chain_and_failed_bind_rollback(self):
+        first=self.register(synthetic_lore({'triggers':['钥匙'],'text':'旧'}))
+        newer=self.lore.register_version(self.asset_owner,first.book_id,LoreBookVersion(1),
+            synthetic_lore({'triggers':['钥匙'],'text':'新'}),LoreRegistrationIdentity('test','version-two'))
+        bound=self.bind(first)
+        self.assertEqual(bound.revision,LoreBindingRevision(1))
+        with self.assertRaises(LoreRuntimeError) as caught:
+            self.lore.bind(self.lore_owner,first.book_id,newer.book_version,1,LoreBindingRevision(1),
+                LoreRegistrationIdentity('test','duplicate-version'))
+        self.assertEqual(caught.exception.code,LoreFailure.NOT_AVAILABLE)
+        self.assertEqual(self.lore.list_owner_bindings(self.lore_owner)[0],LoreBindingRevision(1))
+        disabled=self.lore.disable(self.lore_owner,first.book_id,LoreBindingRevision(1),
+            LoreRegistrationIdentity('test','disable-chain'))
+        self.assertEqual(disabled.revision,LoreBindingRevision(2))
+        self.assertEqual(disabled,self.lore.disable(self.lore_owner,first.book_id,LoreBindingRevision(1),
+            LoreRegistrationIdentity('test','disable-chain')))
+        self.assertEqual(self.activate('钥匙',revision=LoreBindingRevision(2)).entries,())
+        enabled=self.lore.enable(self.lore_owner,first.book_id,LoreBindingRevision(2),
+            LoreRegistrationIdentity('test','enable-chain'))
+        self.assertEqual(enabled.revision,LoreBindingRevision(3))
+        rebound=self.lore.rebind(self.lore_owner,first.book_id,newer.book_version,LoreBindingRevision(3),
+            LoreRegistrationIdentity('test','rebind-chain'))
+        self.assertEqual(rebound.revision,LoreBindingRevision(4))
+        self.assertEqual(tuple(e.text for e in self.activate('钥匙',revision=LoreBindingRevision(4)).entries),('新',))
+        removed=self.lore.unbind(self.lore_owner,first.book_id,LoreBindingRevision(4),
+            LoreRegistrationIdentity('test','unbind-chain'))
+        self.assertEqual(removed.revision,LoreBindingRevision(5))
+        self.assertEqual(self.lore.list_owner_bindings(self.lore_owner)[1],())
+        self.assertEqual(self.activate('钥匙',revision=LoreBindingRevision(5)).entries,())
+        d.db_check(self.path)
+
+    def test_wrong_principal_session_viewer_epoch_and_suspend_denied(self):
+        receipt=self.register(synthetic_lore({'triggers':['门禁'],'text':'受围栏保护'}))
+        self.bind(receipt)
+        variants=(
+            replace(self.lore_session,principal=Principal(DomainId.new(IdKind.PRINCIPAL),self.actor.owner_id)),
+            replace(self.lore_session,session_id=DomainId.new(IdKind.SESSION)),
+            replace(self.lore_session,viewer=MemoryAudience(AudienceKind.SOUL,self.soul.soul_id)),
+            replace(self.lore_session,writer_epoch=self.session.writer_epoch.next()),
+        )
+        for context in variants:
+            with self.subTest(context=context),self.assertRaises(LoreRuntimeError) as caught:
+                self.lore.activate(LoreActivationRequest(context,('门禁',),LoreBindingRevision(1)))
+            self.assertEqual(caught.exception.code,LoreFailure.SESSION_STALE)
+        self.world.suspend(self.actor,self.a.world.world_id,self.a.timeline.scope.timeline_id,
+            self.session.session_id,self.a.world.revision,self.a.world.writer_epoch)
+        with self.assertRaises(LoreRuntimeError) as caught:
+            self.activate('门禁')
+        self.assertEqual(caught.exception.code,LoreFailure.SESSION_STALE)
 
     def test_exit_cannot_commit_inside_activation_boundary(self):
         receipt=self.register(synthetic_lore({'triggers':['门'],'text':'设定'}))
