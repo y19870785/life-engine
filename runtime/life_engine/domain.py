@@ -26,6 +26,8 @@ class IdKind(Enum):
     EVENT = 'event'
     GRANT = 'grant'
     MEMORY = 'memory'
+    LORE_BOOK = 'lore_book'
+    LORE_ENTRY = 'lore_entry'
 
 
 @dataclass(frozen=True)

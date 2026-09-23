@@ -16,6 +16,10 @@ SP-004B0 已合并于 `4d628ca1b7b68609cd6fcf95e835c25ffa638c6b`。以该提交�
 
 以 canonical main `1a73f6e43caf54bd34ae810c9b58eddb25f6fb88` 为固定 Base 的 SP-004J0 正在冻结 [Lore / World Book Runtime 架构](../architecture/SP-004J-LORE-RUNTIME.md)及四份 ADR；状态为 **PROPOSED / PENDING_INDEPENDENT_REVIEW**。J0 只交付设计，不表示 J1 已获实施授权或 Lore 激活能力已进入 main；当前 `DATA_SCHEMA = 4` 不变。上文 SP-004R 和 SP-004B1 的阶段用语保留各自成文时的历史状态，本段不重写其他阶段记录。
 
+### SP-004J1 当前实现记录
+
+SP-004J0 已进入 canonical main `0fe1a416b70a90914581d7698a30cc066b4c1ba1`。以此为固定 Base 的 SP-004J1 已实现 Lore 受信注册、不可变书版本、WorldScope 显式绑定及 CAS、Session 围栏、确定性有界激活、Schema 5 与副本迁移、备份和恢复；详见 [J1 实现状态](../architecture/SP-004J-LORE-RUNTIME.md#j1-实现状态)。本分支状态为 **IMPLEMENTED / PENDING_INDEPENDENT_REVIEW**，只有合并后才能记为 DONE。旧阶段表与 J0 设计记录保留成文时状态，不把 Story、Bridge、Prompt 或 Host Integration 误标为已完成。
+
 | 阶段 | 实际交付 | 状态 | 已合并提交 | 明确不包含 |
 | --- | --- | --- | --- | --- |
 | SP-004 | 持久 World Runtime 架构、领域边界与初始差距分析 | DONE | `f040a8241e3b6ebc34f4025c6f5211829a0d040c` | 不等于全部运行能力已实现 |

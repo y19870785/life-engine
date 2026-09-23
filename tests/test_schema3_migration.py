@@ -121,7 +121,7 @@ class MigrationTests(unittest.TestCase):
         self.assertEqual(self.rows(data), before)
         saved = Path(result['backups'][0])
         manifest = d.verify_backup(saved, inst, expected_schema=2)
-        self.assertEqual(manifest['reason'], 'before-schema-4-migration')
+        self.assertEqual(manifest['reason'], 'before-schema-5-migration')
         self.old_run('from life_engine.durable import verify_backup; import json; '
                      'verify_backup(sys.argv[2],json.loads(sys.argv[3]))', saved, json.dumps(inst))
         self.assertTrue(d.health(self.root)['ok'])
@@ -194,16 +194,17 @@ class MigrationTests(unittest.TestCase):
             d.migrate_generation(self.root, data, inst)
         self.assertEqual(self.rows(data), before)
 
-    def test_schema_rollback_blocks_code_only_and_restores_whole_tuple(self):
+    def test_schema5_refuses_old_code_and_data_downgrade(self):
         old, inst, data = self.install_old()
         result = d.upgrade(self.root, ROOT)
         new = d.registry(self.root)
         with self.assertRaises(ValueError):
             d.rollback_code(self.root, old['release'])
-        d.rollback_schema(self.root, Path(result['schema_rollback']))
-        self.assertEqual(d.registry(self.root, allow_schema2=True), old)
+        with self.assertRaises(ValueError):
+            d.rollback_schema(self.root, Path(result['schema_rollback']))
+        self.assertEqual(d.registry(self.root)['data_schema'],5)
         self.assertTrue(d.state_home(self.root, new['instances'][inst['id']]).exists())
-        self.assert_old_works(inst, data)
+        self.assertTrue(data.exists())
 
     def test_pre_migration_backup_includes_committed_wal(self):
         _, inst, data = self.install_old()
