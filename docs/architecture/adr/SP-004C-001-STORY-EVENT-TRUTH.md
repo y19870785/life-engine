@@ -19,3 +19,7 @@
 ## 后果与验证
 
 Story 不再随模型口吻或 Lore/Memory 增减而隐式变化；代价是上游必须提供明确接受操作。C1 必须测试模型/Lore/Memory 不自动确权、Owner/Session 两条受信路径、重试回执、并发冲突、跨 World/Timeline 禁止修正、旧事件不可变及新事件前向改变投影。事件文本即使含 Prompt 指令也始终是数据，不授予工具、Memory audience、Bridge grant 或 Host 权限。
+
+## C1 实现状态
+
+C1 候选通过显式 Owner/Session 接受写入不可变事件日志；同键幂等在 CAS 前重放，`supersedes_event_id` 只作前向修正，不删改旧事件。状态为 **IMPLEMENTED / PENDING_INDEPENDENT_REVIEW**，原决策不变。

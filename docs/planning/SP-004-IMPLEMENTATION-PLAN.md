@@ -110,3 +110,25 @@ Schema 2 → canonical Schema 3 的部署迁移已由 E 完成，继续遵守其
 32 文件的唯一主分类、剩余能力矩阵、关闭条件与拟议说明统一记录在[替代清单](SP-004R-PR3-SUPERSESSION.md)。清单及本计划合并、独立审核并另获关闭授权之前，PR #3 保持 OPEN / DRAFT / NOT MERGED。后续关闭也保留远端分支至少到 Lore/Memory/Host Integration 完成。
 
 本轮不启动 B/J/C/F/K/H/L，不修改 runtime、tests、Schema 或真实角色卡，不接入真实宿主；完成后停止等待独立审核。
+
+## 八、当前 canonical 能力矩阵（2026-09 复盘）
+
+本节以 main `10b75a6f8fe6fd94b98e82a6e903cdcfcb8c6d1e` 为事实基线；上文保留各历史任务成文时的状态与旧建议顺序。SP-004C1 为本分支候选，不冒充已合并 main。完整依据见[中期复盘](SP-004-MIDTERM-REVIEW-2026-09.md)。
+
+| 能力 | 阶段 | 当前状态 | canonical 提交 | 已实现 | 尚未实现 |
+| --- | --- | --- | --- | --- | --- |
+| Domain | SP-004A | DONE | `1ba30e32c42dfa3206e5ace93b25b8d522954e33` | Owner、Soul、World、Timeline、领域身份 | 完整 Bridge |
+| Import | SP-004G | DONE | `f71d1b7f1718bc8be9916b1c09dde625aaa0d362` | CharacterImportIR、CharacterDefinition、LoreIR 保真 | 原包资产仓库 |
+| World Runtime | SP-004D | DONE | `399b084a8a5dfd76eb2aa3d0aac9ebbaafd35260` | CharacterInstance、SessionBinding、生命周期和围栏 | Story 事件真源 |
+| Persistence | SP-004E | DONE | `780c7a54635e7347b914751ce0c79e350800be0b` | 同库 SQLite、代次、迁移、备份恢复 | 宿主自动接线 |
+| Memory | SP-004B | DONE | `d89b362701e614415354c38302a102f593a0a0a7` | WorldScope/Audience、CAS、幂等、删除恢复控制 | 自动提取与 Host 注入 |
+| Lore | SP-004J | DONE | `0028faedc36e00c52b9328e15a43fa81c31f9475` | 固定版本、显式绑定、有界确定激活、Schema 5 | 完整 SillyTavern 执行 |
+| Story | SP-004C0/C1 | 架构 DONE；Runtime 候选 | `10b75a6f8fe6fd94b98e82a6e903cdcfcb8c6d1e`（C0） | 已冻结 accepted event、投影、时钟合同 | C1 未进入 main；无自动抽取 |
+| Prompt | SP-004K | PROPOSED | — | — | Prompt 架构与运行时 |
+| Bridge | SP-004F | PROPOSED | — | — | 受控跨 World 投影 |
+| Host | SP-004H | PROPOSED | — | — | Hermes/OpenClaw 实机角色接入 |
+| Assets | SP-004L | PROPOSED 旁线 | — | — | 原包、头像、历史与 Definition 升级 |
+
+## 九、2026-09 中期路线调整（PROPOSED）
+
+上文 `B → J → C → F → K → H` 是历史建议。当前推荐主线为 **C1 → K0 → K1 → F0 → F1 → H0 → H1 → H2**，L 为旁线。C1 将世界中发生的事件确权；K 先消费 World、Definition、Instance、Story、Lore、Memory 与 Session 的授权投影，验证安全角色上下文；普通 Roleplay 不需要先开放 Soul Bridge。F 后续只桥接受授权的最小跨域投影，再由 K 消费；H 将宿主合同、Hermes 和 OpenClaw 适配分开。该顺序不构成后续阶段实施或合并授权。
