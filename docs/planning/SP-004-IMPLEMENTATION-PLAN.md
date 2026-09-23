@@ -12,6 +12,10 @@
 
 SP-004B0 已合并于 `4d628ca1b7b68609cd6fcf95e835c25ffa638c6b`。以该提交为固定 Base 的 SP-004B1 当前为 **IMPLEMENTED / PENDING_INDEPENDENT_REVIEW**，交付 World Memory 授权运行、同库持久化、独立 CAS、Schema 4 副本迁移与删除恢复门禁；详见 [World Memory 实现状态](../architecture/SP-004B-WORLD-MEMORY.md)。本记录不将 B1 标为 DONE，不启动后续 C/J/F/K/H/L，也不表示已完成真实宿主接入。下列 SP-004R 时点的阶段表与建议依赖仍作为历史路线记录。
 
+### SP-004J0 当前设计记录
+
+以 canonical main `1a73f6e43caf54bd34ae810c9b58eddb25f6fb88` 为固定 Base 的 SP-004J0 正在冻结 [Lore / World Book Runtime 架构](../architecture/SP-004J-LORE-RUNTIME.md)及四份 ADR；状态为 **PROPOSED / PENDING_INDEPENDENT_REVIEW**。J0 只交付设计，不表示 J1 已获实施授权或 Lore 激活能力已进入 main；当前 `DATA_SCHEMA = 4` 不变。上文 SP-004R 和 SP-004B1 的阶段用语保留各自成文时的历史状态，本段不重写其他阶段记录。
+
 | 阶段 | 实际交付 | 状态 | 已合并提交 | 明确不包含 |
 | --- | --- | --- | --- | --- |
 | SP-004 | 持久 World Runtime 架构、领域边界与初始差距分析 | DONE | `f040a8241e3b6ebc34f4025c6f5211829a0d040c` | 不等于全部运行能力已实现 |
