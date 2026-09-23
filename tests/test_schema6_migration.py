@@ -96,6 +96,8 @@ world.register_definition(actor,definition)
 w=world.create_roleplay_world(actor,soul.soul_id,now)
 w=world.instantiate(actor,w.world.world_id,w.timeline.scope.timeline_id,definition.reference,w.world.revision,now)
 w=world.enter(actor,w.world.world_id,w.timeline.scope.timeline_id,w.characters[0].character_instance_id,w.world.revision,w.world.writer_epoch)
+w=world.exit(actor,w.world.world_id,w.timeline.scope.timeline_id,w.sessions[-1].session_id,w.world.revision,w.world.writer_epoch)
+w=world.resume(actor,w.world.world_id,w.timeline.scope.timeline_id,w.characters[0].character_instance_id,w.world.revision,w.world.writer_epoch)
 scope=w.timeline.scope
 memory_repo=SQLiteMemoryRepository(root,key,runtime_id=repo.runtime_id)
 memory=MemoryRuntime(memory_repo)

@@ -137,6 +137,32 @@ class StoryRuntimeTests(MemoryFixture,unittest.TestCase):
         self.assertEqual(self.world.snapshot(self.actor,self.a.world.world_id),before_world)
         lore_repo.close()
 
+    def test_switch_fences_old_session(self):
+        target=self.make_world()
+        target=self.world.exit(self.actor,target.world.world_id,target.timeline.scope.timeline_id,
+            target.sessions[-1].session_id,target.world.revision,target.world.writer_epoch)
+        current=self.world.snapshot(self.actor,self.a.world.world_id)
+        self.world.switch_world(self.actor,current.world.world_id,current.timeline.scope.timeline_id,
+            self.session.session_id,current.world.revision,current.world.writer_epoch,
+            target.world.world_id,target.timeline.scope.timeline_id,target.characters[0].character_instance_id,
+            target.world.revision,target.world.writer_epoch)
+        with self.assertRaises(StoryRuntimeError) as caught:
+            self.story.get_story_projection(self.story_session)
+        self.assertEqual(caught.exception.code,SC.SESSION_STALE)
+
+    def test_failure_after_event_insert_rolls_back_every_story_row(self):
+        from life_engine.story_sqlite_repository import StoryTransaction
+        original=StoryTransaction.insert
+        def interrupted(tx,*args):
+            original(tx,*args)
+            raise RuntimeError('模拟提交前故障')
+        with patch.object(StoryTransaction,'insert',interrupted),self.assertRaises(RuntimeError):
+            self.accept(K.NARRATIVE_EVENT,NarrativePayload('不得半提交'))
+        self.assertEqual(self.story.get_story_state(self.story_owner).revision.value,0)
+        with closing(sqlite3.connect(self.path)) as db:
+            for table in ('story_events','story_operations','story_idempotency'):
+                self.assertEqual(db.execute('SELECT count(*) FROM '+table).fetchone()[0],0,table)
+
     def test_invalid_subject_and_supersedes_rollback(self):
         before=self.story.get_story_state(self.story_owner)
         with self.assertRaises(StoryRuntimeError):
