@@ -268,6 +268,9 @@ class PromptRuntime:
         token_used = self.token_estimator.estimate(text) if self.token_estimator is not None else None
         if token_used is not None and (type(token_used) is not int or token_used < 0):
             fail(PromptFailure.INVALID_ARGUMENT)
+        if (request.budget.max_total_tokens is not None and token_used is not None and
+                token_used > request.budget.max_total_tokens):
+            fail(PromptFailure.BUDGET_REQUIRED)
         memory, lore, story = request.memory, request.lore, request.story
         result = PromptSnapshot(
             request.session.scope, request.session.principal, request.session.viewer,

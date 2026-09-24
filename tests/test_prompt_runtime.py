@@ -19,7 +19,7 @@ from life_engine.prompt import (ConversationProjection, ConversationTurn, Prompt
     PromptAuthority, PromptBudget, PromptDiagnostic, PromptFailure, PromptItem,
     PromptLoreProjection, PromptMemoryProjection, PromptPurpose, PromptRuntimeError,
     PromptSectionKind, PromptSessionContext, PromptStoryProjection, TruncationPolicy)
-from life_engine.prompt_codec import render_canonical
+from life_engine.prompt_codec import fingerprint_data, render_canonical
 from life_engine.prompt_runtime import PromptRuntime
 from life_engine.story import (CharacterPayload, FactPayload, NarrativePayload, OwnerStoryContext,
     RelationshipPayload, SessionStoryContext, StoryEventKind, StoryEventProposal,
@@ -117,6 +117,17 @@ class PromptRuntimeTests(MemoryFixture, unittest.TestCase):
         self.assertTrue(all(s.authority is PromptAuthority.UNTRUSTED_CONTENT_DATA for s in first.sections[1:]))
         self.assertIn(PromptDiagnostic.TOKEN_ESTIMATE_UNAVAILABLE, first.diagnostics)
         self.assertFalse(first.token_safe)
+
+    def test_derived_snapshot_fields_are_fingerprint_and_token_bound(self):
+        snapshot = self.prompt.assemble(self.request())
+        for field, changed in (
+                ('budget_used', replace(snapshot, budget_used=snapshot.budget_used + 1)),
+                ('token_used', replace(snapshot, token_used=0)),
+                ('token_safe', replace(snapshot, token_safe=True))):
+            with self.subTest(field=field):
+                self.assertNotEqual(fingerprint_data(snapshot), fingerprint_data(changed))
+                self.assert_code(PromptFailure.AUTHORIZATION_DENIED,
+                    lambda changed=changed: self.prompt.revalidate(changed))
 
     def test_story_visibility_and_revalidation(self):
         character = self.a.characters[0].character_instance_id
@@ -327,6 +338,12 @@ class PromptRuntimeTests(MemoryFixture, unittest.TestCase):
         snapshot = runtime.assemble(request)
         self.assertTrue(snapshot.token_safe)
         self.assertIsNotNone(snapshot.token_used)
+        self.assertIsNotNone(snapshot.budget.max_total_tokens)
+        self.assertLessEqual(snapshot.token_used, snapshot.budget.max_total_tokens)
+        self.assert_code(PromptFailure.AUTHORIZATION_DENIED,
+            lambda: runtime.revalidate(replace(snapshot, token_used=snapshot.token_used + 1)))
+        self.assert_code(PromptFailure.AUTHORIZATION_DENIED,
+            lambda: runtime.revalidate(replace(snapshot, token_safe=False)))
         self.assertNotIn(PromptDiagnostic.TOKEN_ESTIMATE_UNAVAILABLE, snapshot.diagnostics)
 
     def test_prompt_item_utf8_budget_counts_wrapper(self):
