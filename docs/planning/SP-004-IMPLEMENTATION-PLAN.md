@@ -152,3 +152,7 @@ Schema 2 → canonical Schema 3 的部署迁移已由 E 完成，继续遵守其
 | Assets | L | 旁线 PROPOSED | — | G 的导入 IR 基础 | 原包、头像、升级与历史映射 |
 
 旧路线 `B → J → C → F → K → H` 只作历史记录；**当前建议路线为 K0 → K1 → F0 → F1 → H0 → H1 → H2**，L 是旁线。K0 架构经独立审核、合并前不标 DONE；K1/F/H 各自需要新的实施授权。Prompt 仅消费各 Runtime 授权投影，不充当权限边界；Story 的 `world_facts` 与 `open_threads` 在首版默认不进入角色模型。
+
+## 十一、SP-004K1 候选时点的当前记录
+
+SP-004K0 已在 canonical main `dec8fd5797f67496c583f1112d379da954ab8f8b` 合并，状态 **DONE**；上节的 K0 候选措辞是成文时的历史状态。Prompt 能力矩阵的当前读法为：**K0 架构 DONE；K1 Runtime 候选 IMPLEMENTED / PENDING_INDEPENDENT_REVIEW**。K1 候选交付会话绑定 Memory/Story/Lore 适配、只读组装、确定性预算、不可变快照及重验；不含模型 API、Bridge、Host 集成或 Schema 变更。K1 只有通过独立审核并合并才可标 DONE。当前建议顺序为 **K1 → F0 → F1 → H0 → H1 → H2**，L 保持旁线；本记录不授权自动启动后续阶段。

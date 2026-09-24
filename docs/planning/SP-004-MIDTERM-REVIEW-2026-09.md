@@ -54,3 +54,7 @@ SP-004C1 **DONE**：合并提交 `7f7c5c07d4cc821027cb083100335c8f4d139c44` 已�
 当前路线改为：已完成 A → G → D → E → B → J → C；当前 **K0 Prompt 架构候选**；后续 K1 → F0 → F1 → H0 → H1 → H2，L 为旁线。K0 只冻结[Prompt Runtime 架构](../architecture/SP-004K-PROMPT-RUNTIME.md)，不表示 Prompt 已实施，也不授权自动开始 K1/F/H。旧 `B → J → C → F → K → H` 和上方 C1 时点路线仍保留为历史建议。
 
 当前阶段事实与详细边界见[实施计划](SP-004-IMPLEMENTATION-PLAN.md)、[Story 架构](../architecture/SP-004C-STORY-RUNTIME.md)、[Memory 架构](../architecture/SP-004B-WORLD-MEMORY.md)及[Lore 架构](../architecture/SP-004J-LORE-RUNTIME.md)。
+
+## SP-004K1 候选时点的状态
+
+SP-004K0 已随 canonical main `dec8fd5797f67496c583f1112d379da954ab8f8b` 合并，状态 **DONE**。该提交冻结了 Prompt 作为授权派生视图、非权限边界、会话围栏、Story 保守可见性和确定性预算。SP-004K1 现为 **IMPLEMENTED / PENDING_INDEPENDENT_REVIEW** 候选：代码位于独立分支，未进入 canonical main，不能标为 DONE。K1 只产出内部 `PromptSnapshot`，不调用模型、不接 Hermes/OpenClaw，也不提供跨 World Bridge；H0、F0 与 L 仍需各自任务书与授权。当前建议主线为 K1 → F0 → F1 → H0 → H1 → H2，L 为旁线。

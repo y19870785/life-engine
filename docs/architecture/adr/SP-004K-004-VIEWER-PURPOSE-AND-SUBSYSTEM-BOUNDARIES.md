@@ -13,3 +13,7 @@ Story 的 Session 投影仍是**内部世界状态**，不是“角色已知事�
 ## 取舍与结果
 
 不把所有 Story world facts/open threads 默认注入会使首版角色上下文更窄，但当前 Story 没有 viewer 级可见性，这是可审计的安全边界。不提供跨 World Prompt、Soul aside 或多 viewer 拼接；这些需要独立的 F/H 合同。K1 必须测试跨 Scope/身份/Session 的硬拒绝、Owner 数据拒绝及默认 Story 可见性。
+
+## K1 实现状态
+
+K1 候选只允许 `ROLEPLAY_RESPONSE` 与 `SOUL_RESPONSE`，按当前 SessionBinding 核对观看身份。Soul 不造角色实例；Roleplay 只使用固定 DefinitionRef。Story 内部 `world_facts` 与 `open_threads` 均未进入模型 Section；Owner 审计结果、跨 World 与 Bridge 输入均不受理。状态：**IMPLEMENTED / PENDING_INDEPENDENT_REVIEW**；原决策不变。
