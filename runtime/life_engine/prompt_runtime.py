@@ -9,7 +9,7 @@ from .memory import AudienceKind, MemoryAudience
 from .prompt import (
     _TRUSTED, TEMPLATE_VERSION, MAX_PROMPT_ITEMS, ConversationProjection,
     PromptAssemblyRequest, PromptAuthority, PromptDiagnostic, PromptFailure,
-    PromptItem, PromptLoreProjection, PromptMemoryProjection, PromptPurpose,
+    PromptItem, PromptLoreProjection, PromptMemoryProjection, PromptBridgeProjection, PromptPurpose,
     PromptRequirements, PromptRuntimeError, PromptSection, PromptSectionKind as K,
     PromptSessionContext, PromptSnapshot, PromptStoryProjection, TruncationPolicy, fail)
 from .prompt_codec import fingerprint_data, render_canonical, total_bytes
@@ -18,11 +18,12 @@ from .world_codec import dumps
 
 _ORDER = (K.RUNTIME_CONTROL, K.CHARACTER_IDENTITY, K.CHARACTER_BEHAVIOR,
           K.CHARACTER_EXAMPLES, K.STORY_CONTEXT, K.LORE_CONTEXT,
-          K.MEMORY_CONTEXT, K.CONVERSATION_CONTEXT)
+          K.MEMORY_CONTEXT, K.BRIDGE_CONTEXT, K.CONVERSATION_CONTEXT)
 _OPTIONAL_DIAGNOSTIC = {
     K.CHARACTER_EXAMPLES: PromptDiagnostic.CHARACTER_EXAMPLES_TRUNCATED,
     K.LORE_CONTEXT: PromptDiagnostic.LORE_TRUNCATED,
     K.MEMORY_CONTEXT: PromptDiagnostic.MEMORY_TRUNCATED,
+    K.BRIDGE_CONTEXT: PromptDiagnostic.BRIDGE_TRUNCATED,
     K.CONVERSATION_CONTEXT: PromptDiagnostic.CONVERSATION_TRUNCATED,
 }
 
@@ -143,12 +144,27 @@ class PromptRuntime:
         if story.result.scope != session.scope or story.result.viewer != session.viewer:
             fail(PromptFailure.STORY_STALE)
         PromptMemoryProjection.validate_records(memory.context, memory.result)
+        if type(request.bridges) is not tuple or len(request.bridges) > 16:
+            fail(PromptFailure.INVALID_ARGUMENT)
+        for bridge in request.bridges:
+            if type(bridge) is not PromptBridgeProjection or bridge._seal is not _TRUSTED:
+                fail(PromptFailure.AUTHORIZATION_DENIED)
+            target = bridge.result.target_session
+            if bridge.result.target_scope != session.scope:
+                fail(PromptFailure.SCOPE_MISMATCH)
+            if target.viewer != session.viewer or bridge.result.target_audience != session.viewer:
+                fail(PromptFailure.VIEWER_MISMATCH)
+            if (target.principal != session.principal or target.session_id != session.session_id or
+                    target.writer_epoch != session.writer_epoch or target.runtime_id != session.runtime_id or
+                    target.generation != session.generation):
+                fail(PromptFailure.SESSION_STALE)
 
     @staticmethod
     def _section(kind, items, *, required=False, policy=TruncationPolicy.NONE):
         authority = (PromptAuthority.RUNTIME_CONTROL if kind is K.RUNTIME_CONTROL
                      else PromptAuthority.UNTRUSTED_CONTENT_DATA)
-        return PromptSection(kind, authority, kind.value, tuple(items), _ORDER.index(kind), required, policy)
+        return PromptSection(kind, authority, kind.value, tuple(items), _ORDER.index(kind), required,
+                             policy, _bridge_seal=_TRUSTED if kind is K.BRIDGE_CONTEXT else None)
 
     def _sections(self, request, character, definition):
         s = request.session
@@ -190,6 +206,15 @@ class PromptRuntime:
                              for r in request.memory.result.records)
         if memory_items:
             sections.append(self._section(K.MEMORY_CONTEXT, memory_items, policy=TruncationPolicy.PREFIX))
+        bridge_items = []
+        for adapter in sorted(request.bridges, key=lambda x: (str(x.result.grant_id), x.result.fingerprint)):
+            projection = adapter.result
+            for item in projection.items:
+                source_id = '|'.join((str(projection.grant_id),
+                    str(projection.source_scope.world_id), item.lineage.source_subsystem.value, item.item_id))
+                bridge_items.append(PromptItem('bridge', source_id, dumps(dict(item.fields))))
+        if bridge_items:
+            sections.append(self._section(K.BRIDGE_CONTEXT, bridge_items, policy=TruncationPolicy.PREFIX))
         turns = request.conversation.turns
         if turns:
             items = tuple(PromptItem('conversation_' + t.category, t.source_ref, t.text) for t in turns)
@@ -272,6 +297,9 @@ class PromptRuntime:
                 token_used > request.budget.max_total_tokens):
             fail(PromptFailure.BUDGET_REQUIRED)
         memory, lore, story = request.memory, request.lore, request.story
+        bridge_snapshots = tuple((str(b.result.grant_id), b.result.grant_revision.value,
+            b.result.fingerprint, b.result.source_version)
+            for b in sorted(request.bridges, key=lambda x: (str(x.result.grant_id), x.result.fingerprint)))
         result = PromptSnapshot(
             request.session.scope, request.session.principal, request.session.viewer,
             request.session.purpose, request.session.session_id, request.session.writer_epoch,
@@ -286,7 +314,7 @@ class PromptRuntime:
             TEMPLATE_VERSION, sections, request.budget, len(text.encode('utf-8')),
             token_used, token_used is not None and request.budget.max_total_tokens is not None,
             diagnostics, any(d in _OPTIONAL_DIAGNOSTIC.values() for d in diagnostics),
-            PromptRequirements(), '', '', request)
+            PromptRequirements(), bridge_snapshots, '', '', request)
         fingerprint = hashlib.sha256(dumps(fingerprint_data(result)).encode('utf-8')).hexdigest()
         token = hmac.new(self._token_key,
                          (fingerprint + ':' + result.story_snapshot_token).encode('ascii'),
@@ -326,6 +354,16 @@ class PromptRuntime:
             fail(PromptFailure.MEMORY_STALE)
         if fresh.version != snapshot.memory_version:
             fail(PromptFailure.MEMORY_STALE)
+        expected_bridges = tuple((str(b.result.grant_id), b.result.grant_revision.value,
+            b.result.fingerprint, b.result.source_version)
+            for b in sorted(request.bridges, key=lambda x: (str(x.result.grant_id), x.result.fingerprint)))
+        if expected_bridges != snapshot.bridge_snapshots:
+            fail(PromptFailure.AUTHORIZATION_DENIED)
+        for bridge in request.bridges:
+            try:
+                bridge._runtime.revalidate_projection(bridge.result)
+            except Exception:
+                fail(PromptFailure.BRIDGE_STALE)
         lore = request.lore
         try:
             fresh_lore = self.lore.activate(lore.request)
