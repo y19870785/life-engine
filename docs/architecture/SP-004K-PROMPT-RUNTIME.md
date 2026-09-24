@@ -86,3 +86,11 @@ K1 不实现：LLM 调用、Hermes/OpenClaw 接入、Bridge 服务、工具授�
 | 副作用与宿主 | assemble/revalidate 不推进 World、Memory、Lore、Story 修订；没有模型或宿主数据库访问；缺 Host 历史隔离不能用文案补救。 |
 
 本阶段不修改 Runtime、Schema、测试、工作流或 README；文档经 Draft PR 供独立审核，K1、F0、H0 均未获自动启动授权。
+
+## K1 实现状态
+
+以已合并 K0 的 canonical main `dec8fd5797f67496c583f1112d379da954ab8f8b` 为固定 Base，K1 候选新增内存派生的 `PromptRuntime`、会话绑定的 Memory/Story/Lore 适配器、受信对话投影、类型化分节、完整项预算裁剪、规范指纹与 HMAC 快照绑定。`assemble()` 末尾调用只读 `revalidate()`；后者按相同参数重查 Memory 不透明版本、重跑 Lore 激活、重新取得当前 Session 的 Story 投影，并在前后核对 World/Session。Host 发送前仍须再次调用重验；这不是跨模型调用的数据库锁。
+
+首版从当前固定 `CharacterDefinition` 只读取名称和 traits；没有安全来源的示例、scenario 或 first_mes 不进入 Prompt。角色 Story Section 只纳入当前角色状态及相关关系；`world_facts`、`open_threads` 和 Story 叙事事件默认不进入模型。对话版本由受信适配器提供的验证器维护，K1 无真实宿主历史连接。Token 仅绑定快照，不是登录凭据；未提供 token 估算器时只保证 UTF-8 字节预算，并记录诊断。
+
+状态：**IMPLEMENTED / PENDING_INDEPENDENT_REVIEW**。`DATA_SCHEMA = 6` 与签名 `SP-004C-story-runtime-v1` 均未改变；没有 Prompt 数据库表、模型调用、Bridge 或 Hermes/OpenClaw 适配。此候选未合并前不标记 K1 DONE。

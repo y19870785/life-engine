@@ -13,3 +13,7 @@ Prompt 是一次性派生投影，不是 World、Memory、Lore 或 Story 真源�
 ## 取舍与结果
 
 不选择“单个 system prompt 大字符串”，因为它无法审计哪个片段来自受信控制、哪个是外部正文，预算也无法逐语义项裁剪。不选择坏词过滤，因为任意语言和格式都能绕过。K1 必须在测试中证明恶意卡片、Lore、Memory、Story 和对话只产生对应数据 Section，且 assemble 不写任何 Runtime。
+
+## K1 实现状态
+
+K1 候选使用固定 `PromptSectionKind`、`PromptAuthority` 与顺序；控制项由代码生成，角色、Story、Lore、Memory 和对话正文均为数据。`BRIDGE_CONTEXT` 预留但拒绝构造。状态：**IMPLEMENTED / PENDING_INDEPENDENT_REVIEW**；原决策不变。
