@@ -113,7 +113,7 @@ def locked(root, key, timeout=15):
 
 def registry(root, *, allow_schema2=False):
     cfg = read(root / 'registry.json')
-    if cfg.get('format') != FORMAT or cfg.get('data_schema') not in ((2, 3, 4, 5, DATA_SCHEMA) if allow_schema2 else (DATA_SCHEMA,)):
+    if cfg.get('format') != FORMAT or cfg.get('data_schema') not in ((2, 3, 4, 5, 6, DATA_SCHEMA) if allow_schema2 else (DATA_SCHEMA,)):
         raise ValueError('Unsupported deployment/data schema; keep the existing installation')
     safe_name(cfg['release'])
     for key, instance in cfg['instances'].items():
@@ -163,6 +163,9 @@ def db_check(path, agent_id=None, *, expected_schema=DATA_SCHEMA):
         if expected_schema >= 6:
             from .story_sqlite_repository import validate_story_data
             validate_story_data(db)
+        if expected_schema >= 7:
+            from .bridge_sqlite_repository import validate_bridge_data
+            validate_bridge_data(db)
 
 
 def copy_state(source, target, *, expected_schema=DATA_SCHEMA):
@@ -226,6 +229,25 @@ def snapshot(root, reg, instance, destination=None, reason='manual'):
         from .memory_control import control
         with control(root,reg.get('memory_install_id')) as (_,entries):
             control_watermark = len(entries)
+    bridge_watermark = None
+    if reg['data_schema'] >= 7:
+        from .bridge_control import control as bridge_control
+        with bridge_control(root, reg.get('bridge_install_id')) as (_, entries):
+            bridge_watermark = len(entries)
+            path = data / 'agents' / instance['agent_id'] / 'life.db'
+            with contextlib.closing(sqlite3.connect(path.as_uri() + '?mode=ro', uri=True)) as db:
+                applied = dict(db.execute('SELECT sequence,fingerprint FROM bridge_applied_controls'))
+                expected_applied = {entry['sequence']: entry['fingerprint'] for entry in entries
+                                    if entry['instance_id'] == instance['id']}
+                if applied != expected_applied:
+                    raise ValueError('Bridge 撤销控制需要先协调，拒绝备份')
+                for entry in entries:
+                    if entry['instance_id'] == instance['id']:
+                        row = db.execute('SELECT status FROM bridge_grants WHERE grant_id=?',
+                                         (entry['grant_id'],)).fetchone()
+                        if applied.get(entry['sequence']) != entry['fingerprint'] or (
+                                row is not None and row[0] != 'revoked'):
+                            raise ValueError('Bridge 撤销控制需要先协调，拒绝备份')
     destination = absolute(destination or root / 'backups')
     if destination == data or destination.is_relative_to(data):
         raise ValueError('Backup destination must be outside the active state')
@@ -245,6 +267,8 @@ def snapshot(root, reg, instance, destination=None, reason='manual'):
             'files': checksums,
             'memory_control_watermark': control_watermark,
             'memory_install_id': reg.get('memory_install_id'),
+            'bridge_control_watermark': bridge_watermark,
+            'bridge_install_id': reg.get('bridge_install_id'),
         })
         os.replace(temporary, final)
         sync_dir(destination)
@@ -291,6 +315,24 @@ def reconcile_memory_generation(root,reg,instance,data,manifest=None):
     db_check(path,instance['agent_id'])
 
 
+def reconcile_bridge_generation(root, reg, instance, data, manifest=None):
+    """激活前在业务副本重放不可回滚的 Grant 撤销事实。"""
+    from .bridge_control import control as bridge_control
+    from .bridge_sqlite_repository import reconcile_db
+    with bridge_control(root, reg.get('bridge_install_id')) as (_, entries):
+        if manifest is not None:
+            watermark = manifest.get('bridge_control_watermark')
+            if (manifest.get('bridge_install_id') != reg['bridge_install_id'] or
+                    type(watermark) is not int or not 0 <= watermark <= len(entries)):
+                raise ValueError('Bridge 备份控制域身份或水位无法验证')
+        path = data / 'agents' / instance['agent_id'] / 'life.db'
+        with contextlib.closing(sqlite3.connect(path)) as db:
+            with db:
+                db.execute('BEGIN IMMEDIATE')
+                reconcile_db(db, entries, instance['id'])
+    db_check(path, instance['agent_id'])
+
+
 def restore(root, instance_key, backup):
     root = absolute(root)
     with locked(root, 'management'), locked(root, instance_key):
@@ -305,6 +347,7 @@ def restore(root, instance_key, backup):
         candidate = dict(instance, generation=generation)
         state_check(data, candidate)
         reconcile_memory_generation(root,reg,candidate,data,manifest)
+        reconcile_bridge_generation(root,reg,candidate,data,manifest)
         # Restoring history may undo dedupe records. Pause contact until the owner
         # reconciles recent actual deliveries and explicitly resumes.
         from .store import Store
@@ -341,7 +384,8 @@ def release_install(root, package):
         for path, content in contents.items():
             atomic_write(stage / relative(path), content)
         write(stage / 'release.json', {'version': __version__, 'data_schema': DATA_SCHEMA,
-                                      'memory_control_version':1, 'files': expected})
+                                      'memory_control_version':1, 'bridge_control_version':1,
+                                      'files': expected})
         os.replace(stage, release)
         sync_dir(release.parent)
     finally:
@@ -356,6 +400,8 @@ def probe_release(root, release, executable, *, expected_schema=DATA_SCHEMA):
         raise ValueError('Release has an incompatible data schema')
     if expected_schema>=4 and manifest.get('memory_control_version')!=1:
         raise ValueError('Release 不支持当前 Memory 删除控制协议')
+    if expected_schema>=7 and manifest.get('bridge_control_version')!=1:
+        raise ValueError('Release 不支持 Bridge 撤销控制协议')
     for name, expected in manifest['files'].items():
         if digest((path / relative(name)).read_bytes()) != expected:
             raise ValueError('Release integrity check failed')
@@ -365,7 +411,8 @@ def probe_release(root, release, executable, *, expected_schema=DATA_SCHEMA):
         'if int(sys.argv[2]) >= 3: from life_engine.world_sqlite_repository import SQLiteWorldRepository\n'
         'if int(sys.argv[2]) >= 4: from life_engine.memory_runtime import MemoryRuntime\n'
         'if int(sys.argv[2]) >= 5: from life_engine.lore_runtime import LoreRuntime\n'
-        'if int(sys.argv[2]) >= 6: from life_engine.story_runtime import StoryRuntime\n',
+        'if int(sys.argv[2]) >= 6: from life_engine.story_runtime import StoryRuntime\n'
+        'if int(sys.argv[2]) >= 7: from life_engine.bridge_runtime import BridgeRuntime\n',
         str(path / 'runtime'), str(expected_schema)],
         capture_output=True, text=True, encoding='utf-8', timeout=20, shell=False)
     if done.returncode:
@@ -441,6 +488,8 @@ def create_install(package, root, cfg, *, host_agent_id='', source=None, workflo
         old = reg['instances'].get(key)
         from .memory_control import initialize_control
         initialize_control(root,reg)
+        from .bridge_control import initialize_control as initialize_bridge_control
+        initialize_bridge_control(root,reg)
         release = release_install(root, package)
         if reg.get('release') and reg['release'] != release:
             raise ValueError('This package is a different runtime release; run upgrade before adding or reconfiguring an instance')
@@ -524,8 +573,8 @@ def migrate_generation(root, data, instance):
     if any(data.resolve() == state_home(root, inst).resolve() for inst in active['instances'].values()):
         raise ValueError('禁止在活动 generation 中执行 Schema 迁移')
     expected = root / 'instances' / instance['id'] / 'data' / instance['generation']
-    if data != expected or not re.fullmatch(r'schema6-[0-9a-f]{32}', instance['generation']):
-        raise ValueError('迁移目标必须是本安装的新 Schema 6 generation')
+    if data != expected or not re.fullmatch(r'schema7-[0-9a-f]{32}', instance['generation']):
+        raise ValueError('迁移目标必须是本安装的新 Schema 7 generation')
     path = data / 'agents' / instance['agent_id'] / 'life.db'
     with contextlib.closing(sqlite3.connect(path)) as db:
         db.execute('PRAGMA foreign_keys=ON')
@@ -547,7 +596,7 @@ def upgrade(root, package):
             stack.enter_context(locked(root, key))
         for key, inst in sorted(reg['instances'].items()):
             state_check(state_home(root, inst), inst, expected_schema=schema)
-            saved = snapshot(root, reg, inst, reason='before-schema-6-migration' if schema < DATA_SCHEMA else 'before-upgrade')
+            saved = snapshot(root, reg, inst, reason='before-schema-7-migration' if schema < DATA_SCHEMA else 'before-upgrade')
             verify_backup(saved, inst, expected_schema=schema)
             backups.append(str(saved))
         release = release_install(root, package)
@@ -555,15 +604,18 @@ def upgrade(root, package):
         rollback_point = None
         from .memory_control import initialize_control
         initialize_control(root,reg)
+        from .bridge_control import initialize_control as initialize_bridge_control
+        initialize_bridge_control(root,reg)
         if schema < DATA_SCHEMA:
             for key, inst in sorted(reg['instances'].items()):
                 old_data = state_home(root, inst)
-                candidate = dict(inst, generation='schema6-' + uuid.uuid4().hex)
+                candidate = dict(inst, generation='schema7-' + uuid.uuid4().hex)
                 data = root / 'instances' / key / 'data' / candidate['generation']
                 copy_state(old_data, data, expected_schema=schema)
                 migrate_generation(root, data, candidate)
                 rebase_photos(data, old_data)
                 state_check(data, candidate)
+                reconcile_bridge_generation(root,reg,candidate,data)
                 sync_tree(data)
                 reg['instances'][key] = candidate
             reg['data_schema'] = DATA_SCHEMA
@@ -588,10 +640,10 @@ def rollback_schema(root, checkpoint):
         active = registry(root)
         record = read(checkpoint)
         previous = record['previous']
-        if record.get('format') != FORMAT or previous.get('data_schema') not in (2,3,4,5):
+        if record.get('format') != FORMAT or previous.get('data_schema') not in (2,3,4,5,6):
             raise ValueError('Schema 回退记录不兼容')
-        if active['data_schema'] == 6 and previous['data_schema'] < 6:
-            raise ValueError('Schema 6 不提供自动降级；Story 数据必须保留')
+        if active['data_schema'] >= 7 and previous['data_schema'] < 7:
+            raise ValueError('Schema 7 不提供自动降级；Bridge 授权与撤销控制必须保留')
         if active['instances'] != record['activated_instances']:
             raise ValueError('实例或 generation 已变化；拒绝使用过期回退记录')
         for key in sorted(active['instances']):
@@ -639,6 +691,24 @@ def health(root, key=None):
                         for entry in entries:
                             if entry['instance_id']==ident and applied.get(entry['sequence'])!=entry['fingerprint']:
                                 raise ValueError('Memory 删除控制需要协调恢复')
+                if reg['data_schema'] >= 7:
+                    from .bridge_control import control as bridge_control
+                    with bridge_control(root,reg.get('bridge_install_id')) as (_,entries):
+                        path = state_home(root,instance) / 'agents' / instance['agent_id'] / 'life.db'
+                        with contextlib.closing(sqlite3.connect(path.as_uri()+'?mode=ro',uri=True)) as db:
+                            applied = dict(db.execute('SELECT sequence,fingerprint FROM bridge_applied_controls'))
+                            expected_applied = {entry['sequence']: entry['fingerprint'] for entry in entries
+                                                if entry['instance_id'] == ident}
+                            if applied != expected_applied:
+                                raise ValueError('Bridge 撤销控制需要协调恢复')
+                            for entry in entries:
+                                if entry['instance_id']==ident and applied.get(entry['sequence'])!=entry['fingerprint']:
+                                    raise ValueError('Bridge 撤销控制需要协调恢复')
+                                if entry['instance_id']==ident:
+                                    current = db.execute('SELECT status FROM bridge_grants WHERE grant_id=?',
+                                                         (entry['grant_id'],)).fetchone()
+                                    if current is not None and current[0]!='revoked':
+                                        raise ValueError('Bridge 撤销控制与业务授权冲突')
             except (ValueError, OSError, sqlite3.Error) as exc:
                 errors.append(ident + ': ' + str(exc))
                 continue
