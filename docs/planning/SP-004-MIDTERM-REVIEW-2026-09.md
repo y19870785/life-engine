@@ -2,7 +2,7 @@
 
 ## 复盘基线与结论
 
-本复盘以 canonical main `10b75a6f8fe6fd94b98e82a6e903cdcfcb8c6d1e` 为基线。SP-004C1 在此基线上实施；本分支的 Story 实现仍待独立审核和合并，不能计入该 main 的已完成能力。
+本复盘最初以 canonical main `10b75a6f8fe6fd94b98e82a6e903cdcfcb8c6d1e` 为基线；当时 SP-004C1 尚待审核。**当前事实校准：**SP-004C1 已合并，canonical main 为 `7f7c5c07d4cc821027cb083100335c8f4d139c44`。下文关于“C1 候选”的原始记录保留成文语境，当前阶段状态以本段及下方校准表为准。
 
 Life Engine 已形成**持久化 Agent 世界运行内核**：身份、世界与角色实例生命周期、按世界隔离的 Memory、固定版本的 Lore，以及同一实例 `life.db` 上的备份、恢复和副本迁移。它尚不是完整可聊天角色产品。真实 Hermes/OpenClaw 角色模式、统一 Prompt 组装和受控跨世界共享都没有进入 canonical main。
 
@@ -39,12 +39,18 @@ H 拆为 H0 宿主合同、H1 Hermes Adapter、H2 OpenClaw Adapter，使两种�
 
 ```text
 已完成：A Domain → G Import → D World → E Persistence → B Memory → J Lore → C0 Story 架构
-当前候选：C1 Story Runtime + Schema 6（待独立审核）
+当时当前候选：C1 Story Runtime + Schema 6（现已合并）
 后续建议：K0 Prompt 架构 → K1 Prompt Runtime → F0 Bridge 架构 → F1 Bridge Runtime
           → H0 宿主合同 → H1 Hermes → H2 OpenClaw
 旁线：L 资产、原包、历史与 Definition 升级
 ```
 
-后续顺序仍需各阶段任务书与独立审核。C1 候选不授权自动启动 K/F/H；本复盘也不把 Prompt、Bridge、Hermes 或 OpenClaw Integration 标记完成。
+后续顺序仍需各阶段任务书与独立审核。原 C1 候选不曾授权自动启动 K/F/H；本复盘也不把 Prompt、Bridge、Hermes 或 OpenClaw Integration 标记完成。
+
+## SP-004K0 时点的 canonical 校准
+
+SP-004C1 **DONE**：合并提交 `7f7c5c07d4cc821027cb083100335c8f4d139c44` 已使 Story Runtime 与 Schema 6 进入 main。当前 `DATA_SCHEMA = 6`、签名 `SP-004C-story-runtime-v1`、Story 投影版本 `SP-004C-story-projection-v1`。明确接受的不可变 StoryEvent 是唯一故事真源；独立 StoryRevision/StoryClock、纯确定性 reducer、StoryState、角色状态、关系与 StoryThread 投影、前向修正、会话围栏及持久恢复已实现。模型输出、Memory 或 Lore 仍不会自动确权 Story。
+
+当前路线改为：已完成 A → G → D → E → B → J → C；当前 **K0 Prompt 架构候选**；后续 K1 → F0 → F1 → H0 → H1 → H2，L 为旁线。K0 只冻结[Prompt Runtime 架构](../architecture/SP-004K-PROMPT-RUNTIME.md)，不表示 Prompt 已实施，也不授权自动开始 K1/F/H。旧 `B → J → C → F → K → H` 和上方 C1 时点路线仍保留为历史建议。
 
 当前阶段事实与详细边界见[实施计划](SP-004-IMPLEMENTATION-PLAN.md)、[Story 架构](../architecture/SP-004C-STORY-RUNTIME.md)、[Memory 架构](../architecture/SP-004B-WORLD-MEMORY.md)及[Lore 架构](../architecture/SP-004J-LORE-RUNTIME.md)。

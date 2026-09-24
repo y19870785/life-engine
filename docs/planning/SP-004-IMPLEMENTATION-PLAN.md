@@ -113,7 +113,7 @@ Schema 2 → canonical Schema 3 的部署迁移已由 E 完成，继续遵守其
 
 ## 八、当前 canonical 能力矩阵（2026-09 复盘）
 
-本节以 main `10b75a6f8fe6fd94b98e82a6e903cdcfcb8c6d1e` 为事实基线；上文保留各历史任务成文时的状态与旧建议顺序。SP-004C1 为本分支候选，不冒充已合并 main。完整依据见[中期复盘](SP-004-MIDTERM-REVIEW-2026-09.md)。
+本节原以 main `10b75a6f8fe6fd94b98e82a6e903cdcfcb8c6d1e` 为 C1 候选时点的事实基线；上文保留各历史任务成文时的状态与旧建议顺序。当前已合并事实见下方 K0 时点校准，完整依据见[中期复盘](SP-004-MIDTERM-REVIEW-2026-09.md)。
 
 | 能力 | 阶段 | 当前状态 | canonical 提交 | 已实现 | 尚未实现 |
 | --- | --- | --- | --- | --- | --- |
@@ -123,7 +123,7 @@ Schema 2 → canonical Schema 3 的部署迁移已由 E 完成，继续遵守其
 | Persistence | SP-004E | DONE | `780c7a54635e7347b914751ce0c79e350800be0b` | 同库 SQLite、代次、迁移、备份恢复 | 宿主自动接线 |
 | Memory | SP-004B | DONE | `d89b362701e614415354c38302a102f593a0a0a7` | WorldScope/Audience、CAS、幂等、删除恢复控制 | 自动提取与 Host 注入 |
 | Lore | SP-004J | DONE | `0028faedc36e00c52b9328e15a43fa81c31f9475` | 固定版本、显式绑定、有界确定激活、Schema 5 | 完整 SillyTavern 执行 |
-| Story | SP-004C0/C1 | 架构 DONE；Runtime 候选 | `10b75a6f8fe6fd94b98e82a6e903cdcfcb8c6d1e`（C0） | 已冻结 accepted event、投影、时钟合同 | C1 未进入 main；无自动抽取 |
+| Story（C1 候选时点） | SP-004C0/C1 | 架构 DONE；Runtime 当时候选 | `10b75a6f8fe6fd94b98e82a6e903cdcfcb8c6d1e`（C0） | 当时已冻结 accepted event、投影、时钟合同 | 当时 C1 未进入 main；无自动抽取 |
 | Prompt | SP-004K | PROPOSED | — | — | Prompt 架构与运行时 |
 | Bridge | SP-004F | PROPOSED | — | — | 受控跨 World 投影 |
 | Host | SP-004H | PROPOSED | — | — | Hermes/OpenClaw 实机角色接入 |
@@ -131,4 +131,24 @@ Schema 2 → canonical Schema 3 的部署迁移已由 E 完成，继续遵守其
 
 ## 九、2026-09 中期路线调整（PROPOSED）
 
-上文 `B → J → C → F → K → H` 是历史建议。当前推荐主线为 **C1 → K0 → K1 → F0 → F1 → H0 → H1 → H2**，L 为旁线。C1 将世界中发生的事件确权；K 先消费 World、Definition、Instance、Story、Lore、Memory 与 Session 的授权投影，验证安全角色上下文；普通 Roleplay 不需要先开放 Soul Bridge。F 后续只桥接受授权的最小跨域投影，再由 K 消费；H 将宿主合同、Hermes 和 OpenClaw 适配分开。该顺序不构成后续阶段实施或合并授权。
+上文 `B → J → C → F → K → H` 是历史建议。C1 候选时点的建议主线为 **C1 → K0 → K1 → F0 → F1 → H0 → H1 → H2**，L 为旁线。C1 将世界中发生的事件确权；K 先消费 World、Definition、Instance、Story、Lore、Memory 与 Session 的授权投影，验证安全角色上下文；普通 Roleplay 不需要先开放 Soul Bridge。F 后续只桥接受授权的最小跨域投影，再由 K 消费；H 将宿主合同、Hermes 和 OpenClaw 适配分开。该顺序不构成后续阶段实施或合并授权。
+
+## 十、SP-004K0 时点的当前 canonical 能力与路线
+
+事实基线：canonical main `7f7c5c07d4cc821027cb083100335c8f4d139c44`。本节取代上方 C1 候选时点矩阵与建议顺序作为**当前**读法，不改写旧表的历史状态。
+
+| 能力 | 阶段 | 当前状态 | 已合并提交 | 已实现 | 尚未实现 |
+| --- | --- | --- | --- | --- | --- |
+| Domain | A | DONE | `1ba30e32c42dfa3206e5ace93b25b8d522954e33` | Owner、Soul、World、Timeline 身份 | Bridge 服务 |
+| Import | G | DONE | `f71d1b7f1718bc8be9916b1c09dde625aaa0d362` | CharacterImportIR、固定 Definition 投影、LoreIR | 原包资产仓库 |
+| World Runtime | D | DONE | `399b084a8a5dfd76eb2aa3d0aac9ebbaafd35260` | CharacterInstance、SessionBinding、生命周期与围栏 | 宿主自动接线 |
+| Persistence | E | DONE | `780c7a54635e7347b914751ce0c79e350800be0b` | 同库 SQLite、代次、迁移、备份恢复 | 自动宿主体验 |
+| Memory | B | DONE | `d89b362701e614415354c38302a102f593a0a0a7` | 授权读写、Audience、删除恢复控制、Schema 4 | 自动提取与宿主注入 |
+| Lore | J | DONE | `0028faedc36e00c52b9328e15a43fa81c31f9475` | 固定书版本、Scope 绑定、有界激活、Schema 5 | 完整 World Book 宿主执行 |
+| Story | C0/C1 | **DONE** | `7f7c5c07d4cc821027cb083100335c8f4d139c44` | Accepted StoryEvent、独立修订/时钟、确定性 reducer/StoryState、关系/线索、前向修正、Schema 6 | 模型自动抽取与 Host 接入 |
+| Prompt | K0/K1 | K0 架构候选；K1 未开始 | — | 本分支仅冻结[Prompt 合同](../architecture/SP-004K-PROMPT-RUNTIME.md) | Prompt Runtime 与模型提交 |
+| Bridge | F0/F1 | PROPOSED | — | 默认拒绝策略合同 | 授权跨域投影服务 |
+| Host | H0/H1/H2 | PROPOSED | — | 宿主能力声明 | Hermes/OpenClaw 真实适配 |
+| Assets | L | 旁线 PROPOSED | — | G 的导入 IR 基础 | 原包、头像、升级与历史映射 |
+
+旧路线 `B → J → C → F → K → H` 只作历史记录；**当前建议路线为 K0 → K1 → F0 → F1 → H0 → H1 → H2**，L 是旁线。K0 架构经独立审核、合并前不标 DONE；K1/F/H 各自需要新的实施授权。Prompt 仅消费各 Runtime 授权投影，不充当权限边界；Story 的 `world_facts` 与 `open_threads` 在首版默认不进入角色模型。
