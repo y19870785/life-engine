@@ -5,7 +5,7 @@ from functools import lru_cache
 import sqlite3
 from uuid import uuid4
 
-from .bridge import BridgeFailure as BC, BridgeRuntimeError, deny
+from .bridge import BridgeFailure as BC, BridgeIdempotencyIdentity, BridgeRuntimeError, deny
 from .bridge_codec import digest
 from .world_sqlite_repository import storage_errors
 
@@ -13,8 +13,11 @@ CONTROL_DDL = (
     'CREATE TABLE identity (install_id TEXT PRIMARY KEY NOT NULL)',
     '''CREATE TABLE intents (sequence INTEGER PRIMARY KEY, instance_id TEXT NOT NULL,
        grant_id TEXT NOT NULL, revoked_revision INTEGER NOT NULL CHECK(revoked_revision=2),
-       actor TEXT NOT NULL, created_at TEXT NOT NULL, previous TEXT NOT NULL,
-       fingerprint TEXT NOT NULL, completed INTEGER NOT NULL CHECK(completed IN (0,1)))''',
+       actor TEXT NOT NULL, created_at TEXT NOT NULL,
+       producer TEXT NOT NULL, source TEXT NOT NULL, slot TEXT NOT NULL,
+       operation_fingerprint TEXT NOT NULL, previous TEXT NOT NULL,
+       control_fingerprint TEXT NOT NULL, completed INTEGER NOT NULL CHECK(completed IN (0,1)),
+       UNIQUE(instance_id,grant_id), UNIQUE(instance_id,producer,source,slot))''',
 )
 
 
@@ -91,11 +94,19 @@ def control(root, identity):
             previous = ''
             for seq, row in enumerate(entries, 1):
                 values = [row[k] for k in ('sequence', 'instance_id', 'grant_id',
-                          'revoked_revision', 'actor', 'created_at', 'previous')]
+                          'revoked_revision', 'actor', 'created_at', 'producer', 'source',
+                          'slot', 'operation_fingerprint', 'previous')]
                 if (row['sequence'] != seq or row['previous'] != previous or
-                        row['revoked_revision'] != 2 or row['fingerprint'] != digest(values)):
+                        row['revoked_revision'] != 2 or
+                        len(row['operation_fingerprint']) != 64 or
+                        any(c not in '0123456789abcdef' for c in row['operation_fingerprint']) or
+                        row['control_fingerprint'] != digest(values)):
                     deny(BC.CONTROL_REQUIRED)
-                previous = row['fingerprint']
+                try:
+                    BridgeIdempotencyIdentity(row['producer'], row['source'], row['slot'])
+                except BridgeRuntimeError:
+                    deny(BC.CONTROL_REQUIRED)
+                previous = row['control_fingerprint']
             if (anchor['sequence'], anchor.get('fingerprint')) != (len(entries), previous):
                 deny(BC.CONTROL_REQUIRED)
             yield db, entries
@@ -111,17 +122,30 @@ def control(root, identity):
             db.close()
 
 
-def append_intent(root, db, entries, identity, instance_id, grant_id, actor):
+def append_intent(root, db, entries, identity, instance_id, grant_id, actor,
+                  idempotency_identity, operation_fingerprint):
     """先同步外部撤销，再修改业务库；锚故障只会拒绝服务。"""
     from .durable import write
+    if (type(idempotency_identity) is not BridgeIdempotencyIdentity or
+            type(operation_fingerprint) is not str or len(operation_fingerprint) != 64 or
+            any(c not in '0123456789abcdef' for c in operation_fingerprint)):
+        deny(BC.CONTROL_REQUIRED)
     seq = len(entries) + 1
     values = [seq, instance_id, str(grant_id), 2, str(actor),
-              datetime.now(timezone.utc).isoformat(), entries[-1]['fingerprint'] if entries else '']
-    stamp = digest(values)
-    db.execute('INSERT INTO intents VALUES(?,?,?,?,?,?,?,?,0)', (*values, stamp))
+              datetime.now(timezone.utc).isoformat(),
+              idempotency_identity.producer, idempotency_identity.source,
+              idempotency_identity.slot, operation_fingerprint,
+              entries[-1]['control_fingerprint'] if entries else '']
+    control_fingerprint = digest(values)
+    db.execute('INSERT INTO intents VALUES(?,?,?,?,?,?,?,?,?,?,?,?,0)',
+               (*values, control_fingerprint))
     db.commit()
     write(root / 'control' / 'bridge-identity.json',
-          {'format': 1, 'install_id': identity, 'sequence': seq, 'fingerprint': stamp})
+          {'format': 1, 'install_id': identity, 'sequence': seq,
+           'fingerprint': control_fingerprint})
     db.execute('BEGIN IMMEDIATE')
     return {'sequence': seq, 'instance_id': instance_id, 'grant_id': str(grant_id),
-            'fingerprint': stamp, 'actor': str(actor), 'created_at': values[5]}
+            'control_fingerprint': control_fingerprint,
+            'operation_fingerprint': operation_fingerprint,
+            'producer': idempotency_identity.producer, 'source': idempotency_identity.source,
+            'slot': idempotency_identity.slot, 'actor': str(actor), 'created_at': values[5]}

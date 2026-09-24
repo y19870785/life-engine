@@ -108,7 +108,7 @@ def validate_bridge_data(db):
 
 def reconcile_db(db, entries, instance_id):
     """先重放独立撤销事实，未知 Grant 的事实仍保留以阻断以后恢复旧备份。"""
-    expected = {entry['sequence']: entry['fingerprint'] for entry in entries
+    expected = {entry['sequence']: entry['control_fingerprint'] for entry in entries
                 if entry['instance_id'] == instance_id}
     applied = dict(db.execute('SELECT sequence,fingerprint FROM bridge_applied_controls'))
     if not set(applied.items()) <= set(expected.items()):
@@ -118,18 +118,46 @@ def reconcile_db(db, entries, instance_id):
             continue
         existing = db.execute('SELECT fingerprint FROM bridge_applied_controls WHERE sequence=?',
                               (entry['sequence'],)).fetchone()
-        if existing is not None:
-            if existing[0] != entry['fingerprint']:
+        if existing is not None and existing[0] != entry['control_fingerprint']:
+            deny(BC.CONTROL_REQUIRED)
+        row = db.execute('SELECT status,revision,revoked_by,revoked_at FROM bridge_grants WHERE grant_id=?',
+                         (entry['grant_id'],)).fetchone()
+        operation = db.execute('SELECT operation,revision,actor,created_at,fingerprint FROM bridge_operations '
+                               'WHERE grant_id=? AND revision=2', (entry['grant_id'],)).fetchone()
+        identity = (entry['producer'], entry['source'], entry['slot'])
+        idem = db.execute('SELECT fingerprint,operation,grant_id,revision FROM bridge_idempotency '
+                          'WHERE producer=? AND source=? AND slot=?', identity).fetchone()
+        grant_idempotency = db.execute('SELECT producer,source,slot,fingerprint,operation,revision '
+                                      'FROM bridge_idempotency WHERE grant_id=? AND revision=2',
+                                      (entry['grant_id'],)).fetchall()
+        if row is None:
+            # 源 Grant 不在此旧 generation；保留拒绝事实，但不能违反业务 FK 凭空建收据。
+            if operation is not None or idem is not None or grant_idempotency:
                 deny(BC.CONTROL_REQUIRED)
-        row = db.execute('SELECT status FROM bridge_grants WHERE grant_id=?', (entry['grant_id'],)).fetchone()
-        if row and row[0] == 'active':
+        elif row[0] == 'active' and row[1] == 1:
+            if existing is not None or operation is not None or idem is not None or grant_idempotency:
+                deny(BC.CONTROL_REQUIRED)
             db.execute("UPDATE bridge_grants SET status='revoked',revision=2,revoked_by=?,revoked_at=? WHERE grant_id=?",
                        (entry['actor'], entry['created_at'], entry['grant_id']))
-            db.execute("INSERT OR IGNORE INTO bridge_operations(grant_id,actor,operation,revision,created_at,fingerprint) VALUES(?,?,'revoke',2,?,?)",
-                       (entry['grant_id'], entry['actor'], entry['created_at'], entry['fingerprint']))
+            db.execute("INSERT INTO bridge_operations(grant_id,actor,operation,revision,created_at,fingerprint) VALUES(?,?,'revoke',2,?,?)",
+                       (entry['grant_id'], entry['actor'], entry['created_at'],
+                        entry['operation_fingerprint']))
+            db.execute("INSERT INTO bridge_idempotency VALUES(?,?,?,?,?,?,2)",
+                       (*identity, entry['operation_fingerprint'], 'revoke', entry['grant_id']))
+        elif row[0] == 'revoked' and row[1] == 2:
+            if (existing is None or row[2] != entry['actor'] or
+                    row[3] != entry['created_at'] or operation is None or
+                    tuple(operation) != ('revoke', 2, entry['actor'], entry['created_at'],
+                                         entry['operation_fingerprint']) or idem is None or
+                    tuple(idem) != (entry['operation_fingerprint'], 'revoke', entry['grant_id'], 2) or
+                    [tuple(item) for item in grant_idempotency] !=
+                    [(*identity, entry['operation_fingerprint'], 'revoke', 2)]):
+                deny(BC.CONTROL_REQUIRED)
+        else:
+            deny(BC.CONTROL_REQUIRED)
         if existing is None:
             db.execute('INSERT INTO bridge_applied_controls VALUES(?,?)',
-                       (entry['sequence'], entry['fingerprint']))
+                       (entry['sequence'], entry['control_fingerprint']))
 
 
 class BridgeTransaction:
@@ -176,6 +204,10 @@ class BridgeTransaction:
         return receipt
 
     def revoke(self, grant, actor, at, identity, fingerprint, control_entry):
+        if (fingerprint != control_entry['operation_fingerprint'] or
+                (identity.producer, identity.source, identity.slot) !=
+                (control_entry['producer'], control_entry['source'], control_entry['slot'])):
+            deny(BC.CONTROL_REQUIRED)
         changed = self.db.execute("UPDATE bridge_grants SET status='revoked',revision=2,revoked_by=?,revoked_at=? WHERE grant_id=? AND revision=1 AND status='active'",
             (str(actor.principal_id), at.isoformat(), str(grant.grant_id))).rowcount
         if changed != 1:
@@ -183,7 +215,7 @@ class BridgeTransaction:
         self.db.execute("INSERT INTO bridge_operations(grant_id,actor,operation,revision,created_at,fingerprint) VALUES(?,?,'revoke',2,?,?)",
                         (str(grant.grant_id), str(actor.principal_id), at.isoformat(), fingerprint))
         self.db.execute('INSERT INTO bridge_applied_controls VALUES(?,?)',
-                        (control_entry['sequence'], control_entry['fingerprint']))
+                        (control_entry['sequence'], control_entry['control_fingerprint']))
         receipt = BridgeReceipt(grant.grant_id, BridgeGrantRevision(2), BridgeGrantStatus.REVOKED)
         self.remember(identity, fingerprint, 'revoke', receipt)
         return receipt
@@ -227,7 +259,7 @@ class SQLiteBridgeRepository:
                     if runtime is None or runtime[0] != self.runtime_id:
                         deny(BC.RECOVERY_REQUIRED)
                     applied = dict(db.execute('SELECT sequence,fingerprint FROM bridge_applied_controls'))
-                    expected_applied = {entry['sequence']: entry['fingerprint'] for entry in entries
+                    expected_applied = {entry['sequence']: entry['control_fingerprint'] for entry in entries
                                         if entry['instance_id'] == self.instance_id}
                     if applied != expected_applied:
                         # 备份/控制域不一致时，业务库不能单独决定授权是否有效。

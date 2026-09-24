@@ -172,7 +172,8 @@ class BridgeRuntime:
             if grant.revision != expected_revision:
                 deny(BC.GRANT_REVISION_CONFLICT)
             entry = append_intent(self.repository.root, tx.control_db, tx.entries, tx.install_id,
-                                  self.repository.instance_id, grant_id, context.principal.principal_id)
+                                  self.repository.instance_id, grant_id, context.principal.principal_id,
+                                  identity, stamp)
             return tx.revoke(grant, context.principal, datetime.fromisoformat(entry['created_at']),
                              identity, stamp, entry)
 

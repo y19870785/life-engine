@@ -237,7 +237,7 @@ def snapshot(root, reg, instance, destination=None, reason='manual'):
             path = data / 'agents' / instance['agent_id'] / 'life.db'
             with contextlib.closing(sqlite3.connect(path.as_uri() + '?mode=ro', uri=True)) as db:
                 applied = dict(db.execute('SELECT sequence,fingerprint FROM bridge_applied_controls'))
-                expected_applied = {entry['sequence']: entry['fingerprint'] for entry in entries
+                expected_applied = {entry['sequence']: entry['control_fingerprint'] for entry in entries
                                     if entry['instance_id'] == instance['id']}
                 if applied != expected_applied:
                     raise ValueError('Bridge 撤销控制需要先协调，拒绝备份')
@@ -245,7 +245,7 @@ def snapshot(root, reg, instance, destination=None, reason='manual'):
                     if entry['instance_id'] == instance['id']:
                         row = db.execute('SELECT status FROM bridge_grants WHERE grant_id=?',
                                          (entry['grant_id'],)).fetchone()
-                        if applied.get(entry['sequence']) != entry['fingerprint'] or (
+                        if applied.get(entry['sequence']) != entry['control_fingerprint'] or (
                                 row is not None and row[0] != 'revoked'):
                             raise ValueError('Bridge 撤销控制需要先协调，拒绝备份')
     destination = absolute(destination or root / 'backups')
@@ -697,12 +697,12 @@ def health(root, key=None):
                         path = state_home(root,instance) / 'agents' / instance['agent_id'] / 'life.db'
                         with contextlib.closing(sqlite3.connect(path.as_uri()+'?mode=ro',uri=True)) as db:
                             applied = dict(db.execute('SELECT sequence,fingerprint FROM bridge_applied_controls'))
-                            expected_applied = {entry['sequence']: entry['fingerprint'] for entry in entries
+                            expected_applied = {entry['sequence']: entry['control_fingerprint'] for entry in entries
                                                 if entry['instance_id'] == ident}
                             if applied != expected_applied:
                                 raise ValueError('Bridge 撤销控制需要协调恢复')
                             for entry in entries:
-                                if entry['instance_id']==ident and applied.get(entry['sequence'])!=entry['fingerprint']:
+                                if entry['instance_id']==ident and applied.get(entry['sequence'])!=entry['control_fingerprint']:
                                     raise ValueError('Bridge 撤销控制需要协调恢复')
                                 if entry['instance_id']==ident:
                                     current = db.execute('SELECT status FROM bridge_grants WHERE grant_id=?',

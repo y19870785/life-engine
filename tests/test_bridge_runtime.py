@@ -13,6 +13,7 @@ from life_engine.bridge import (
     OwnerBridgeContext, SessionBridgeContext)
 from life_engine.bridge_runtime import BridgeRuntime
 from life_engine.bridge_sqlite_repository import SQLiteBridgeRepository
+from life_engine.bridge_schema import BRIDGE_DDL
 from life_engine.domain import (CanonStatus, DomainId, IdKind, Provenance, RealityStatus,
     SourceType, WorldKind, WorldScope, WorldTimeline)
 from life_engine.domain_lifecycle import create_world
@@ -30,6 +31,7 @@ from life_engine import durable as d
 from life_engine.world_sqlite_repository import SQLiteWorldRepository
 from life_engine.world_runtime import WorldRuntime
 from life_engine.bridge_control import control as bridge_control, append_intent
+from life_engine.bridge_codec import digest as bridge_digest, scope_data as bridge_scope_data
 from life_engine.lore import LoreActivationRequest, SessionLoreContext
 from life_engine.lore_runtime import LoreRuntime
 from life_engine.lore_sqlite_repository import SQLiteLoreRepository
@@ -157,20 +159,89 @@ class BridgeRuntimeTests(MemoryFixture, unittest.TestCase):
         self.assertEqual(caught.exception.code, BridgeFailure.CONTROL_REQUIRED)
         self.assertFalse(d.health(self.root)['ok'])
 
-    def test_committed_revoke_intent_before_business_write_fails_closed_then_reconciles(self):
-        _, _, receipt = self.grant()
+    def test_revoke_intent_crash_reconciles_original_idempotency_receipt(self):
+        owner, _, receipt = self.grant()
+        identity = BridgeIdempotencyIdentity('crash-window', 'revoke-request', 'slot-1')
+        operation_fingerprint = bridge_digest(['revoke', str(receipt.grant_id), 1,
+            bridge_scope_data(owner.source_scope), bridge_scope_data(owner.target_scope),
+            str(owner.principal.principal_id)])
         with d.locked(self.root, 'management'), d.locked(self.root, self.key):
             with bridge_control(self.root, self.reg['bridge_install_id']) as (db, entries):
                 append_intent(self.root, db, entries, self.reg['bridge_install_id'],
-                    self.key, receipt.grant_id, self.actor.principal_id)
+                    self.key, receipt.grant_id, self.actor.principal_id,
+                    identity, operation_fingerprint)
         with self.assertRaises(BridgeRuntimeError) as caught:
             with self.bridge_repo.transaction():
                 pass
         self.assertEqual(caught.exception.code, BridgeFailure.CONTROL_REQUIRED)
-        self.bridge_repo.reconcile()
-        with self.bridge_repo.transaction() as tx:
+        # 新 Bridge repository 的启动协调模拟：控制意图已 durable，业务事务未提交。
+        self.bridge_repo.close()
+        recovered_repo = SQLiteBridgeRepository(self.root, self.key,
+            runtime_id=self.world_repo.runtime_id)
+        self.addCleanup(recovered_repo.close)
+        recovered = BridgeRuntime(recovered_repo, self.world, self.memory, self.story,
+            clock=lambda: self.now)
+        with recovered_repo.transaction() as tx:
             self.assertTrue(tx.effective_revoked(receipt.grant_id))
             self.assertEqual(tx.grant(receipt.grant_id).status.value, 'revoked')
+            operation = tx.db.execute('SELECT fingerprint FROM bridge_operations '
+                'WHERE grant_id=? AND operation=?', (str(receipt.grant_id), 'revoke')).fetchone()
+            idem = tx.db.execute('SELECT fingerprint FROM bridge_idempotency '
+                'WHERE producer=? AND source=? AND slot=?',
+                (identity.producer, identity.source, identity.slot)).fetchone()
+            self.assertEqual(operation[0], operation_fingerprint)
+            self.assertEqual(idem[0], operation_fingerprint)
+            control_hash = tx.entries[0]['control_fingerprint']
+            self.assertNotEqual(operation_fingerprint, control_hash)
+        replay = recovered.revoke_grant(owner, receipt.grant_id, BridgeGrantRevision(1), identity)
+        self.assertEqual((replay.grant_id, replay.revision.value, replay.status.value),
+                         (receipt.grant_id, 2, 'revoked'))
+        with self.assertRaises(BridgeRuntimeError) as caught:
+            recovered.revoke_grant(owner, receipt.grant_id, BridgeGrantRevision(2), identity)
+        self.assertEqual(caught.exception.code, BridgeFailure.IDEMPOTENCY_CONFLICT)
+
+    def test_unknown_grant_control_recovers_when_active_backup_reappears(self):
+        with d.locked(self.root, self.key):
+            before_grant = d.snapshot(self.root, d.registry(self.root), self.inst)
+        owner, _, receipt = self.grant()
+        with d.locked(self.root, self.key):
+            active_backup = d.snapshot(self.root, d.registry(self.root), self.inst)
+        identity = BridgeIdempotencyIdentity('unknown-grant', 'revoke', '1')
+        self.bridge.revoke_grant(owner, receipt.grant_id, BridgeGrantRevision(1), identity)
+        d.restore(self.root, self.key, before_grant)
+        reg = d.registry(self.root)
+        path = d.state_home(self.root, reg['instances'][self.key]) / 'agents/synthetic/life.db'
+        with closing(sqlite3.connect(path)) as db:
+            self.assertIsNone(db.execute('SELECT status FROM bridge_grants WHERE grant_id=?',
+                                         (str(receipt.grant_id),)).fetchone())
+            self.assertIsNone(db.execute('SELECT fingerprint FROM bridge_idempotency '
+                'WHERE producer=? AND source=? AND slot=?',
+                (identity.producer, identity.source, identity.slot)).fetchone())
+            self.assertEqual(db.execute('SELECT COUNT(*) FROM bridge_applied_controls').fetchone()[0], 1)
+        d.restore(self.root, self.key, active_backup)
+        reg = d.registry(self.root)
+        path = d.state_home(self.root, reg['instances'][self.key]) / 'agents/synthetic/life.db'
+        with closing(sqlite3.connect(path)) as db:
+            self.assertEqual(db.execute('SELECT status FROM bridge_grants WHERE grant_id=?',
+                (str(receipt.grant_id),)).fetchone()[0], 'revoked')
+            self.assertEqual(db.execute('SELECT operation,revision FROM bridge_idempotency '
+                'WHERE producer=? AND source=? AND slot=?',
+                (identity.producer, identity.source, identity.slot)).fetchone(), ('revoke', 2))
+
+    def test_reconcile_rejects_conflicting_existing_revoke_idempotency(self):
+        owner, _, receipt = self.grant()
+        identity = BridgeIdempotencyIdentity('conflict', 'revoke', '1')
+        self.bridge.revoke_grant(owner, receipt.grant_id, BridgeGrantRevision(1), identity)
+        with closing(sqlite3.connect(self.path)) as db:
+            db.execute('DROP TRIGGER bridge_idempotency_immutable')
+            db.execute('UPDATE bridge_idempotency SET fingerprint=? WHERE producer=? AND source=? AND slot=?',
+                       ('0' * 64, identity.producer, identity.source, identity.slot))
+            db.execute(next(sql for sql in BRIDGE_DDL if
+                            sql.startswith('CREATE TRIGGER bridge_idempotency_immutable')))
+            db.commit()
+        with self.assertRaises(BridgeRuntimeError) as caught:
+            self.bridge_repo.reconcile()
+        self.assertEqual(caught.exception.code, BridgeFailure.CONTROL_REQUIRED)
 
     def test_anchor_rollback_and_control_tamper_fail_closed(self):
         owner, _, receipt = self.grant()
@@ -504,8 +575,8 @@ class BridgeRuntimeTests(MemoryFixture, unittest.TestCase):
             anchor.write_bytes(saved)
         path = self.root / 'control/bridge-control.db'
         with closing(sqlite3.connect(path)) as db:
-            original = db.execute('SELECT fingerprint FROM intents WHERE sequence=1').fetchone()[0]
-            db.execute("UPDATE intents SET fingerprint=? WHERE sequence=1", ('0' * 64,))
+            original = db.execute('SELECT control_fingerprint FROM intents WHERE sequence=1').fetchone()[0]
+            db.execute("UPDATE intents SET control_fingerprint=? WHERE sequence=1", ('0' * 64,))
             db.commit()
         try:
             with self.assertRaises(BridgeRuntimeError) as caught:
@@ -514,7 +585,21 @@ class BridgeRuntimeTests(MemoryFixture, unittest.TestCase):
             self.assertEqual(caught.exception.code, BridgeFailure.CONTROL_REQUIRED)
         finally:
             with closing(sqlite3.connect(path)) as db:
-                db.execute('UPDATE intents SET fingerprint=? WHERE sequence=1', (original,))
+                db.execute('UPDATE intents SET control_fingerprint=? WHERE sequence=1', (original,))
+                db.commit()
+        with closing(sqlite3.connect(path)) as db:
+            operation = db.execute('SELECT operation_fingerprint FROM intents WHERE sequence=1').fetchone()[0]
+            db.execute('UPDATE intents SET operation_fingerprint=? WHERE sequence=1', ('0' * 64,))
+            db.commit()
+        try:
+            with self.assertRaises(BridgeRuntimeError) as caught:
+                with self.bridge_repo.transaction():
+                    pass
+            self.assertEqual(caught.exception.code, BridgeFailure.CONTROL_REQUIRED)
+        finally:
+            with closing(sqlite3.connect(path)) as db:
+                db.execute('UPDATE intents SET operation_fingerprint=? WHERE sequence=1',
+                           (operation,))
                 db.commit()
 
     def test_control_sequence_gap_and_schema_downgrade_fail_closed(self):
