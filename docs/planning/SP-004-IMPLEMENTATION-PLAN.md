@@ -156,3 +156,21 @@ Schema 2 → canonical Schema 3 的部署迁移已由 E 完成，继续遵守其
 ## 十一、SP-004K1 候选时点的当前记录
 
 SP-004K0 已在 canonical main `dec8fd5797f67496c583f1112d379da954ab8f8b` 合并，状态 **DONE**；上节的 K0 候选措辞是成文时的历史状态。Prompt 能力矩阵的当前读法为：**K0 架构 DONE；K1 Runtime 候选 IMPLEMENTED / PENDING_INDEPENDENT_REVIEW**。K1 候选交付会话绑定 Memory/Story/Lore 适配、只读组装、确定性预算、不可变快照及重验；不含模型 API、Bridge、Host 集成或 Schema 变更。K1 只有通过独立审核并合并才可标 DONE。当前建议顺序为 **K1 → F0 → F1 → H0 → H1 → H2**，L 保持旁线；本记录不授权自动启动后续阶段。
+
+## 十二、SP-004F0 时点的 canonical 能力与路线
+
+事实基线：canonical main `b1bb2fd07eae0699a108ad535ba6152c9a8de2f6`，其中 SP-004K1 已经 Squash Merge，**K0/K1 均 DONE**。上文 K1 候选状态是其成文时点的历史，不代表当前 main。`DATA_SCHEMA = 6`、签名 `SP-004C-story-runtime-v1`、Prompt 模板 `SP-004K-prompt-v1`。本 F0 分支只新增[受控 Bridge 架构](../architecture/SP-004F-CONTROLLED-WORLD-BRIDGE.md)及五份 ADR；Bridge Runtime 不存在。
+
+| 能力 | 阶段 | 当前状态 | canonical 提交 | 已实现 | 尚未实现 |
+| --- | --- | --- | --- | --- | --- |
+| Domain / Import | A/G | DONE | 上方历史矩阵所列提交 | World/Timeline/CharacterDefinition 身份、角色卡导入 IR | L 原包资产与升级 |
+| World / Persistence | D/E | DONE | 上方历史矩阵所列提交 | 实例、Session、生命周期、SQLite 代次/备份/恢复 | 宿主自动接线 |
+| Memory | B | DONE | `d89b362701e614415354c38302a102f593a0a0a7` | Scope/Audience、CAS、删除恢复控制 | 自动提取、跨域写入 |
+| Lore | J | DONE | `0028faedc36e00c52b9328e15a43fa81c31f9475` | 固定书版本、Scope 绑定、有界激活 | 完整外部 World Book 执行 |
+| Story | C0/C1 | DONE | `7f7c5c07d4cc821027cb083100335c8f4d139c44` | Accepted Event 真源、确定性投影、Schema 6 | 自动事件抽取 |
+| Prompt | K0/K1 | **DONE** | `b1bb2fd07eae0699a108ad535ba6152c9a8de2f6` | Session-bound 投影、类型化 Section、预算、快照重验 | 模型/宿主调用、Bridge Section 启用 |
+| Bridge | F0/F1 | F0 架构候选；F1 未开始 | — | 现有纯 eligibility；本分支仅冻结 Grant/Preview/Projection 合同 | grant store、撤销控制、Runtime、Prompt 接线 |
+| Host | H0/H1/H2 | NOT STARTED | — | HostCapabilities 声明 | Hermes/OpenClaw 真实接入 |
+| Assets | L | 旁线 PROPOSED | — | G 的导入 IR 基础 | 原包、头像、历史与 Definition 升级 |
+
+历史路线 `B → J → C → F → K → H` 和此前的 K1 候选顺序均保留。**当前建议主线：已完成 A → G → D → E → B → J → C → K；当前 F0 架构候选；后续 F1 → H0 → H1 → H2；L 为旁线。** F0 不授权 F1 实施，不把同 Owner 变成共享许可，也不把 Prompt 当 Bridge 授权边界。

@@ -58,3 +58,11 @@ SP-004C1 **DONE**：合并提交 `7f7c5c07d4cc821027cb083100335c8f4d139c44` 已�
 ## SP-004K1 候选时点的状态
 
 SP-004K0 已随 canonical main `dec8fd5797f67496c583f1112d379da954ab8f8b` 合并，状态 **DONE**。该提交冻结了 Prompt 作为授权派生视图、非权限边界、会话围栏、Story 保守可见性和确定性预算。SP-004K1 现为 **IMPLEMENTED / PENDING_INDEPENDENT_REVIEW** 候选：代码位于独立分支，未进入 canonical main，不能标为 DONE。K1 只产出内部 `PromptSnapshot`，不调用模型、不接 Hermes/OpenClaw，也不提供跨 World Bridge；H0、F0 与 L 仍需各自任务书与授权。当前建议主线为 K1 → F0 → F1 → H0 → H1 → H2，L 为旁线。
+
+## SP-004F0 时点的状态与 Bridge 定位
+
+SP-004K0/K1 现均为 **DONE**：K1 Squash Merge 已进入 canonical main `b1bb2fd07eae0699a108ad535ba6152c9a8de2f6`。上方 K1 候选文字保留为历史时点记录。当前内核已有 World、Memory、Lore、Story 与只读 PromptSnapshot，但没有模型/宿主调用，也没有跨 World Bridge 服务；`DATA_SCHEMA = 6` 和 Prompt 模板 `SP-004K-prompt-v1`。F0 仅是[受控 Bridge 架构](../architecture/SP-004F-CONTROLLED-WORLD-BRIDGE.md)候选，F1 未开始。
+
+Bridge 的目标是让 Owner 在默认隔离的两个精确 WorldScope 间，显式授权最少的来源字段、目标 viewer 和用途，先预览再按合同确认，输出可撤销资格的有界来源投影。它不复制数据库，不自动把虚构经历当成现实事实，也不把来源 Memory/Story 直接变成目标真源。Prompt-only 路径可在未来由 K 消费数据 Section；长期记忆或目标故事接受必须分别经过目标 Memory/Story Runtime。撤销与源删除不能被旧备份复活，是 F1 前置的恢复安全条件。
+
+当前路线：**DONE A → G → D → E → B → J → C → K；CURRENT F0 架构候选；NEXT F1 → H0 → H1 → H2；SIDE L**。这不表示 F0 已实现 Bridge、H 已接入或 F1 已获启动授权。
