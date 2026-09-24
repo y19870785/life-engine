@@ -15,3 +15,7 @@ Grant revoke 与 expiry 均为硬围栏：新投影拒绝，已生成但未发�
 ## 理由与后果
 
 若撤销只在可恢复 `life.db` 中，T1 ACTIVE 备份、T2 revoke、T3 restore T1 会直接复活权限，这是安全错误。独立控制与 fail-closed 激活是 F1 的前置验收，不是可选优化。已向模型披露内容和已经成为目标真源的数据则是另一种不可自动回滚的后果，必须如实说明。
+
+## F1 实现状态
+
+**IMPLEMENTED / PENDING_INDEPENDENT_REVIEW**。F1 独立 Bridge 控制身份、连续序列、哈希链和锚；撤销先同步外部拒绝意图，再更新业务 Grant。恢复或中断后由协调器重放到当前 generation；业务 ACTIVE 与控制 REVOKED 冲突时只可拒绝或协调为 REVOKED。来源 Memory 删除仍由原 Memory deletion control 加同条件 Runtime 重查负责，Bridge 不复制第二份来源删除账本。目标持久化尚未开放。

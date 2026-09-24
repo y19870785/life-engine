@@ -15,3 +15,7 @@ Memory 来源优先是 `SessionMemoryContext + MemoryQueryResult` 的精确查�
 ## 理由与后果
 
 有目标受众与 lineage 的派生投影，才能同时解释“这段内容从哪里来”“可给谁看”和“撤销后哪份结果必须作废”。F1 必须在使用前重验当前资格；仅校验 HMAC 不能证明 grant 仍有效。
+
+## F1 实现状态
+
+**IMPLEMENTED / PENDING_INDEPENDENT_REVIEW**。F1 的投影为瞬时对象，不建表；Memory 保留来源 RealityStatus/CanonStatus，Story 仅输出 source viewer 的角色状态和相关关系，Soul 来源没有逐项现实 provenance 时保持 `UNKNOWN`，不会被 Bridge 宣称为观察事实。规范指纹覆盖授权、双 Scope、双 Session、来源版本、完整项、lineage 与实际预算；HMAC 后仍逐次重验 Grant 和来源。

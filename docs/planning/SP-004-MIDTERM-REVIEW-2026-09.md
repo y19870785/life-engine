@@ -66,3 +66,7 @@ SP-004K0/K1 现均为 **DONE**：K1 Squash Merge 已进入 canonical main `b1bb2
 Bridge 的目标是让 Owner 在默认隔离的两个精确 WorldScope 间，显式授权最少的来源字段、目标 viewer 和用途，先预览再按合同确认，输出可撤销资格的有界来源投影。它不复制数据库，不自动把虚构经历当成现实事实，也不把来源 Memory/Story 直接变成目标真源。Prompt-only 路径可在未来由 K 消费数据 Section；长期记忆或目标故事接受必须分别经过目标 Memory/Story Runtime。撤销与源删除不能被旧备份复活，是 F1 前置的恢复安全条件。
 
 当前路线：**DONE A → G → D → E → B → J → C → K；CURRENT F0 架构候选；NEXT F1 → H0 → H1 → H2；SIDE L**。这不表示 F0 已实现 Bridge、H 已接入或 F1 已获启动授权。
+
+## SP-004F1 候选时点的状态校准
+
+SP-004F0 已于 canonical main `cd51d2d97ff4de18b681f4176e57d84f12ed679d` 合并，状态 **DONE**；上方 F0 候选文字为历史时点。F1 在本分支实现 Prompt-only Bridge 候选，状态 **IMPLEMENTED / PENDING_INDEPENDENT_REVIEW**，不能称 canonical DONE。该候选只让双向 Soul↔Roleplay 的 Session 授权 Memory／Story 子集通过明确 Grant、瞬时 BridgeProjection 进入 K 的 DATA Section；不写目标 Memory/Story，不接模型或 Host。候选 Schema 7 与非回滚撤销控制待独立核验。当前建议路线为 F1 → H0 → H1 → H2，L 仍为旁线；F1 审核、合并和 main CI 是进入 H0 前的门禁。

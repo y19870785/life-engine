@@ -17,3 +17,7 @@ F1 首版建议方向仅 Soul↔Roleplay；Roleplay↔Roleplay 有架构扩展�
 ## 理由与后果
 
 boolean allow_bridge 或 Owner 身份无法表达“哪个来源的哪些字段，给哪个角色，为何用途，到何时”。独立 grant 版本使预览、投影和 Prompt 能统一检测授权变化，同时保留 World 默认隔离。F0 不创建 grant、迁移 Schema 或改变现有代码；F1 须分别实现受信持久层、CAS 与 fail-closed 恢复。
+
+## F1 实现状态
+
+**IMPLEMENTED / PENDING_INDEPENDENT_REVIEW**。F1 首版将可变 policy 进一步收窄为创建后不可变：只允许 CREATE（revision 1）和 REVOKE（revision 2），不原地修改、缩小、扩大或续期。需要变更时撤销旧 Grant 后新建。仅 `PROMPT_CONTEXT`、Soul↔Roleplay 与目标精确 Soul/CharacterInstance audience 可运行；Schema 7 的约束与触发器守住这一收窄合同。后续扩展仍需新审核。
