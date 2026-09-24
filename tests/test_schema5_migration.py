@@ -87,13 +87,13 @@ class Schema5MigrationTests(unittest.TestCase):
             old_structure=expected_structure(4)
         result=d.upgrade(self.root,ROOT)
         current=d.registry(self.root)
-        self.assertEqual(current['data_schema'],6)
+        self.assertEqual(current['data_schema'],7)
         self.assertEqual(expected_structure(4),old_structure)
         self.assertNotEqual(current['instances'][inst['id']]['generation'],inst['generation'])
         self.assertTrue(path.exists())
         newpath=d.state_home(self.root,current['instances'][inst['id']])/'agents/synthetic/life.db'
         with closing(sqlite3.connect(newpath)) as db:
-            validate_schema(db,6)
+            validate_schema(db,7)
             for table,rows in before.items():
                 if table=='meta':
                     continue
@@ -232,14 +232,14 @@ repo.close(); w.close()'''
             db.execute('DROP INDEX lore_books_owner')
             db.commit()
             with self.assertRaises(ValueError):
-                validate_schema(db,6)
+                validate_schema(db,7)
             db.execute('CREATE INDEX lore_books_owner ON lore_books(owner_id,book_id)')
             owner,soul=db.execute('SELECT owner_id,soul_id FROM worlds LIMIT 1').fetchone()
             db.execute('INSERT INTO lore_binding_state VALUES(?,?,?,?,0)',
                 (owner,soul,str(DomainId.new(IdKind.WORLD)),str(DomainId.new(IdKind.TIMELINE))))
             db.commit()
             with self.assertRaises(ValueError):
-                validate_schema(db,6)
+                validate_schema(db,7)
 
     def test_unknown_schema_copy_fails_closed(self):
         with closing(sqlite3.connect(':memory:')) as db:

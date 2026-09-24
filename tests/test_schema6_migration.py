@@ -125,12 +125,12 @@ lore_repo.close();memory_repo.close();repo.close()'''
         result = d.upgrade(self.root,ROOT)
         self.assertEqual(expected_structure(5),old_structure)
         reg = d.registry(self.root)
-        self.assertEqual(reg['data_schema'],6)
+        self.assertEqual(reg['data_schema'],7)
         self.assertNotEqual(reg['instances'][inst['id']]['generation'],inst['generation'])
         self.assertTrue(path.exists())
         newpath = d.state_home(self.root,reg['instances'][inst['id']])/'agents/synthetic/life.db'
         with closing(sqlite3.connect(newpath)) as db:
-            validate_schema(db,6)
+            validate_schema(db,7)
             validate_story_data(db)
             for table,rows in before.items():
                 self.assertEqual(db.execute('SELECT * FROM '+table+' ORDER BY rowid').fetchall(),rows,table)

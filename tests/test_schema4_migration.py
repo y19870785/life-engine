@@ -76,10 +76,10 @@ class Schema4MigrationTests(unittest.TestCase):
             before = {t:db.execute('SELECT * FROM '+t).fetchall() for t in ('days','contacts','observations','memories','loops','photos','souls','worlds','world_timelines','character_definitions','character_instances','session_bindings')}
         result = d.upgrade(self.root,ROOT)
         new = d.registry(self.root)
-        self.assertEqual(new['data_schema'],6)
+        self.assertEqual(new['data_schema'],7)
         self.assertNotEqual(new['instances'][inst['id']]['generation'],inst['generation'])
         with closing(sqlite3.connect(d.state_home(self.root,new['instances'][inst['id']])/'agents/synthetic/life.db')) as db:
-            validate_schema(db,6)
+            validate_schema(db,7)
             for table,rows in before.items():
                 self.assertEqual(db.execute('SELECT * FROM '+table).fetchall(),rows)
             self.assertEqual(db.execute('SELECT count(*) FROM world_memories').fetchone()[0],0)
@@ -136,4 +136,4 @@ class Schema4MigrationTests(unittest.TestCase):
             d.rollback_code(self.root,old['release'])
         with self.assertRaises(ValueError):
             d.rollback_schema(self.root,Path(result['schema_rollback']))
-        self.assertEqual(d.registry(self.root)['data_schema'],6)
+        self.assertEqual(d.registry(self.root)['data_schema'],7)
