@@ -91,3 +91,11 @@ F0 不新增测试，既有全量回归和四矩阵 CI 只证明现有代码未�
 ## 九、F1 边界与非目标
 
 F1 候选可独立设计 `bridge.py`、`bridge_runtime.py`、`bridge_sqlite_repository.py`、`bridge_schema.py` 及必要的 K/Memory/Story 受信适配，但必须另立任务书，审查撤销控制、来源删除和目标持久语义后才实施。F0 不改 Runtime、Schema、Tests、Workflow、README，也不启用 K 的 Bridge Section。非目标包括自动跨 World 复制、EXIT/SWITCH 自动回写、Soul aside、LLM 选材或授权、Hermes/OpenClaw、Host UI、外部网络获取、World 数据库同步及已发模型内容的“撤回”。
+
+## F1 实现状态（IMPLEMENTED / PENDING_INDEPENDENT_REVIEW）
+
+F0 已随 canonical main `cd51d2d97ff4de18b681f4176e57d84f12ed679d` 合并，状态 DONE。F1 候选只启用 **Prompt-only Bridge v1**：Soul→Roleplay 与 Roleplay→Soul；Roleplay→Roleplay、Soul→Soul、同 World 和跨 Owner 均拒绝。`BridgeGrant` 首版 policy 创建后不可变，只支持 Owner 预览、精确确认、创建和不可逆撤销；改动授权须撤销后重新创建。唯一运行用途是 `PROMPT_CONTEXT`。Memory 来源必须经过 `SessionMemoryContext` 的同条件查询，Story 来源必须经过 `SessionStoryContext` 的投影；不使用 Owner 全量读取。`world_facts`、`open_threads`、历史事件及 Lore 不进入 Bridge。
+
+候选代码新增 Schema 7 `SP-004F-bridge-runtime-v1` 的 Grant、操作审计、幂等和已应用控制表；迁移仅在副本中添加空 Bridge 状态，不回填任何授权。业务授权仍在同一 `life.db`；独立 `control/bridge-control.db` 与 `control/bridge-identity.json` 保存不随业务 generation 回滚的最小撤销事实。恢复旧 ACTIVE 备份须重放当前撤销控制；账本、身份、锚或哈希链不可验证即拒绝 Bridge。瞬时 `BridgeProjection` 不入库，使用完整项 PREFIX 与独立预算、规范指纹及实例 HMAC；token 不是认证凭据。
+
+K1 的受信 `PromptBridgeProjection` 适配器使 `BRIDGE_CONTEXT` 位于本地 Memory 后、Conversation 前，正文始终是 `UNTRUSTED_CONTENT_DATA`，独立 `bridge_bytes` 预算；组装及再次使用 PromptSnapshot 时都重验当前 Grant、来源和双 Session 围栏。F1 不提供目标 Memory/Story 持久化 API：当前 Memory 明确拒绝 `SourceType.BRIDGE`，其 lineage 仅限同 Scope；Story 也无完整 Bridge source reference。F1 不以伪造 provenance、外部消息或直接 SQL 绕过这些真源合同。模型调用、Host UI、Hermes/OpenClaw 和 EXIT/SWITCH 自动桥接仍未实现。实现与跨平台测试完成后仍须独立审核，本文历史 F0 决策不被此状态节改写。

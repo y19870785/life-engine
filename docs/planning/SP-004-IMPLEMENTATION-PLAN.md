@@ -174,3 +174,19 @@ SP-004K0 已在 canonical main `dec8fd5797f67496c583f1112d379da954ab8f8b` 合并
 | Assets | L | 旁线 PROPOSED | — | G 的导入 IR 基础 | 原包、头像、历史与 Definition 升级 |
 
 历史路线 `B → J → C → F → K → H` 和此前的 K1 候选顺序均保留。**当前建议主线：已完成 A → G → D → E → B → J → C → K；当前 F0 架构候选；后续 F1 → H0 → H1 → H2；L 为旁线。** F0 不授权 F1 实施，不把同 Owner 变成共享许可，也不把 Prompt 当 Bridge 授权边界。
+
+## 十三、SP-004F1 实现候选时点的当前能力矩阵
+
+F0 已随 canonical main `cd51d2d97ff4de18b681f4176e57d84f12ed679d` 合并，状态 **DONE**。上节 F0 候选表保留为历史。本 F1 分支以该 SHA 为固定 Base；以下候选能力尚未经过独立审核，不提前标 DONE。
+
+| 能力 | 阶段 | 当前状态 | 已实现候选 | 未实现 |
+| --- | --- | --- | --- | --- |
+| Domain / Import / World / Persistence | A/G/D/E | DONE | 原有身份、会话、代次及恢复 | Host 自动接线 |
+| Memory / Lore / Story | B/J/C | DONE | 各自授权与真源、Schema 4/5/6 | 跨域目标持久化 |
+| Prompt | K0/K1 | DONE | Session-bound 快照、预算与重验 | 模型 API、Host renderer |
+| Bridge 架构 | F0 | **DONE** | 默认拒绝、Grant/Preview/Projection 与撤销恢复合同 | — |
+| Bridge Runtime | F1 | **IMPLEMENTED / PENDING_INDEPENDENT_REVIEW** | Prompt-only Soul↔Roleplay、创建/撤销 Grant、Schema 7、独立撤销控制、瞬时投影和 K 受信 BRIDGE_CONTEXT | 目标 Memory/Story 写入、Roleplay↔Roleplay、Host UI |
+| Host | H0/H1/H2 | NOT STARTED | HostCapabilities 声明 | Hermes/OpenClaw 接入 |
+| Assets | L | 旁线 PROPOSED | Import IR | 原包资产、升级与历史映射 |
+
+当前路线：**DONE A → G → D → E → B → J → C → K → F0；CURRENT F1 候选；NEXT H0 → H1 → H2；SIDE L**。F1 只在独立审核、合并并通过 canonical main CI 后才能标 DONE。历史 `B → J → C → F → K → H` 不再是当前执行顺序。

@@ -31,11 +31,14 @@ def total_bytes(sections):
     return len(render_canonical(sections).encode('utf-8'))
 
 
-def budget_data(budget):
-    return {key: getattr(budget, key) for key in (
+def budget_data(budget, *, include_bridge=False):
+    data = {key: getattr(budget, key) for key in (
         'max_total_bytes', 'runtime_control_bytes', 'character_identity_bytes',
         'character_behavior_bytes', 'character_examples_bytes', 'story_bytes',
         'lore_bytes', 'memory_bytes', 'conversation_bytes', 'max_total_tokens')}
+    if include_bridge:
+        data['bridge_bytes'] = budget.bridge_bytes
+    return data
 
 
 def fingerprint_data(snapshot):
@@ -63,7 +66,7 @@ def fingerprint_data(snapshot):
         'story_projection_version': snapshot.story_projection_version,
         'conversation_lane_id': snapshot.conversation_lane_id,
         'conversation_version': snapshot.conversation_version,
-        'budget': budget_data(snapshot.budget),
+        'budget': budget_data(snapshot.budget, include_bridge=bool(snapshot.bridge_snapshots)),
         'budget_used': snapshot.budget_used,
         'token_used': snapshot.token_used,
         'token_safe': snapshot.token_safe,
@@ -71,4 +74,6 @@ def fingerprint_data(snapshot):
         'diagnostics': [item.value for item in snapshot.diagnostics],
         'budget_exhausted': snapshot.budget_exhausted,
         'requirements': [item.value for item in snapshot.requirements.capabilities],
+        **({'bridge_snapshots': [list(row) for row in snapshot.bridge_snapshots]}
+           if snapshot.bridge_snapshots else {}),
     }

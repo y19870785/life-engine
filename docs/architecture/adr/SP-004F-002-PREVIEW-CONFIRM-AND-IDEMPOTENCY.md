@@ -15,3 +15,7 @@ Grant mutation 在持久事务内比较独立 `BridgeGrantRevision`，竞争单�
 ## 理由与后果
 
 `confirm(grant_id)` 会让用户确认旧画面、系统写入新来源数据。两阶段乐观校验把用户意图与精确来源版本绑定，也允许 UI 等待而不持锁。F0 只冻结接口与不变式；Preview token、审计表和故障恢复实现归 F1。
+
+## F1 实现状态
+
+**IMPLEMENTED / PENDING_INDEPENDENT_REVIEW**。F1 只有 Prompt-only，因此实现只读 GRANT preview、实例 HMAC 精确确认、CREATE/REVOKE 幂等与撤销 CAS；不实现 USE preview 或目标持久写入。Prompt 消费为 GRANT_ONLY，但每次投影及重验仍查询当前授权与来源。人工等待期间没有 SQLite 事务；重启后的旧 preview 失效。

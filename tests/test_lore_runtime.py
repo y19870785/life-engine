@@ -153,7 +153,7 @@ class LoreRuntimeTests(MemoryFixture,unittest.TestCase):
         with d.locked(self.root,'management'),d.locked(self.root,self.key):
             backup=d.snapshot(self.root,d.registry(self.root),self.inst)
         manifest=d.verify_backup(backup,self.inst)
-        self.assertEqual(manifest['data_schema'],6)
+        self.assertEqual(manifest['data_schema'],7)
         self.assertIsNotNone(manifest['memory_control_watermark'])
         self.assertEqual(manifest['memory_install_id'],self.reg['memory_install_id'])
         second=self.lore.register_version(self.asset_owner,first.book_id,LoreBookVersion(1),

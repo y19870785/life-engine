@@ -17,3 +17,7 @@ Bridge 持久仓储只管 grant/revision、audit、idempotency 和撤销控制�
 ## 理由与后果
 
 三条目标消费路径有不同真源和权限：K 只读派生视图，Memory 决定谁记得，Story 决定目标世界发生了什么。共享 BridgeProjection 不得把这些边界压成一次数据库复制。F0 不启用 Prompt Section、目标写入或 Host 适配。
+
+## F1 实现状态
+
+**IMPLEMENTED / PENDING_INDEPENDENT_REVIEW**。F1 仅经 `PromptBridgeProjection.from_bridge_projection()` 受信适配器启用 `BRIDGE_CONTEXT`；按本地 Memory → Bridge → Conversation 排序、独立预算及完整项裁剪，所有共享正文保持 DATA。旧快照在 Grant 撤销、来源或目标围栏变化时重验失败。未增加 `persist_to_memory()`、`persist_to_story()`、模型 API 或 Host 适配；Memory 的 `SourceType.BRIDGE` 拒绝和 Story source refs 原样保持。

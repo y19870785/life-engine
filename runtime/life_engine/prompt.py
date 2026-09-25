@@ -10,6 +10,7 @@ from .lore import LoreActivationRequest, LoreActivationResult, LoreBindingRevisi
 from .memory import (AudienceKind, MemoryAudience, MemoryQueryResult, MemoryRecord,
                      SessionMemoryContext)
 from .story import SessionStoryContext, StoryProjection, StoryRevision
+from .bridge import BridgeProjection, BridgeRuntimeError
 
 TEMPLATE_VERSION = 'SP-004K-prompt-v1'
 MAX_PROMPT_BYTES = 1_048_576
@@ -54,6 +55,7 @@ class PromptDiagnostic(str, Enum):
     TOKEN_ESTIMATE_UNAVAILABLE = 'token_estimate_unavailable'
     LORE_TRUNCATED = 'lore_truncated'
     MEMORY_TRUNCATED = 'memory_truncated'
+    BRIDGE_TRUNCATED = 'bridge_truncated'
     CONVERSATION_TRUNCATED = 'conversation_truncated'
     CHARACTER_EXAMPLES_TRUNCATED = 'character_examples_truncated'
     OPTIONAL_SECTION_DROPPED = 'optional_section_dropped'
@@ -69,6 +71,7 @@ class PromptFailure(str, Enum):
     MEMORY_STALE = 'memory_stale'
     LORE_STALE = 'lore_stale'
     STORY_STALE = 'story_stale'
+    BRIDGE_STALE = 'bridge_stale'
     DEFINITION_STALE = 'definition_stale'
     BUDGET_REQUIRED = 'budget_required'
     BUDGET_INPUT = 'budget_input'
@@ -126,6 +129,7 @@ class PromptSection:
     required: bool
     truncation_policy: TruncationPolicy
     byte_size: int = field(init=False)
+    _bridge_seal: object = field(default=None, repr=False, compare=False)
 
     def __post_init__(self):
         require(self.kind, PromptSectionKind)
@@ -136,8 +140,10 @@ class PromptSection:
             fail(PromptFailure.INVALID_ARGUMENT)
         if type(self.priority) is not int or self.priority < 0 or type(self.required) is not bool:
             fail(PromptFailure.INVALID_ARGUMENT)
-        if self.kind is PromptSectionKind.BRIDGE_CONTEXT:
+        if self.kind is PromptSectionKind.BRIDGE_CONTEXT and self._bridge_seal is not _TRUSTED:
             fail(PromptFailure.UNSUPPORTED_CAPABILITY)
+        if self.kind is PromptSectionKind.BRIDGE_CONTEXT and self.authority is not PromptAuthority.UNTRUSTED_CONTENT_DATA:
+            fail(PromptFailure.AUTHORIZATION_DENIED)
         if (self.kind is PromptSectionKind.RUNTIME_CONTROL) != (self.authority is PromptAuthority.RUNTIME_CONTROL):
             fail(PromptFailure.AUTHORIZATION_DENIED)
         from .prompt_codec import section_bytes
@@ -154,6 +160,7 @@ class PromptBudget:
     story_bytes: int = 131_072
     lore_bytes: int = 262_144
     memory_bytes: int = 262_144
+    bridge_bytes: int = 262_144
     conversation_bytes: int = 262_144
     max_total_tokens: int | None = None
 
@@ -162,7 +169,7 @@ class PromptBudget:
             fail(PromptFailure.BUDGET_INPUT)
         for name in ('runtime_control_bytes', 'character_identity_bytes', 'character_behavior_bytes',
                      'character_examples_bytes', 'story_bytes', 'lore_bytes', 'memory_bytes',
-                     'conversation_bytes'):
+                     'bridge_bytes', 'conversation_bytes'):
             value = getattr(self, name)
             if type(value) is not int or not 1 <= value <= MAX_SECTION_BYTES:
                 fail(PromptFailure.BUDGET_INPUT)
@@ -326,6 +333,28 @@ class PromptLoreProjection:
 
 
 @dataclass(frozen=True)
+class PromptBridgeProjection:
+    """只由 Bridge Runtime 当前投影生成；token 本身不提供授权。"""
+    result: BridgeProjection
+    _runtime: object = field(default=None, init=False, repr=False, compare=False)
+    _seal: object = field(default=None, init=False, repr=False, compare=False)
+
+    @classmethod
+    def from_bridge_projection(cls, runtime, projection):
+        from .bridge_runtime import BridgeRuntime
+        if type(projection) is not BridgeProjection or type(runtime) is not BridgeRuntime:
+            fail(PromptFailure.AUTHORIZATION_DENIED)
+        try:
+            runtime.revalidate_projection(projection)
+        except BridgeRuntimeError:
+            fail(PromptFailure.BRIDGE_STALE)
+        value = cls(projection)
+        object.__setattr__(value, '_runtime', runtime)
+        object.__setattr__(value, '_seal', _TRUSTED)
+        return value
+
+
+@dataclass(frozen=True)
 class PromptSessionContext:
     principal: Principal
     scope: WorldScope
@@ -360,6 +389,7 @@ class PromptAssemblyRequest:
     story: PromptStoryProjection
     conversation: ConversationProjection
     budget: PromptBudget
+    bridges: tuple[PromptBridgeProjection, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -401,6 +431,7 @@ class PromptSnapshot:
     diagnostics: tuple[PromptDiagnostic, ...]
     budget_exhausted: bool
     requirements: PromptRequirements
+    bridge_snapshots: tuple
     fingerprint: str
     snapshot_token: str
     _request: PromptAssemblyRequest = field(repr=False, compare=False)
