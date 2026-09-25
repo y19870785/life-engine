@@ -190,3 +190,21 @@ F0 已随 canonical main `cd51d2d97ff4de18b681f4176e57d84f12ed679d` 合并，状
 | Assets | L | 旁线 PROPOSED | Import IR | 原包资产、升级与历史映射 |
 
 当前路线：**DONE A → G → D → E → B → J → C → K → F0；CURRENT F1 候选；NEXT H0 → H1 → H2；SIDE L**。F1 只在独立审核、合并并通过 canonical main CI 后才能标 DONE。历史 `B → J → C → F → K → H` 不再是当前执行顺序。
+
+## 十四、SP-004H0 当前 canonical 能力矩阵与路线
+
+固定 canonical main `68c24b010ee464a66e0e853ab50f85b7e861e148`：SP-004F0/F1 **DONE**；上节 F1 候选描述保留为成文时点的历史。F1 已实现的是 **Prompt-only Soul↔Roleplay Bridge**：显式 Grant、受信 Session 来源、瞬时投影、K 的 DATA `BRIDGE_CONTEXT`、Schema 7 和非回滚撤销控制；**未**实现目标 Memory/Story 持久写入或 Host UI。当前 `DATA_SCHEMA = 7`，签名 `SP-004F-bridge-runtime-v1`，Prompt 模板 `SP-004K-prompt-v1`。
+
+| Capability | Stage | Current status | Canonical commit | What is implemented | What is not implemented |
+| --- | --- | --- | --- | --- | --- |
+| Domain / Import | A/G | DONE | 上方历史矩阵所列提交 | Owner/Soul/World/Timeline 与有界卡片导入 | L 原始资产、升级 |
+| World / Persistence | D/E | DONE | 上方历史矩阵所列提交 | CharacterInstance、SessionBinding、生命周期、SQLite 代次/备份/恢复 | 真实 Host lane 映射 |
+| Memory / Lore / Story | B/J/C | DONE | 上方历史矩阵所列提交 | 各自真源、授权投影、Schema 4/5/6 | 模型自动提取/确权 |
+| Prompt | K0/K1 | DONE | `b1bb2fd07eae0699a108ad535ba6152c9a8de2f6` | 类型化只读 Snapshot、预算与重验 | 模型消息格式及调用 |
+| Bridge | F0/F1 | **DONE** | `68c24b010ee464a66e0e853ab50f85b7e861e148` | Prompt-only 双向 Soul↔RP、Grant/撤销/预览、Schema 7、受信 Bridge Section | 目标 Memory/Story 持久化、RP↔RP、Host UI |
+| Host contract | H0 | **ARCHITECTURE CANDIDATE / PENDING_INDEPENDENT_REVIEW** | — | 本分支[Host Integration Contract](../architecture/SP-004H-HOST-INTEGRATION.md)及六份 ADR | Runtime/真实 Host 适配 |
+| Hermes Adapter | H1 | NOT STARTED | — | — | 受信 Principal、真实 lane/历史隔离、提交/返回围栏 |
+| OpenClaw Adapter | H2 | NOT STARTED | — | — | 同一合同的 OpenClaw 实机接入 |
+| Assets | L | SIDE TRACK | — | 现有 G 导入 IR | 原包/头像/升级历史 |
+
+**当前路线：DONE A → G → D → E → B → J → C → K → F；CURRENT H0 架构候选；NEXT H1 → H2；SIDE L。** H0 只冻结 Host 身份、能力、会话 lane、消息来源、Prompt 发送前重验、晚到响应与 Bridge 确认合同；既有 Hermes/OpenClaw continuity 插件不等于角色 Host 集成。旧路线及上方各时点候选文字作为历史记录保留，不再指导当前顺序。
