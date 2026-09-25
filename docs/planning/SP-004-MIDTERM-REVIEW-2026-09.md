@@ -70,3 +70,9 @@ Bridge 的目标是让 Owner 在默认隔离的两个精确 WorldScope 间，显
 ## SP-004F1 候选时点的状态校准
 
 SP-004F0 已于 canonical main `cd51d2d97ff4de18b681f4176e57d84f12ed679d` 合并，状态 **DONE**；上方 F0 候选文字为历史时点。F1 在本分支实现 Prompt-only Bridge 候选，状态 **IMPLEMENTED / PENDING_INDEPENDENT_REVIEW**，不能称 canonical DONE。该候选只让双向 Soul↔Roleplay 的 Session 授权 Memory／Story 子集通过明确 Grant、瞬时 BridgeProjection 进入 K 的 DATA Section；不写目标 Memory/Story，不接模型或 Host。候选 Schema 7 与非回滚撤销控制待独立核验。当前建议路线为 F1 → H0 → H1 → H2，L 仍为旁线；F1 审核、合并和 main CI 是进入 H0 前的门禁。
+
+## SP-004H0 时点的 canonical 校准与 Host 路线
+
+SP-004F0/F1 均已进入 canonical main `68c24b010ee464a66e0e853ab50f85b7e861e148`，状态 **DONE**；上方 F1 候选描述保留为当时的历史。当前 `DATA_SCHEMA = 7`、签名 `SP-004F-bridge-runtime-v1`，Prompt 模板 `SP-004K-prompt-v1`。已实现的跨 World 能力只限 **Prompt-only Soul↔Roleplay Bridge**：显式授权、Session 来源重验、瞬时投影、撤销恢复控制与 K 中的数据 Section；没有目标 Memory/Story 持久化、模型调用或真实 Host 确认 UI。
+
+现有 Hermes/OpenClaw 插件承担 Soul 连续状态的 context/tool/photo/wake 接入，**不是** World-aware Roleplay Host Integration。完整角色模式还缺受信 Principal 映射、独立 conversation lane、双向历史隔离、消息 provenance、PromptSnapshot 发送前重验、晚到响应围栏与 Bridge Preview/Confirm 用户交互。本 H0 分支仅冻结[Host Integration Contract](../architecture/SP-004H-HOST-INTEGRATION.md)及 ADR，状态为 **ARCHITECTURE CANDIDATE / PENDING_INDEPENDENT_REVIEW**；H1 Hermes、H2 OpenClaw 仍未开始。当前路线：**DONE A → G → D → E → B → J → C → K → F；CURRENT H0；NEXT H1 → H2；SIDE L**。历史 B→J→C→F→K→H 建议及上方各时点记录不改写。
