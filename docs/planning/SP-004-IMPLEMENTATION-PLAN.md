@@ -1,5 +1,26 @@
 # SP-004 — 实施历史与后续路线建议
 
+## 2026-09-26 当前状态快照
+
+当前事实基线：canonical main `8e2db9ae50b1ac3c46bb1953851d14442c58f085`；`DATA_SCHEMA = 7`、World Schema Signature `SP-004F-bridge-runtime-v1`、Prompt template `SP-004K-prompt-v1`。下面大量章节是各阶段形成时的历史记录，含当时的 PROPOSED / PENDING 状态；**当前事实以本节为准**，后续路线以[2026-09 路线图](ROADMAP-2026-09.md)为准。
+
+| 阶段 | 当前状态 | 已合并能力 |
+| --- | --- | --- |
+| SP-004A | DONE | World Domain Model |
+| SP-004B | DONE | World Memory |
+| SP-004C | DONE | Story Runtime |
+| SP-004D | DONE | World Instance Runtime |
+| SP-004E | DONE | World SQLite Persistence |
+| SP-004F | DONE | Controlled World Bridge |
+| SP-004G | DONE | Character Card Import IR |
+| SP-004H0 | DONE | Host Integration Contract |
+| SP-004H1 | BLOCKED | Hermes 官方 Host capability 尚缺；CAP3 in scope，官方实现待完成 |
+| SP-004H2 | BLOCKED | OpenClaw CAP0/CAP1 审计未找到合格 final-output commit boundary |
+| SP-004J | DONE | Lore Runtime |
+| SP-004K | DONE | Prompt Runtime |
+
+**SP-004 Core Runtime 主链已完成，但 SP-004H production Host Private RP 未完成；整个项目不能标为 DONE。** Soul Continuity / Living Agent 可进入[隔离 Host 沙箱](../HOST-SANDBOX-TESTING.md)，不能把沙箱验证或 Hermes Draft fork 当作 Full Private RP 解锁。
+
 本计划以 canonical main `780c7a54635e7347b914751ce0c79e350800be0b` 为核对基线，由 SP-004R 校准。
 
 已合并阶段按事实标记 DONE；未来工作包及依赖顺序统一为 **PROPOSED / PENDING_INDEPENDENT_REVIEW**。负责人：Codex；独立审核：ChatGPT / 小雪。本次仅授权治理文档，不授权启动后续实现、转 Ready、合并或关闭 PR #3。

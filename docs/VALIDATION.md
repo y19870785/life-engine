@@ -1,8 +1,22 @@
 # v0.3 验证记录
 
-## 当前 canonical main 自动验证
+## 当前 canonical validation（2026-09-26）
 
-基线：`d89b362701e614415354c38302a102f593a0a0a7`（SP-004B1 合并提交）。[GitHub Actions 运行记录](https://github.com/y19870785/life-engine/actions/runs/35748952847) 已完成且通过：Ubuntu / Python 3.11、Ubuntu / Python 3.12、Windows / Python 3.11、Windows / Python 3.12。完整 `unittest` 共 217 项；Windows 为 216 项通过、1 项既有平台跳过。
+固定 canonical main：`8e2db9ae50b1ac3c46bb1953851d14442c58f085`。合并 H0 后的 [main push CI #36088249987](https://github.com/y19870785/life-engine/actions/runs/36088249987) 在 Ubuntu / Windows × Python 3.11 / 3.12 四矩阵全绿。此处不推断本次 CI 的测试数量；下方 217 项是 SP-004B1 时点的**历史**记录。
+
+当前 `DATA_SCHEMA = 7`，World Schema Signature 为 `SP-004F-bridge-runtime-v1`，Prompt template 为 `SP-004K-prompt-v1`。World、Memory、Lore、Story、Bridge、Prompt Core Runtime 与 H0 Host Integration Contract 已进入 main；真实 Host Private RP 尚未通过能力门禁。自动 CI 和模拟宿主测试不等于真实渠道送达。
+
+### Hermes Host Capability Audit
+
+官方 final-output commit 能力仍阻塞 H1。CAP1 已判定需要 upstream，CAP2 提案已完成，CAP3 在 [PR #120170](https://github.com/NousResearch/hermes-agent/pull/120170) 获得 in-scope 方向反馈，官方实现仍待完成。独立的 compatibility fork 实机验证：attempt #1 因 recovery durability **FAIL**；R2 修复 recovery 后 rerun 又因 stale session incarnation / A→B→A writer fence **FAIL**，fork 路线已停止。以上是 **Hermes fork** 的 Host 能力实验，绝非 Life Engine main CI 结果，也不构成生产安全认证。
+
+### OpenClaw Host Capability Audit
+
+本机 2026.9.5 的 CAP0 结果：`HOST_CAPABILITY_INSUFFICIENT`。对 2026.9.6 做了相关边界的只读比对；CAP1 结果：`UPSTREAM_CHANGE_TOO_DEEP`。已有结构化身份、run/session ID、`lifecycleRevision`、transcript writer fencing 与多个 Hook，但缺统一的 fail-closed final-output commit / replay / delivery / stream 授权。宿主源码审计与正式 Life Engine Host 沙箱验收须分开记录。
+
+## SP-004B1 时点自动验证（历史）
+
+基线：`d89b362701e614415354c38302a102f593a0a0a7`（SP-004B1 合并提交）。[GitHub Actions 运行记录](https://github.com/y19870785/life-engine/actions/runs/35748952847) 已完成且通过：Ubuntu / Python 3.11、Ubuntu / Python 3.12、Windows / Python 3.11、Windows / Python 3.12。当时完整 `unittest` 共 217 项；Windows 为 216 项通过、1 项既有平台跳过。
 
 这些自动测试覆盖代码合同与模拟宿主，不等于真实 Hermes / OpenClaw Gateway、聊天渠道、GPU 出图或发送回执闭环验收；也不表示新的 World Memory 已自动接入宿主每轮聊天。
 
