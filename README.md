@@ -4,7 +4,15 @@
 
 Life Engine 是运行在已有 Hermes / OpenClaw Agent 旁边的持久状态与角色世界运行层。你继续使用原来的聊天渠道、模型和角色设定；它保存状态和待跟进话题，为主动联系提供依据，并为可恢复的 World 与隔离记忆提供底层 Runtime。
 
-> **v0.3 开发预览**：已有可运行 Runtime、自动测试、持久 World Runtime 与 World Memory 基础设施。真实 Hermes / OpenClaw 的 World Memory 自动接线，以及 Story、Lore、Bridge 和 Prompt Runtime 仍在开发中；真实聊天渠道与 GPU 也尚未完成验收。请查看 [已知问题](docs/KNOWN-ISSUES.md)。
+> **v0.3 开发预览 · 当前状态（2026-09-26）**：SP-004 Core Runtime 已形成 `World → Memory → Lore → Story → Bridge → Prompt` 链路；当前主要工程边界是接入真实 Host。Hermes / OpenClaw 可开始受控的 Soul Continuity / Living Agent 沙箱测试，**Full Private RP 尚未通过 Host capability 门禁**。这不是稳定版或真实渠道验收声明。先看 [Host 沙箱测试指南](docs/HOST-SANDBOX-TESTING.md)与[已知问题](docs/KNOWN-ISSUES.md)。
+
+| 能力 | 当前状态 |
+| --- | --- |
+| World Runtime、World Memory、Lore、Story、Prompt Runtime、Controlled Bridge、Character Card Import | **DONE**（Core Runtime） |
+| Soul Continuity Host Sandbox | **TESTABLE**（受控实机验证待完成） |
+| Living Agent / proactive layer 正式化 | **NEXT** |
+| Full Private RP on Hermes | **BLOCKED**（官方 Host capability） |
+| Full Private RP on OpenClaw | **BLOCKED**（统一 final-output commit boundary） |
 
 ## 用起来是什么感觉？
 
@@ -26,7 +34,7 @@ Life Engine 是运行在已有 Hermes / OpenClaw Agent 旁边的持久状态与�
 | --- | --- | --- |
 | 日常记录 | 保存现有主动联系系统使用的简单记忆、观察和待跟进事项 | 与新的 World Memory 是不同层；需要 Agent 调工具记录 |
 | World Memory | 按 World、Timeline 和可见范围保存、查询长期记忆 | Runtime 已实现，尚未自动接入真实每轮 Prompt |
-| World 隔离 | Soul World 与各 Roleplay World 默认隔离；同一 World 内按可见范围区分角色视角 | 跨 World 共享尚未实现，未来由 Bridge 控制 |
+| World 隔离 | Soul World 与各 Roleplay World 默认隔离；同一 World 内按可见范围区分角色视角 | 仅显式授权的有界 BridgeProjection 可用于 Prompt，不自动写入目标 Memory/Story |
 | 主动联系 | 考虑联系窗口、安静时段、最近聊天和次数上限，决定是否开口 | 需要宿主定时任务，不保证每天发满次数 |
 | 角色日常 | 提供当前活动、地点和稳定的当天视觉设定 | 是来自预设作息和随机选择的虚拟状态 |
 | 工作跟进 | 对已记录且到期的事项发起跟进 | 仍受联系窗口限制，不适合准点提醒 |
@@ -42,7 +50,7 @@ Life Engine 是运行在已有 Hermes / OpenClaw Agent 旁边的持久状态与�
 
 Life Engine 已有独立的 World Memory 层。一条记忆除了正文，还属于明确的 Soul、World 和 Timeline，并规定哪些角色或用户视角可以读取。同一世界的公共知识、单个角色的私有记忆和用户管理视角各有可见范围。同一张 Character Card 可导入为 CharacterDefinition，再在不同 World 中创建 CharacterInstance；它们不会因为卡片或定义相同就自动共享经历。
 
-Soul World 与 Roleplay World 默认不互相读取记忆。当前还没有跨 World Bridge。被记录为 Memory 也不等于剧情状态自动改变；后续 Story Runtime 才负责已接受事件和世界状态。现有主动联系系统的轻量日常记录、Hermes / OpenClaw 自己的聊天历史、World Memory 是三层不同的数据。
+Soul World 与 Roleplay World 默认不互相读取记忆。跨 World 默认仍拒绝；只有显式 Grant 才能生成有界、瞬时的 BridgeProjection。F1 只用于 `PROMPT_CONTEXT`，不会自动把源 World 内容持久写入目标 Memory/Story。Memory 记录也不等于剧情状态自动改变；已实现的 Story Runtime 由已接受事件维护故事真源。现有主动联系系统的轻量日常记录、Hermes / OpenClaw 自己的聊天历史、World Memory 是三层不同的数据。
 
 ## 它怎样和 Agent 配合？
 
@@ -66,17 +74,17 @@ Life Engine 检查状态、联系窗口和最近聊天
 
 ## 现在还没有什么？
 
-World Memory 已有持久化、按范围授权的查询、用户管理入口和会话候选写入，但不会自动提取所有聊天，也没有语义向量检索或自动宿主注入。Story Runtime、Lore / World Book 激活、跨 World Bridge、Prompt Runtime，以及完整 Hermes / OpenClaw 角色模式接入尚未实现。Character Card 的安全导入与定义基础已具备；完整 Roleplay Prompt、World Book 执行和真实宿主模式切换仍在后续阶段。
+World Memory、Lore、Story、Prompt 和受控 Bridge 的 **Core Runtime 已完成**，但不会自动提取所有聊天、自动接入真实 Host 每轮对话，也没有语义向量检索。Hermes / OpenClaw 的 Full Private RP Host Adapter 和所需的 fail-closed final-output commit 能力尚未完成；宿主原始 Soul/RP 历史隔离、晚到模型回复阻断、首次持久化／重放／发送／流式泄漏的统一授权都不能宣称已通过。Living Agent 主动生活 Runtime、语音生命周期、真实 Host 沙箱验收、ComfyUI 与真实渠道的完整闭环，以及资产仓库／Definition 升级仍属后续工作。
 
 ## 开始使用
 
-你需要先有一个能正常使用的 Hermes 或 OpenClaw Agent，以及 **Python 3.11 或更新版本**。Python 运行部分没有第三方依赖。照片功能另需可用的 ComfyUI API 身份工作流，缺少时可以先关闭照片。
+先选择测试模式：**模式 A：Host Sandbox / Soul Continuity，当前允许受控测试；模式 B：Full Private RP，当前不得在生产启用。** 具体隔离、停止门和验收清单见 [Hermes / OpenClaw Host 沙箱测试指南](docs/HOST-SANDBOX-TESTING.md)。你需要一个能正常使用的 Hermes 或 OpenClaw Agent，以及 **Python 3.11 或更新版本**。Python 运行部分没有第三方依赖。照片功能另需可用的 ComfyUI API 身份工作流，缺少时可以先关闭照片。
 
 ### 1. 让本机 Agent 阅读接入说明
 
-把项目下载到运行 Agent 的电脑上，将实际目录告诉它，并让它先读 [START-HERE.md](START-HERE.md)。例如：
+把项目下载到运行 Agent 的电脑上，将实际目录告诉它，并让它先读 [START-HERE.md](START-HERE.md) 和 [沙箱指南](docs/HOST-SANDBOX-TESTING.md)。例如：
 
-> 请先阅读这个目录里的 START-HERE.md，检查当前 Agent 的运行环境，向我说明需要补齐的配置，再按说明接入 Life Engine。
+> 请先阅读 START-HERE.md 和 docs/HOST-SANDBOX-TESTING.md，检查当前 Agent 的运行环境，只规划隔离的 Soul Continuity 沙箱接入，不开启 Full Private RP。
 
 接入需要确认真实的 Agent 目录、聊天目标和联系偏好。安装脚本只准备文件，**执行完成不等于已经能主动发消息**。
 
@@ -102,7 +110,7 @@ Windows 可用 `py -3.11 setup.py`，macOS / Linux 可用 `python3 setup.py`。�
 python "/永久目录/manage.py" connect --instance "实例ID"
 ```
 
-然后按生成的 `INSTALL.md` 重载宿主插件，建立或复用一个定时任务，绑定你指定的聊天目标。确认能读取状态、识别普通主人消息、在应当静默时保持静默；开启照片的部署还要验证实际图片发送。
+然后在独立测试 Profile/Agent、Session 与本人聊天目标中，按生成的 `INSTALL.md` 验证插件加载和绑定。仅在确认隔离、权限与发送目标后才建立或复用测试定时任务。确认能读取状态、识别普通主人消息、在应当静默时保持静默；开启照片还要区分生成、准备发送和真实送达回执。首次接入不替换主 Agent，也不启用 Full Private RP。
 
 宿主的插件审查和权限规则仍然生效。OpenClaw 使用命名配置时，连接还需指定对应的 `--host-profile`。
 
@@ -139,11 +147,14 @@ python "/永久目录/manage.py" connect --instance "实例ID"
 | 你想做什么 | 看这里 |
 | --- | --- |
 | 让本机 Agent 帮你接入 | [接入任务说明](START-HERE.md) |
+| 在 Hermes / OpenClaw 做受控测试 | [Host 沙箱测试指南](docs/HOST-SANDBOX-TESTING.md) |
 | 备份、恢复、升级、配置插件 | [维护说明](docs/OPERATIONS.md) |
 | 了解当前缺陷与历史测试记录 | [已知问题](docs/KNOWN-ISSUES.md) |
 | 查看当前 CI 与历史模拟宿主验证 | [验证记录](docs/VALIDATION.md) |
 | 了解 World Memory 架构 | [World Memory 架构](docs/architecture/SP-004B-WORLD-MEMORY.md) |
-| 查看开发阶段与后续路线 | [实施计划](docs/planning/SP-004-IMPLEMENTATION-PLAN.md) |
+| 查看当前开发路线 | [2026-09 后续路线](docs/planning/ROADMAP-2026-09.md) |
+| 查阅 SP-004 阶段实施历史 | [实施计划](docs/planning/SP-004-IMPLEMENTATION-PLAN.md) |
+| 理解私密 RP 的 Host 合同 | [Host Integration 架构](docs/architecture/SP-004H-HOST-INTEGRATION.md) |
 | 查看配置样例 | [examples](examples/) |
 | 查看宿主接口参考来源 | [接口来源](docs/SOURCES.md) |
 | 维护旧版安装 | [v0.2 说明](V02-README.md) |
