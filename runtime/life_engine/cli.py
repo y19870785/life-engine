@@ -75,12 +75,14 @@ def simulate(cfg, day):
                 "note": "Assistant mode has no synthetic due follow-ups, so may produce no contacts."}
 
 
-def main(argv=None, default_home=None, photo_result_transform=None):
+def main(argv=None, default_home=None, photo_result_transform=None, result_transform=None):
     args = parser(default_home).parse_args(argv)
+    def output(value):
+        emit(result_transform(value) if result_transform else value)
     try:
         cfg, agent_home = load(args.home, args.agent)
         if args.cmd == "simulate":
-            emit(simulate(cfg, args.day))
+            output(simulate(cfg, args.day))
             return 0
         store = Store(agent_home / "life.db", cfg["agent_id"])
         engine = Engine(cfg, store)
@@ -108,7 +110,10 @@ def main(argv=None, default_home=None, photo_result_transform=None):
         elif args.cmd == "ack":
             store.acknowledge(args.id, args.outcome, args.evidence)
         elif args.cmd == "photo":
-            result = photo(cfg, agent_home, store, engine, now, args.contact_id, args.kind, args.dry_run)
+            if args.dry_run and not cfg['photos']['enabled']:
+                result = {'ok': True, 'status': 'DISABLED', 'dry_run': True}
+            else:
+                result = photo(cfg, agent_home, store, engine, now, args.contact_id, args.kind, args.dry_run)
             if photo_result_transform:
                 result = photo_result_transform(result)
         elif args.cmd == "migrate-v01":
@@ -129,10 +134,10 @@ def main(argv=None, default_home=None, photo_result_transform=None):
                 if args.network:
                     ComfyUI(cfg["photos"]["base_url"]).json("/system_stats")
                     result["checks"]["comfyui"] = "reachable"
-            emit(result)
+            output(result)
             return 0
-        emit(result)
+        output(result)
         return 0
     except (Exception,) as exc:
-        emit({"ok": False, "error": type(exc).__name__, "message": str(exc)})
+        output({"ok": False, "error": type(exc).__name__, "message": str(exc)})
         return 1

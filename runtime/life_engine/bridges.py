@@ -9,7 +9,7 @@ from .config import json_bytes
 from .durable import absolute, read, registry, safe_name, write
 from .install import atomic_write, digest
 
-ACTIONS = ['status', 'wake', 'observe', 'remember', 'loop-add', 'loop-close',
+ACTIONS = ['status', 'doctor', 'sandbox-probe', 'wake', 'observe', 'remember', 'loop-add', 'loop-close',
            'prepare', 'ack', 'photo', 'pause', 'resume']
 PARAMETERS = {
     'type': 'object', 'additionalProperties': False,
@@ -25,11 +25,60 @@ HERMES = '''"""Life Engine native bridge; state remains outside the Hermes insta
 import json
 import logging
 import subprocess
+import sys
+import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 
 BINDING = json.loads((Path(__file__).parent / "binding.json").read_text(encoding="utf-8"))
 LOG = logging.getLogger(__name__)
 PARAMETERS = __PARAMETERS__
+PLUGIN_EPOCH = uuid.uuid4().hex
+HOOK_RUNTIME = None
+
+
+def _host_evidence():
+    import hermes_constants
+    source = getattr(hermes_constants, "__file__", None)
+    evidence = {"kind": "hermes", "version": "UNKNOWN", "checkout": "UNKNOWN",
+                "origin": "UNKNOWN", "installation": source or "UNKNOWN",
+                "executable": sys.executable, "profile": str(Path(hermes_constants.get_hermes_home()).resolve()),
+                "session": "UNKNOWN", "target": "UNKNOWN"}
+    if source:
+        try:
+            folder = str(Path(source).resolve().parent)
+            for field, args in (("checkout", ["rev-parse", "HEAD"]),
+                                ("origin", ["remote", "get-url", "origin"])):
+                done = subprocess.run(["git", "-C", folder, *args], capture_output=True,
+                                      text=True, encoding="utf-8", timeout=5, shell=False)
+                if done.returncode == 0 and done.stdout.strip():
+                    evidence[field] = done.stdout.strip()
+            from importlib.metadata import version, PackageNotFoundError
+            try:
+                evidence["version"] = version("hermes-agent")
+            except PackageNotFoundError:
+                pass
+        except (OSError, subprocess.SubprocessError):
+            pass
+    return evidence
+
+
+def _probe():
+    probes = {}
+    for action, args in (("status", []), ("doctor", []), ("wake", ["--preview"]), ("photo", ["--dry-run"])):
+        if not _scoped():
+            raise RuntimeError("Hermes Profile 已变化")
+        try:
+            value = _call(action, args, 30)
+            probes[action] = {"ok": value.get("ok", True), "runtime": value.get("runtime"),
+                              "action": value.get("action"), "reason": value.get("reason"), "status": value.get("status"),
+                              "preview": action == "wake", "dry_run": action == "photo"}
+        except (RuntimeError, OSError, subprocess.SubprocessError) as exc:
+            probes[action] = {"ok": False, "error": str(exc)}
+    return {"format": "SP-005H0-sandbox-v1", "at": datetime.now(timezone.utc).isoformat(),
+            "host": _host_evidence(), "plugin_epoch": PLUGIN_EPOCH,
+            "hook_runtime": HOOK_RUNTIME, "probes": probes,
+            "full_private_rp": "BLOCKED", "receipt_capability": "LIMITED"}
 
 
 def _settings():
@@ -46,7 +95,7 @@ def _scoped():
 
 def _call(action, arguments=None, timeout=20):
     root, reg, inst = _settings()
-    result = subprocess.run([reg["python"], str(root / "life.py"), "--instance", inst["id"],
+    result = subprocess.run([reg["python"], "-X", "utf8", str(root / "life.py"), "--instance", inst["id"],
                              action] + (arguments or []), capture_output=True, text=True,
                             encoding="utf-8", timeout=timeout, shell=False)
     try:
@@ -63,6 +112,13 @@ def _handle(params, **kwargs):
         return json.dumps({"ok": False, "error": "Different Hermes Profile"})
     if params.get("action") not in PARAMETERS["properties"]["action"]["enum"]:
         raise ValueError("Unsupported Life Engine action")
+    if params["action"] == "ack" and params.get("outcome") == "delivered":
+        return json.dumps({"ok": False, "error": "UNVERIFIED_RECEIPT",
+                           "message": "当前插件没有受信渠道回执验证器，模型 evidence 不能登记送达。"}, ensure_ascii=False)
+    if params["action"] == "sandbox-probe":
+        if set(params) != {"action"}:
+            raise ValueError("sandbox-probe 不接受模型声明的身份或证据参数")
+        return json.dumps(_probe(), ensure_ascii=False)
     args = []
     for key, value in params.items():
         if key == "action":
@@ -83,6 +139,7 @@ def _handle(params, **kwargs):
 
 
 def _before(**kwargs):
+    global HOOK_RUNTIME
     try:
         if not _scoped():
             return
@@ -95,7 +152,9 @@ def _before(**kwargs):
             args.append("--owner-seen")
             if kwargs.get("turn_id"):
                 args.append("--event-key=hermes:" + str(kwargs["turn_id"]))
-        return {"context": _call("context", args, 8)["text"]}
+        result = _call("context", args, 8)
+        HOOK_RUNTIME = result["runtime"]
+        return {"context": result["text"]}
     except Exception as exc:
         LOG.warning("Life Engine context unavailable: %s", exc)
         return {"context": "Life Engine is unavailable; do not invent its current state or claim a photo was sent."}
@@ -116,12 +175,51 @@ def register(ctx):
 OPENCLAW = '''import { definePluginEntry } from "openclaw/plugin-sdk/plugin-entry";
 import { readFileSync, realpathSync } from "node:fs";
 import { resolve } from "node:path";
+import { dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+import { randomUUID } from "node:crypto";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
 const binding = JSON.parse(readFileSync(new URL("./binding.json", import.meta.url), "utf8"));
 const parameters = __PARAMETERS__;
 const exec = promisify(execFile);
+const pluginEpoch = randomUUID();
+let hookRuntime = null;
+function hostEvidence(ctx) {
+  const host = {kind: "openclaw", version: "UNKNOWN", installation: "UNKNOWN",
+    cli_version: "UNKNOWN", version_source: "loaded_package_metadata",
+    executable: process.execPath, agent_id: ctx.agentId, workspace: realpathSync(ctx.workspaceDir),
+    config: "UNKNOWN", profile: "UNKNOWN", gateway: "UNKNOWN", session: "UNKNOWN", target: "UNKNOWN"};
+  try {
+    let folder = dirname(fileURLToPath(import.meta.resolve("openclaw/plugin-sdk/plugin-entry")));
+    for (let i = 0; i < 8; i++) {
+      try {
+        const pkg = JSON.parse(readFileSync(resolve(folder, "package.json"), "utf8"));
+        if (pkg.name === "openclaw") {
+          host.version = pkg.version || "UNKNOWN"; host.installation = folder; break;
+        }
+      } catch {}
+      const parent = dirname(folder); if (parent === folder) break; folder = parent;
+    }
+  } catch {}
+  return host;
+}
+async function probe(ctx) {
+  const probes = {};
+  for (const [action, args] of [["status", []], ["doctor", []], ["wake", ["--preview"]], ["photo", ["--dry-run"]]]) {
+    if (!scoped(ctx, settings().inst)) throw new Error("OpenClaw Agent 绑定已变化");
+    try {
+      const value = await call(action, args, 30000);
+      probes[action] = {ok: value.ok ?? true, runtime: value.runtime,
+        action: value.action ?? null, reason: value.reason ?? null, status: value.status ?? null,
+        preview: action === "wake", dry_run: action === "photo"};
+    } catch (err) { probes[action] = {ok: false, error: err.message}; }
+  }
+  return {format: "SP-005H0-sandbox-v1", at: new Date().toISOString(), host: hostEvidence(ctx),
+    plugin_epoch: pluginEpoch, hook_runtime: hookRuntime, probes,
+    full_private_rp: "BLOCKED", receipt_capability: "LIMITED"};
+}
 function settings() {
   const reg = JSON.parse(readFileSync(resolve(binding.root, "registry.json"), "utf8"));
   return { reg, inst: reg.instances[binding.instance] };
@@ -136,7 +234,7 @@ async function call(action, args = [], timeout = 20000) {
   const {reg, inst} = settings();
   try {
     const {stdout} = await exec(reg.python,
-      [resolve(binding.root, "life.py"), "--instance", inst.id, action, ...args],
+      ["-X", "utf8", resolve(binding.root, "life.py"), "--instance", inst.id, action, ...args],
       {encoding: "utf8", timeout, maxBuffer: 2 * 1024 * 1024, windowsHide: true});
     return JSON.parse(stdout);
   } catch (err) {
@@ -170,7 +268,12 @@ export default definePluginEntry({
         parameters,
         async execute(_id, params) {
           if (!scoped(ctx, settings().inst)) throw new Error("Life Engine agent binding changed");
-          const details = await call(params.action, argumentsFor(params), params.action === "photo" ? 7250000 : 30000);
+          if (params.action === "ack" && params.outcome === "delivered")
+            throw new Error("UNVERIFIED_RECEIPT：当前插件没有受信渠道回执验证器");
+          if (params.action === "sandbox-probe" && Object.keys(params).length !== 1)
+            throw new Error("sandbox-probe 不接受模型声明的身份或证据参数");
+          const details = params.action === "sandbox-probe" ? await probe(ctx) :
+            await call(params.action, argumentsFor(params), params.action === "photo" ? 7250000 : 30000);
           return { content: [{type: "text", text: JSON.stringify(details)}], details };
         },
       };
@@ -190,6 +293,7 @@ export default definePluginEntry({
         }
         const result = await call("context", args, 8000);
         ctx.hookInvocation?.assertActive();
+        hookRuntime = result.runtime;
         return { prependContext: result.text };
       } catch (err) {
         api.logger?.warn?.("Life Engine context unavailable: " + err.message);
@@ -270,6 +374,10 @@ OpenClaw 的 --profile 与 OPENCLAW_CONFIG_PATH 必须对应本 Agent 所属网�
 请在实际宿主完成一次调用 {inst['tool_name']} 的 status，并发一条普通主人消息；
 随后 manage.py doctor 中应看到 native_events.last_prompt_hook_at。
 安装文件存在或 plugins inspect 成功，不能单独证明在线网关已经加载。
+仅在独立测试 Profile/Agent 调用 sandbox-probe，并把 JSON 保存到外部证据目录。
+随后运行 manage.py sandbox --instance 实例ID --probe 证据文件，检查实例封套和本代次 hook。
+reload 后重新执行；旧报告不代表在线进程。缺少真实 Host 证据时保持 PENDING_REAL_HOST_VALIDATION。
+Full Private RP 与 H1/H2 始终 BLOCKED；不得为沙箱测试重启生产 Gateway。
 若未设置 owner_channel / owner_sender_id，则不声称自动识别每条入站消息；
 主人确认渠道与发送者后，重跑配置引导以启用严格匹配，仅记录时间而不复制全文。
 
@@ -286,7 +394,8 @@ OpenClaw 绑定 agentId={inst['host_agent_id'] or '由实际配置确定'}，使
 若 action=silent，最终只返回 {silence}，不要调用发送工具。
 若 action=contact，按原 SOUL 口吻、返回状态和历史生成自然消息；需要照片时调用 photo。
 只发送实际存在的照片文件，用宿主的原生媒体接口，不能把路径当成已经发出的照片。
-发送前调用 prepare；有真实发送回执才能 ack，未知结果不自动重发。
+发送前调用 prepare；当前原生工具没有渠道回执验证器，会拒绝 ack outcome=delivered。
+实际发送回执另存供操作员核验；人工管理 CLI 的 ack 不构成机械渠道证明，未知结果不自动重发。
 直接发送与定时器的自动投递只选一种，避免重复发出。
 
 用隔离 simulate 检查，再在主人已指定的聊天中验证文字/图片。

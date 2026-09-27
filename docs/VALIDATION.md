@@ -1,5 +1,29 @@
 # v0.3 验证记录
 
+## SP-005H0 实施验证（2026-09-27，待独立审核）
+
+固定 Base：`694b45a6f1cd10e28bef96a7e98261c1f85d66f6`。本阶段新增原生插件 `doctor`/`sandbox-probe`、durable 调用身份封套、文件化沙箱报告与交付证据链校验。报告不会签发真实 Host PASS，也不改变 Full Private RP 能力门禁。
+
+审核修订后的顶层语义：`ok` 仅表示命令执行成功，`report_generated` 表示完整报告已生成；真实验证只看 `validation_result` 与 `validation_passed`，当前所有路径的 `validation_passed` 固定为 false。无 probe、模拟/unverified_capture 一致性通过、新进程本地探测通过，都仍为 PENDING_REAL_HOST_VALIDATION；probe 不一致或 generation drift 为 FAIL。生成 FAIL 报告不是命令异常，因此 ok=true、退出码 0；执行异常时 ok=false、report_generated=false、validation_result=FAIL、validation_passed=false，退出码 1。自动消费者不得使用 ok 或退出码判断 Sandbox 完成。
+
+最终本地完整测试：Windows、Python 3.12.10、Node 22.23.2；执行 `python -m unittest discover -s tests -v`，320 项，319 通过、1 项既有 Unix symlink 测试平台跳过，0 失败/错误，耗时 198.235 秒。新增 12 项测试，并扩展既有两个原生插件合同测试。`git diff --check` 与三份更新文档相对链接检查通过。本机 Python 3.11 launcher 指向失效路径，未宣称本地 3.11 通过；其结果由 Draft PR 的独立 CI 矩阵提供。自动通过不等于真实 Host 或独立审核通过。
+
+| 验证项 | 自动证据与边界 |
+| --- | --- |
+| Hermes | 模拟 PluginContext/get_hermes_home，实际加载生成的 Python 插件并调用独立 Python 引擎；错误 Profile 拒绝，status/doctor 身份一致，reload 更换插件代次且清空 hook 证据 |
+| OpenClaw | Node 加载生成的 JS 插件，最小 SDK 替身；错误 agentId、缺少 workspace、调用后身份变更均拒绝；status/doctor、photo disabled、reload 重新验证 |
+| stable instance / generation | 真实临时安装、新 Python 子进程读取同一 instance/data root；配置重建 generation 后旧 attestation 被拒绝，要求重验 |
+| wake | 复用现有 contact opportunity、quiet hours、无联系理由和并发领取测试；补充 cooldown/daily budget 静默测试；插件 probe 仅 preview |
+| photo | 自动验证关闭时为 DISABLED；既有假 ComfyUI 和本实例 media outbox 测试继续保留，未使用真实 GPU |
+| delivery / receipt | 检查不能跳级、operation/target/message ID 必须一致；模型 evidence 不能登记 delivered；没有验证器时不能升级 SENT/ACKNOWLEDGED |
+| Full Private RP | 一致性验证通过后，既有 require_private_context_isolation 仍拒绝缺失 capability；HISTORY_ISOLATION/final-output 门禁未弱化 |
+
+真实 Hermes / OpenClaw Sandbox 均为 **PENDING_REAL_HOST_VALIDATION**。本轮只检查 Windows PATH 中的可执行命令位置，未发现 Hermes/OpenClaw；这不代表 WSL 或其它环境没有安装。没有选定独立测试 Profile/Agent、Session 或本人聊天目标，故未安装或更改生产插件、重启 Gateway、执行真实聊天/发送、读取生产聊天历史，也未探测 compatibility fork。实际 Host version、profile/config/Gateway/target evidence 为 **UNKNOWN**。测试中的版本和身份是模拟数据，不能当作实机记录。
+
+真实 Host restart/upgrade：`NOT_EXECUTED — production host isolation unavailable`。新 Life Engine 子进程与模拟插件 reload 的通过结果只证明自动合同。OpenClaw 跨 Gateway/Profile 的唯一性尚未证明；当前没有渠道 receipt 验证器。操作方法、结构化输出与剩余实机检查见[沙箱指南](HOST-SANDBOX-TESTING.md)。
+
+数据版本仍为 `DATA_SCHEMA = 7`，Schema Signature 为 `SP-004F-bridge-runtime-v1`，Prompt Template 为 `SP-004K-prompt-v1`；没有 Schema 迁移、Host Core patch 或 H1/H2 实现。最终阶段结论由 ChatGPT / 小雪审核 Draft PR 与真实证据后决定。
+
 ## 当前 canonical validation（2026-09-26）
 
 固定 canonical main：`8e2db9ae50b1ac3c46bb1953851d14442c58f085`。合并 H0 后的 [main push CI #36088249987](https://github.com/y19870785/life-engine/actions/runs/36088249987) 在 Ubuntu / Windows × Python 3.11 / 3.12 四矩阵全绿。此处不推断本次 CI 的测试数量；下方 217 项是 SP-004B1 时点的**历史**记录。

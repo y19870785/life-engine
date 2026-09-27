@@ -791,12 +791,15 @@ def run(root, argv):
             instance = reg['instances'][args.instance]
             data = state_home(root, instance)
             state_check(data, instance)
+            from .sandbox import identity
+            runtime_identity = identity(root, reg, instance)
             if args.action == 'context':
                 cp = argparse.ArgumentParser()
                 cp.add_argument('--owner-seen', action='store_true')
                 cp.add_argument('--event-key')
                 extra = cp.parse_args(args.arguments)
-                emit(context_text(root, reg, instance, data, extra.owner_seen, extra.event_key))
+                emit({**context_text(root, reg, instance, data, extra.owner_seen, extra.event_key),
+                      'runtime': runtime_identity})
                 return 0
             if args.action == 'wake':
                 # Once per UTC day on a pulse, including silent pulses. No background
@@ -807,7 +810,8 @@ def run(root, argv):
                     saved = snapshot(root, reg, instance, reason='daily-pulse')
                     write(marker, {'day': day, 'backup': str(saved)})
             return main(['--home', str(data), '--agent', instance['agent_id'], args.action] + args.arguments,
-                        photo_result_transform=lambda result: publish_photo(instance, data, result))
+                        photo_result_transform=lambda result: publish_photo(instance, data, result),
+                        result_transform=lambda result: {**result, 'runtime': runtime_identity})
     except Exception as exc:
         emit({'ok': False, 'error': type(exc).__name__, 'message': str(exc)})
         return 1
