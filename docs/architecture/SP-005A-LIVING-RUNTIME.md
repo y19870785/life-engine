@@ -1,6 +1,6 @@
 # SP-005A0 — Living Runtime 架构冻结候选
 
-状态：**PENDING_INDEPENDENT_REVIEW**。固定 Base：`95f7485d426a0eee36c7b87b4bac2ae52f34216d`。本 PR 只有架构文档；以下“必须”约束未来 A1，不表示已有接口、表或行为。**SP-005A1 = NOT AUTHORIZED**。
+状态：A0 已合并；**SP-005A0-R1 = PENDING_INDEPENDENT_REVIEW**。R1 固定 Base：`8dde23b3c1010f45562e50e9844e2cc6c8853c90`；原 A0 审计 Base 保留在审计文档中。本次只修订 Intent 预留与 Attempt 重验语义；以下“必须”约束未来 A1，不表示已有接口、表或行为。**SP-005A1 = BLOCKED_BY_ARCHITECTURE_REVISION**，待 R1 合并且 exact main push CI 全绿后再解除本项阻塞，不在本 PR 开始实现。
 
 当前版本保持 `DATA_SCHEMA = 7`、`SP-004F-bridge-runtime-v1`、`SP-004K-prompt-v1`。GOV-DOC2、SP-005H0 implementation 已完成；Hermes/OpenClaw real Host validation 均为 **PENDING_REAL_HOST_VALIDATION**。Full Private RP、H1、H2 均 **BLOCKED**。A0 不依赖真实 Host PASS：本领域由 Core 持有状态，Host 只提供 wake/tool invocation/delivery；这不意味着宿主接线已经完成。
 
@@ -38,9 +38,9 @@
 | LivingActivity | activity_id；day；类别、planned_start/end；location_id；source/reason；choice IDs | PLANNED → ACTIVE → COMPLETED；PLANNED → SKIPPED/CANCELLED；ACTIVE → CANCELLED；activated_at、ended_at、inferred 标志 | 每 root 最多一项 ACTIVE；转换入事务日志；restart 按第 7 节恢复，不补造实际开始时间 |
 | LivingLocation | location_id；root；虚拟地点 category/name；catalog_revision | catalog 版本化、禁用可变；已引用历史不原地改名 | 位置不是 GPS；当前位置从 ACTIVE activity.location_id 派生。停留 start/duration/source 由该 activity 提供，避免第二份 occupancy 真源 |
 | ScheduleItem | schedule_id；subject_type/id；due_at/expires_at UTC；local_spec；policy revision；recovery_policy | PENDING → CONSUMED/EXPIRED/CANCELLED；reschedule 取消旧项并建新 ID | 持久业务时刻；唯一(subject, occurrence, action)；重启按 due_at、固定优先级、ID 排序 |
-| ContactOpportunity | opportunity_id；day；reason_code/source_ref；eligible_at/expires_at；目标绑定引用 | OPEN → CONSUMED/EXPIRED/CANCELLED；暂时抑制不伪装消费 | 来自 schedule、显式 follow-up 或受信事件；不会因模型“想联系”自动创建 |
+| ContactOpportunity | opportunity_id；day；reason_code/source_ref；eligible_at/expires_at；目标绑定引用 | OPEN → CONSUMED/EXPIRED/CANCELLED；仅第 6.2 节执行前终止可使 CONSUMED → OPEN；暂时抑制不伪装消费 | 来自 schedule、显式 follow-up 或受信事件；不会因模型“想联系”自动创建 |
 | ContactDecision | decision_id；opportunity；evaluated_at；policy/input version；ALLOW/SUPPRESS；首要与全部阻断码；next_check_at | 追加后不可变；相同输入版本不重复写同一抑制原因 | 可解释审计；decision 不是发送授权或回执 |
-| ContactIntent | intent_id；opportunity UNIQUE；decision；reserved_at；budget attribution；reason/context fingerprint | DECIDED → PREPARED → CANCELLED/EXPIRED，或由 Attempt 进入交付流程 | 预留额度不可因取消/失败返还；已有相同请求只返回原 ID |
+| ContactIntent | intent_id；opportunity；decision UNIQUE；reserved_at；reservation validity；budget attribution；reason/context fingerprint | DECIDED → PREPARED → CANCELLED/EXPIRED，或由 Attempt 进入交付流程 | DECIDED 即 RESERVED 语义；预留额度不可因取消/失败返还；同一 ALLOW Decision 只产生一个 Intent，同一机会最多一个未终止 Intent |
 | ContactAttempt / DeliveryResult | attempt_id；intent UNIQUE（A1 最多一次）；request fingerprint；target binding；evidence refs | CLAIMED → SENT → ACKNOWLEDGED；或 FAILED/UNKNOWN；结果附 verified/source/time/message ID | CLAIMED 不等于已发送；UNKNOWN 只协调不自动重发。可信外部验证器未来提供结果，A1 不实现渠道 validator |
 | PhotoOpportunity | opportunity_id；day/activity；主题、时间窗、location/visual refs、reason、continuity_identity | PLANNED → OFFERED/EXPIRED/CANCELLED；未来受信媒体消费者认领后 CONSUMED | 仅意图，无 ComfyUI prompt_id/file/job；重启复用同一机会 |
 | VoiceOpportunity | opportunity_id；contact context ref；时间窗；适合语音的 reason、policy version | PLANNED → OFFERED/EXPIRED/CANCELLED；未来 V 消费 | 仅表达形式建议，无 TTS provider/音频；不因生成建议追加联系预算 |
@@ -91,21 +91,54 @@ A1 最多一次 attempt，不实现自动发送重试。CLAIMED 在出进程调�
 
 稳定 reason taxonomy（枚举版本 v1）：`MORNING_GREETING`、`LUNCH_CHECKIN`、`AFTER_WORK`、`REMEMBERED_FOLLOWUP`、`LONG_SILENCE`、`ACTIVITY_TRANSITION`、`WEATHER_EVENT`、`HOLIDAY`、`PHOTO_SHARING`、`USER_PROMISED_FOLLOWUP`、`SOCIAL_IMPULSE`。每项必须有结构化 source_ref：日计划、登记的 follow-up、活动转换、有效 observation 或持久 choice。UNKNOWN reason 拒绝；模型只能将 reason 渲染为话语。assistant 仅允许显式 due follow-up 两类，不因随机冲动虚构生活。LONG_SILENCE 没有可靠 inbound 基准时不启用。
 
-每次决策及未来开始 attempt 前按以下顺序重查（记录全部阻断码，首个为 primary）：
+### 6.1 Reservation Eligibility：申请新的联系名额
+
+仅用于创建新的 ContactIntent，按以下顺序检查（记录全部阻断码，首个为 primary）。候选 Intent 尚不存在，不计入自身 eligibility；不能把这套新名额检查直接复用于 begin_attempt：
 
 1. 身份/scope/generation/clock/corruption 门禁；失败即拒绝操作，不伪装静默成功。
 2. paused/disabled；机会取消/过期、来源 follow-up 已解决；前者可 SUPPRESS，后者终止。
 3. quiet hours；默认继承 `[23:00,08:00)`，相等端点表示关闭 quiet，跨午夜照常。
-4. daily budget 与 rolling 24h 上限；`daily_min` 仅影响候选计划数量，不是保底发送承诺。
-5. minimum spacing/contact cooldown：从最后一次 Intent 预留算 UTC 间隔，沿用“失败也防连发”；两项配置并存时取较大值。
+4. daily budget 与 rolling 24h 的剩余新额度：统计当前 root 全部已有 reservation，任一窗口 existing reservations >= cap 就不得新建 Intent；`daily_min` 仅影响候选计划数量，不是保底发送承诺。
+5. minimum spacing/contact cooldown：从此前已有的其他 Intent 最后一次预留算 UTC 间隔，沿用“失败也防连发”；两项配置并存时取较大值。
 6. recent inbound suppression，再 recent verified outbound suppression；两个窗口独立，取各自最晚可信时间，不用 receipt 到达时间替换 sent_at。
 7. reason 仍成立、活动/环境条件有效、eligible_at 到期；从合格机会中按 follow-up 优先、到期时间、reason 固定序、ID 选择最多一个。
 
-暂时抑制只设 `next_check_at = min(max(eligible_at, 解除已知阻断的最晚时刻), expires_at)`；若不早于 expiry 就 EXPIRED。input version 是 opportunity revision、policy revision、可信 inbound/outbound 水位、预算相关 intent 水位和时间规则区间 ID 的规范摘要；时间区间边界包括 eligible/expiry、quiet 边界、冷却解除与预算释放时间，不能只使用进程计数或每秒变化的时间戳。跨边界即重新评估。新可信 inbound 或配置变更也会使 input version 变化，可提前复核；不能在未变输入下每个 cron tick 重写相同决定。允许路径创建 Intent、消费 Opportunity、预算预留和决定日志在一个事务完成。
+暂时抑制只设 `next_check_at = min(max(eligible_at, 解除已知阻断的最晚时刻), expires_at)`；若不早于 expiry 就 EXPIRED。input version 是 opportunity revision、policy revision、可信 inbound/outbound 水位、预算相关 intent 水位和时间规则区间 ID 的规范摘要；时间区间边界包括 eligible/expiry、quiet 边界、冷却解除与预算释放时间，不能只使用进程计数或每秒变化的时间戳。跨边界即重新评估。新可信 inbound 或配置变更也会使 input version 变化，可提前复核；不能在未变输入下每个 cron tick 重写相同决定。允许路径创建 Intent、消费 Opportunity、预算预留、决定日志和 operation receipt 在一个事务完成。
 
 预算唯一真源是 Intent.reserved_at 的持久记录；不另存可独立漂移的计数。统计当前时区当天 `[start_utc,end_utc)` 内所有 root Intent（跨 timezone_epoch/policy），并同时限制过去 24h 的预留数量，默认两项上限同为 daily_max。新上限降低后已占额不撤销，但不再新增；取消/失败/未知不退款。当天跨时区移出某些预留也不能绕过 rolling cap。活动、photo、voice 本身不占联系额；若转为发送建议，必须共用一个 ContactIntent，不能一份文本、一份图片分别绕开预算。
 
-可信 inbound 在 begin_attempt 前到达会递增 root/input revision，使准备中的 Intent 必须重新判断；若仍在抑制期则取消该 Intent（不退额）。在实际渠道调用之后才到达无法撤销已提交消息，不宣称网络边界与 DB 原子一致。
+### 6.2 Execution Revalidation：执行已预留的 Intent
+
+`begin_attempt(intent_id)` 不申请新 quota，不检查 `remaining_budget > 0`，不因 `reserved count == cap` 拒绝当前 Intent。它检查 **reservation validity**：本 Intent 的预留仍存在、未被显式协调撤销，与当前 root/Scope/generation 一致，且无恢复或冲突待协调。`is_reserved=true` 是持久预留的验证结果，不是由模型提交的布尔授权，也不是另一个预算 counter。失效的执行资格不删除历史 reserved_at，取消/过期/失败/未知仍默认不退款。
+
+`reserved_at` 表示资格已在该时刻占用；cooldown/spacing 主要阻止后续另一个 Intent 太快出现，不要求当前 Intent 再等一个 cooldown。执行时不得用 `max(all intents.reserved_at)` 自我阻断。若核对相关历史间隔，只能引用当前 Intent 之外的预留及可信 inbound、verified outbound 水位；不能因后来提高 cooldown/spacing 而追溯撤销已取得资格。实际新 inbound/outbound 冲突仍按执行规则处理。
+
+在同一事务中，创建 CLAIMED 前必须 fail-closed 重验：
+
+1. identity、Scope、generation、clock 与 corruption；失败返回明确错误，不伪装 SILENT，也不写部分取消结果。
+2. root 未 pause/disable；Intent 为允许执行的 PREPARED 状态，关联 Opportunity 未取消/过期，关键 reason、activity/observation 条件仍有效。Opportunity 因该 Intent 正常变为 CONSUMED 不构成失效。
+3. Intent/Opportunity expiry 未超过，当前 target binding 与预留绑定一致；reservation validity 成立，无 restore/reconciliation gate。
+4. 当前 execution policy 的 quiet hours；可信 inbound 水位变化是否触发 recent-inbound suppression；verified outbound 水位是否产生 suppression 或冲突。不得用 receipt 到达时间替换 sent_at。
+5. 尚无 Attempt，且无已执行/未知发送冲突；检查与 CLAIMED 创建原子完成。重复 begin_attempt 只返回已有状态，绝不授予第二次外部执行资格。
+
+业务执行门禁不通过时，不创建 Attempt；到期转 EXPIRED，否则转 CANCELLED，reservation 不退款。安全身份/损坏/协调错误保持 fail-closed，不通过越权写入伪造一个已处理结果。quiet hours 不允许无限保留旧 Intent 等天亮：例如 22:58 预留、23:02 开始 quiet，则旧 Intent 终止。
+
+可信 inbound 在 begin_attempt 前到达会递增 root/input revision；若触发 recent-inbound suppression，当前 Intent CANCELLED，不退款。普通 quiet/inbound 取消后，原 Opportunity 若仍有效且无 Attempt，可恢复 OPEN 并递增 revision，在后续 input version 下重新 Decision；已过期则 EXPIRED。重新 ALLOW 创建**新 Intent、新 reservation**，必须重新通过 6.1 全部规则，旧 reservation 继续计额。不得借此重试已有 CLAIMED/FAILED/UNKNOWN Attempt，或复活已取消的旧 Intent。在实际渠道调用之后到达的 inbound 无法撤销已提交消息，不宣称网络与 DB 原子一致。
+
+为使上述重新评估可实现，Intent 的唯一资格改为 `UNIQUE(decision_id)`，同 Opportunity 同时至多一个未终止 Intent；旧 Intent/Decision/预留保留，旧 `UNIQUE(opportunity)` 不再适用。仅无 Attempt 的执行前终止可以重开仍有效机会；旧 Intent 终止、机会重开和 revision/log 更新须原子提交；并发重评必须靠 revision CAS、decision 自然键及活动 Intent 唯一约束共同防重。
+
+### 6.3 Policy 规则分类与变更
+
+| 分类 | Reservation 阶段 | Execution 阶段 |
+| --- | --- | --- |
+| RESERVATION_RULES | daily/rolling 剩余额度、对其他已有 reservation 的 cooldown/spacing、候选排序与机会竞争 | 不重新申请额度、不重新参加候选竞争；当前 Intent 不阻断自己 |
+| EXECUTION_RULES | 身份、Scope、generation、clock、corruption、pause/disable、quiet、有效期、目标、可信 inbound/outbound、关键条件与恢复门禁 | 再次验证当前执行条件，不能沿用过期的 ALLOW 作为发送许可 |
+| Budget（不同语义） | 还能否占一个新名额 | 已占名额是否仍合法存在，不要求还剩第二个名额 |
+| Cooldown（不同语义） | 是否允许另一个 Intent 出现 | 不使用自身 reserved_at；核对其他实际联系冲突，不追溯提高资格成本 |
+
+policy revision 改变会影响后续新预留；daily/rolling cap 下调、cooldown/spacing 增长不自动撤销已有 reservation，也不单凭这些变化拒绝旧 Intent 开始 Attempt。例：cap=2 时两个合法预留，降至 1 后保留两者，禁止第三个；两者执行仍各自通过 execution gates。pause、quiet、target binding、Scope/generation、expiry/safety gate 等 execution-sensitive 变化可以阻止执行。显式 timezone 变更仍遵守第 4 节取消未发 Intent 的既有规则，并不退额。
+
+合法状态链：`Opportunity → Decision(ALLOW) → Intent DECIDED（RESERVED）→ PREPARED → Execution Revalidation → Attempt CLAIMED`。重验失败则在 Attempt 之前终止 Intent；本修订不放宽每 Intent 最多一个 Attempt、未知发送不重试或 receipt 证据要求。
 
 ## 7. ScheduleState 与确定性恢复
 
@@ -172,7 +205,7 @@ SQLite 单库事务须同时覆盖当前 World 身份/状态检查、Living 状�
 
 幂等键 `(root_id, generation, producer_namespace, operation_id)`，同键不同规范 payload fingerprint 拒绝；同键重试返回原 receipt，但 receipt 不是可重复使用的发送授权。即使 Host 没有稳定 invocation ID，业务自然键(day/occurrence/opportunity/intent)仍阻止重复 effect；无稳定 ID 的非 tick 变更拒绝。stale revision 重读后仅对 tick 有限重试 3 次，其余返回 REVISION_CONFLICT，不静默重放用户操作。
 
-每次 attempt 前重验 generation、当前 target binding、expiry、pause、inbound/outbound 水位与 budget reservation；重复 begin_attempt 返回已有 attempt 状态，不重复执行外部 side effect。单 root 并发 wake 由事务/CAS/UNIQUE 保证一个 Intent；活动每个转换键唯一；photo/voice 一个自然机会只建一次。日志和当前行任何一个提交失败全部回滚。
+每次 attempt 前按第 6.2 节执行 Execution Revalidation，重验 generation、当前 target binding、expiry、pause、quiet hours、inbound/outbound 水位与 reservation validity，不重复申请 quota 或以自身预留检查 cooldown；重复 begin_attempt 返回已有 attempt 状态，不重复执行外部 side effect。单 root 并发 wake 由事务/CAS/UNIQUE 保证同一 ALLOW Decision 一个 Intent、同一 Opportunity 至多一个未终止 Intent；活动每个转换键唯一；photo/voice 一个自然机会只建一次。日志和当前行任何一个提交失败全部回滚。
 
 普通进程重启读取已提交状态即可；restore 不同于重启：新 generation 使旧 Context/Snapshot/Attempt token 失效，复制库的待发/未知项隔离，主动联系暂停。按照现有 durable 恢复规则人工核对备份后实际发送；恢复历史不能证明那些外部消息不存在。协调命令记录明确新水位/预算保留后才允许 resume，不能用旧 operation 记录防重假装完整。
 
@@ -190,7 +223,7 @@ SQLite 单库事务须同时覆盖当前 World 身份/状态检查、Living 状�
 | living_days / living_locations / living_activities | day UNIQUE(root,timezone_epoch,date)；location 版本 PK(root,id,revision)；activity FK(day,location version)；start < end；部分唯一索引 root WHERE ACTIVE；按(root,status,planned_end)检索 |
 | living_schedule | schedule PK，复合 FK 指向同 scope 的 subject（按 subject_type CHECK 并验证有效目标）；UNIQUE(root,subject,occurrence,action)；due <= expiry；索引(root,status,due_at,id) |
 | living_followups / living_opportunities | followup PK、OPEN/RESOLVED/CANCELLED、due/expiry、授权 provenance；opportunity 带 CONTACT/PHOTO/VOICE discriminator 和对应 CHECK；UNIQUE(root,kind,source_ref,occurrence)，索引(root,kind,status,eligible_at) |
-| living_decisions / living_intents | decision 追加，UNIQUE(opportunity,input_version,policy_revision)；intent UNIQUE(opportunity)；索引(root,reserved_at)，预算只从这里算 |
+| living_decisions / living_intents | decision 追加，UNIQUE(opportunity,input_version,policy_revision)；intent UNIQUE(decision_id)，同 opportunity 未终止 Intent 的部分唯一约束；执行前无 Attempt 的取消可按第 6.2 节重开机会，保留旧预留；索引(root,reserved_at)，预算只从这里算 |
 | living_attempts / living_delivery_results | attempt UNIQUE(intent)，request fingerprint/target binding 固定；result UNIQUE(attempt,source,event_id)；同消息关联，冲突不覆盖终态，索引(root,status) |
 | living_choices / living_observations | choice UNIQUE(root,event,purpose,algorithm,policy)，持久选择不可重抽；observation UNIQUE(provider,event_id,root)，expiry 索引；保留被引用输入摘要 |
 | living_inbound / living_transitions / living_operations | inbound UNIQUE(root,source,event_id)，索引(root,received_at)；transition UNIQUE(root,subject,transition_key)，包含 before/after revision、processed_at/source；operation 复合 PK 及 payload fingerprint/result_ref |
