@@ -4,7 +4,9 @@
 
 固定 Base：`694b45a6f1cd10e28bef96a7e98261c1f85d66f6`。本阶段新增原生插件 `doctor`/`sandbox-probe`、durable 调用身份封套、文件化沙箱报告与交付证据链校验。报告不会签发真实 Host PASS，也不改变 Full Private RP 能力门禁。
 
-最终本地完整测试：Windows、Python 3.12.10、Node 22.23.2；执行 `python -m unittest discover -s tests -v`，318 项，317 通过、1 项既有 Unix symlink 测试平台跳过，0 失败/错误，耗时 195.805 秒。新增 10 项测试，并扩展既有两个原生插件合同测试。`git diff --check` 与三份更新文档相对链接检查通过。本机 Python 3.11 launcher 指向失效路径，未宣称本地 3.11 通过；其结果由 Draft PR 的独立 CI 矩阵提供。自动通过不等于真实 Host 或独立审核通过。
+审核修订后的顶层语义：`ok` 仅表示命令执行成功，`report_generated` 表示完整报告已生成；真实验证只看 `validation_result` 与 `validation_passed`，当前所有路径的 `validation_passed` 固定为 false。无 probe、模拟/unverified_capture 一致性通过、新进程本地探测通过，都仍为 PENDING_REAL_HOST_VALIDATION；probe 不一致或 generation drift 为 FAIL。生成 FAIL 报告不是命令异常，因此 ok=true、退出码 0；执行异常时 ok=false、report_generated=false、validation_result=FAIL、validation_passed=false，退出码 1。自动消费者不得使用 ok 或退出码判断 Sandbox 完成。
+
+最终本地完整测试：Windows、Python 3.12.10、Node 22.23.2；执行 `python -m unittest discover -s tests -v`，320 项，319 通过、1 项既有 Unix symlink 测试平台跳过，0 失败/错误，耗时 198.235 秒。新增 12 项测试，并扩展既有两个原生插件合同测试。`git diff --check` 与三份更新文档相对链接检查通过。本机 Python 3.11 launcher 指向失效路径，未宣称本地 3.11 通过；其结果由 Draft PR 的独立 CI 矩阵提供。自动通过不等于真实 Host 或独立审核通过。
 
 | 验证项 | 自动证据与边界 |
 | --- | --- |

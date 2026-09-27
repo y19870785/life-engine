@@ -152,6 +152,7 @@ def report(root, key, *, probe=None, previous=None, evidence_kind='unverified_ca
     bridge = root / 'bridges' / key / instance['adapter']
     entry = bridge / ('__init__.py' if instance['adapter'] == 'hermes' else 'index.mjs')
     return {'format': FORMAT, 'at': datetime.now(timezone.utc).isoformat(),
+            'report_generated': True, 'validation_passed': False,
             'scope': 'SOUL_CONTINUITY_ONLY', 'full_private_rp': 'BLOCKED', 'h1_h2': 'BLOCKED',
             'runtime': expected, 'evidence_kind': evidence_kind,
             'host': probe.get('host', {}) if isinstance(probe, dict) else {'version': 'UNKNOWN'},

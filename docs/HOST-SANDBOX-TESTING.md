@@ -42,6 +42,9 @@ python -X utf8 <永久目录>/manage.py sandbox --instance <实例ID> --probe <�
 
 | 字段 | 含义 |
 | --- | --- |
+| `ok` | 仅管理命令执行成功；生成 FAIL 报告也为 true，不代表验证通过 |
+| `report_generated` | 完整报告已生成为 true；命令执行异常、未生成报告为 false |
+| `validation_passed` | 当前所有路径固定为 false，模拟或捕获一致性通过不能改变它 |
 | `plugin_file_exists` | 仅插件文件存在，不表示已加载 |
 | `plugin_load_evidence` | 捕获文件存在时也只标 `UNVERIFIED_CAPTURE` |
 | `host_probe_consistency` / `host_probe_errors` | 检查时效、四个工具的 runtime 封套、绑定、版本来源和本代次 hook 一致性；不认证捕获文件真实性 |
@@ -49,6 +52,8 @@ python -X utf8 <永久目录>/manage.py sandbox --instance <实例ID> --probe <�
 | `tool_probes` | status、doctor、wake 预览与 photo dry-run 的逐项结果 |
 | `reload_comparison` / `life_engine_restart` | 分别记录插件代次比较和新 Python 进程探测 |
 | `validation_result` | 本地失败或提供了不一致的捕获文件时为 FAIL；其余仍为 PENDING_REAL_HOST_VALIDATION，等待真实试验与独立审核 |
+
+自动化只能根据 `validation_result` 判断真实验证状态：枚举为 `PASS`、`PENDING_REAL_HOST_VALIDATION`、`FAIL`，并要求 `validation_passed == true` 才能认定完成。当前实现没有产生 `PASS` 或 `validation_passed=true` 的路径。无 probe、模拟或 unverified_capture 一致性通过时，顶层为 `ok=true, report_generated=true, validation_result=PENDING_REAL_HOST_VALIDATION, validation_passed=false`。不一致的 probe 或 generation drift 生成 FAIL 报告时仍为 `ok=true, report_generated=true, validation_passed=false`。这两种已生成报告的情况退出码均为 0；命令执行异常则退出码为 1，返回 `ok=false, report_generated=false, validation_result=FAIL, validation_passed=false`。不得把退出码、ok、local_validation 或 host_probe_consistency 当作真实 Host Sandbox PASS。
 
 Hermes 从实际加载的 `hermes_constants` 路径记录安装来源、Python executable、Profile、Git checkout/origin 和可获得的 distribution version。拿不到的字段为 `UNKNOWN`；非官方 origin 或来源不明不能通过官方 Hermes 一致性核验。origin 字符串并不证明 checkout 未修改，实机审核还须核对官方 checkout 与本地改动。compatibility fork 继续为 `STOPPED / NOT PRODUCTION-SAFE / FORK_ROUTE_TOO_DEEP`。
 

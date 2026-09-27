@@ -89,7 +89,8 @@ def main(package, argv=None, input_fn=input, output=print):
             result = report(root, args.instance, probe=read(args.probe) if args.probe else None,
                             previous=read(args.previous) if args.previous else None,
                             evidence_kind=args.evidence_kind)
-            result['ok'] = result['validation_result'] != 'FAIL'
+            # 命令生成报告成功不代表真实 Host 验证通过。
+            result['ok'] = True
         elif args.action == 'upgrade':
             result = upgrade(root, package)
         elif args.action == 'rollback-schema':
@@ -220,5 +221,8 @@ def main(package, argv=None, input_fn=input, output=print):
         output('引导已取消。')
         return 2
     except Exception as exc:
-        output(json.dumps({'ok': False, 'error': type(exc).__name__, 'message': str(exc)}, ensure_ascii=False))
+        result = {'ok': False, 'error': type(exc).__name__, 'message': str(exc)}
+        if args.action == 'sandbox':
+            result.update(report_generated=False, validation_passed=False, validation_result='FAIL')
+        output(json.dumps(result, ensure_ascii=False))
         return 1

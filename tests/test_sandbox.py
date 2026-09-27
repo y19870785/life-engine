@@ -115,6 +115,10 @@ class SandboxProcessTests(unittest.TestCase):
         self.assertEqual(result['photo'], 'DISABLED')
         self.assertEqual(result['host_probe_errors'], ['MISSING_ATTESTATION'])
         self.assertEqual(result['validation_result'], 'PENDING_REAL_HOST_VALIDATION')
+        self.assertTrue(result['ok'])
+        self.assertTrue(result['report_generated'])
+        self.assertFalse(result['validation_passed'])
+        self.assertEqual(result['local_validation'], 'PASS')
         self.assertEqual(result['full_private_rp'], 'BLOCKED')
 
     def test_reload_comparison_and_generation_drift(self):
@@ -125,6 +129,8 @@ class SandboxProcessTests(unittest.TestCase):
         self.assertEqual(second['reload_comparison'], 'NEW_PLUGIN_EPOCH_OBSERVED')
         self.assertEqual(second['host_probe_consistency'], 'PASS')
         self.assertEqual(second['validation_result'], 'PENDING_REAL_HOST_VALIDATION')
+        self.assertTrue(second['report_generated'])
+        self.assertFalse(second['validation_passed'])
         self.cfg['social']['recent_chat_minutes'] = 80
         create_install(ROOT, self.root, self.cfg, reconfigure=True)
         changed = report(self.root, self.key, probe=probe, previous=second, evidence_kind='simulated')
@@ -133,10 +139,48 @@ class SandboxProcessTests(unittest.TestCase):
         self.assertEqual(changed['reload_comparison'], 'REVALIDATION_REQUIRED')
         self.assertEqual(changed['host_probe_consistency'], 'FAIL')
         self.assertEqual(changed['validation_result'], 'FAIL')
+        self.assertTrue(changed['report_generated'])
+        self.assertFalse(changed['validation_passed'])
 
     def test_invalid_capture_is_failure_not_local_pass(self):
         result = report(self.root, self.key, probe={'format': '错误版本'})
         self.assertEqual(result['local_validation'], 'PASS')
+        self.assertEqual(result['validation_result'], 'FAIL')
+        self.assertTrue(result['report_generated'])
+        self.assertFalse(result['validation_passed'])
+
+    def test_cli_separates_report_success_from_validation_for_captures(self):
+        probe_file = self.base / 'probe.json'
+        for kind, consistent in (('simulated', True), ('unverified_capture', True),
+                                 ('unverified_capture', False)):
+            with self.subTest(kind=kind, consistent=consistent):
+                probe = capture(self.expected)
+                if not consistent:
+                    probe['host']['profile'] = str(self.base / '错误身份')
+                probe_file.write_text(json.dumps(probe), encoding='utf-8')
+                done = subprocess.run([sys.executable, '-X', 'utf8', str(self.root / 'manage.py'),
+                                       'sandbox', '--instance', self.key, '--probe', str(probe_file),
+                                       '--evidence-kind', kind], capture_output=True, text=True,
+                                      encoding='utf-8', timeout=30)
+                self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
+                result = json.loads(done.stdout)
+                self.assertTrue(result['ok'])
+                self.assertTrue(result['report_generated'])
+                self.assertFalse(result['validation_passed'])
+                self.assertEqual(result['local_validation'], 'PASS')
+                self.assertEqual(result['host_probe_consistency'], 'PASS' if consistent else 'FAIL')
+                self.assertEqual(result['validation_result'],
+                                 'PENDING_REAL_HOST_VALIDATION' if consistent else 'FAIL')
+
+    def test_cli_execution_failure_does_not_claim_generated_report(self):
+        done = subprocess.run([sys.executable, '-X', 'utf8', str(self.root / 'manage.py'),
+                               'sandbox', '--instance', 'missing-instance'], capture_output=True,
+                              text=True, encoding='utf-8', timeout=30)
+        self.assertEqual(done.returncode, 1)
+        result = json.loads(done.stdout)
+        self.assertFalse(result['ok'])
+        self.assertFalse(result['report_generated'])
+        self.assertFalse(result['validation_passed'])
         self.assertEqual(result['validation_result'], 'FAIL')
 
 
