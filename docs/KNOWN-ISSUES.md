@@ -2,6 +2,12 @@
 
 本版本用于开发审阅和受控试用，canonical Life Engine 尚未完成正式真实 Host Sandbox 验收。
 
+## SP-005H0 沙箱报告边界
+
+新增原生插件诊断与文件化报告只验证本地调用、捕获证据一致性及 reload 代次。真实 Host 身份、本人目标、restart、真实发送与渠道回执尚为 `PENDING_REAL_HOST_VALIDATION`。OpenClaw 现有 agentId/workspace 绑定不能单独证明跨 Gateway/Profile 唯一性；缺少这些实机证据时不签发真实 Sandbox PASS。Host 版本、Session、Gateway 等无法取得的字段必须保留 UNKNOWN。
+
+当前没有受信渠道回执验证器，Hermes/OpenClaw 原生工具拒绝模型发起的 `ack outcome=delivered`。旧管理 CLI 的人工 ack 仍存在，但不属于机械渠道证明，报告不会把其文本转换为 ACKNOWLEDGED。照片 dry-run、文件生成与 media preparation 均不等于已发送。操作步骤与报告字段见[沙箱指南](HOST-SANDBOX-TESTING.md#sp-005h0机械报告与原生插件探测)。Full Private RP、H1/H2 继续 BLOCKED。
+
 当前 canonical main 的 GitHub Actions 在 Ubuntu / Windows、Python 3.11 / 3.12 四矩阵通过。下述 2026-09-13 Windows 结果和缺库复现是历史记录，不代表当前测试状态。
 
 ## 数据库缺失时静默初始化（历史问题，已修复）

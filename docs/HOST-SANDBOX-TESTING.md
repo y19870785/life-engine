@@ -4,6 +4,66 @@
 
 本指南供用户和本机 Agent 在真实 Hermes / OpenClaw 上建立**隔离测试**。先读 [START-HERE](../START-HERE.md) 和 [Host Integration 合同](architecture/SP-004H-HOST-INTEGRATION.md)。测试以当前实际安装版本和受控身份为准，不预设插件加载即代表功能已送达。
 
+## SP-005H0：机械报告与原生插件探测
+
+实现基线为 `694b45a6f1cd10e28bef96a7e98261c1f85d66f6`。本层复用 durable registry、instance ID、generation 与现有 Profile/Agent 绑定，不新增数据库表，不改变 `DATA_SCHEMA = 7`、`SP-004F-bridge-runtime-v1` 或 `SP-004K-prompt-v1`。它不实现 H1/H2 或 Host final-output transaction。
+
+永久 `life.py` 的工具结果新增 `runtime` 身份封套：instance ID、generation、install/data root、release、内部 agent ID、Host kind/home/agent ID 和三项版本常量。封套在实例锁内从 registry 与活动数据目录取得；正常 status 等字段继续保留。它证明所调用的 Life Engine 实例，不证明调用者是可信 Host，也不是远程认证令牌。
+
+两个原生插件新增 `doctor`、`sandbox-probe`。在**独立测试 Host 的工具执行界面**调用实例自己的工具：
+
+```json
+{"action": "sandbox-probe"}
+```
+
+该 action 不接受 Profile、Agent、版本或 evidence 参数。身份来自 Hermes `get_hermes_home()` 或 OpenClaw 受信工具上下文的 `agentId`/`workspaceDir`，沿用现有拒绝路径。每次插件加载生成新 `plugin_epoch`；本次加载实际运行过 context hook 后才设置 `hook_runtime`。旧进程的 observed.json 时间戳不代替本次 hook 证据。探测依次调用 status、doctor、wake `--preview`、photo `--dry-run`，只保留结果码与身份，不输出记忆、prompt、照片工作流或聊天正文。任何单项失败单独记录。
+
+`wake --preview` 不领取 contact、不发送，但既有 durable 入口可能建立当天备份，status/wake 可能初始化当天计划；这不是数据库字节不变的只读操作。photo dry-run 不访问 ComfyUI 或生成图片；照片关闭时返回 `DISABLED`。如需实际出图，另在独立环境执行正常 photo 并人工检查输出，不拿 dry-run 当成生成成功。
+
+将工具返回的 JSON 对象完整保存为安装目录以外的 `probe.json`，在五分钟内生成报告：
+
+```text
+python -X utf8 <永久目录>/manage.py sandbox --instance <实例ID> --probe <证据目录>/probe.json
+```
+
+使用终端的 UTF-8 重定向保存输出为 `report-before.json`。如果没有安全隔离的 Host，省略 `--probe` 仍能验证本地实例，但报告会列出 `MISSING_ATTESTATION` 和 `PENDING_REAL_HOST_VALIDATION`。模拟运行显式使用 `--evidence-kind simulated`；默认是 `unverified_capture`，不存在能靠命令行开关签发真实 Host PASS 的选项。
+
+仅在隔离测试 Host reload 后重新执行 hook 和工具，再比较：
+
+```text
+python -X utf8 <永久目录>/manage.py sandbox --instance <实例ID> --probe <证据目录>/probe-after.json --previous <证据目录>/report-before.json
+```
+
+`NEW_PLUGIN_EPOCH_OBSERVED` 只表示捕获文件中看到了新插件代次，**不证明**真实 Host 服务重启。generation、release 或目录变化返回 `REVALIDATION_REQUIRED`，需要重新核对变化原因、hook 和工具证据；不能沿用旧报告。`PASS_FRESH_PROCESSES` 表示管理器用两个新 Python 子进程分别执行了 status 与 doctor，并再次检查 durable 身份，不能外推为 Gateway restart PASS。
+
+旧安装升级 Runtime 后，现有 `upgrade` 不自动重写插件。要在隔离实例按原参数重新执行安装以刷新受管理 bridge 文件，保留原实例设置，再按测试 Host 自身规则重载。不要为此修改生产配置或重启生产 Gateway；编辑过的受管理文件仍由原安装器拒绝覆盖。
+
+### 报告字段与证据边界
+
+| 字段 | 含义 |
+| --- | --- |
+| `plugin_file_exists` | 仅插件文件存在，不表示已加载 |
+| `plugin_load_evidence` | 捕获文件存在时也只标 `UNVERIFIED_CAPTURE` |
+| `host_probe_consistency` / `host_probe_errors` | 检查时效、四个工具的 runtime 封套、绑定、版本来源和本代次 hook 一致性；不认证捕获文件真实性 |
+| `local_validation` / `local_probes` | 独立子进程调用和安装 doctor 结果，不是 Host PASS |
+| `tool_probes` | status、doctor、wake 预览与 photo dry-run 的逐项结果 |
+| `reload_comparison` / `life_engine_restart` | 分别记录插件代次比较和新 Python 进程探测 |
+| `validation_result` | 本地失败或提供了不一致的捕获文件时为 FAIL；其余仍为 PENDING_REAL_HOST_VALIDATION，等待真实试验与独立审核 |
+
+Hermes 从实际加载的 `hermes_constants` 路径记录安装来源、Python executable、Profile、Git checkout/origin 和可获得的 distribution version。拿不到的字段为 `UNKNOWN`；非官方 origin 或来源不明不能通过官方 Hermes 一致性核验。origin 字符串并不证明 checkout 未修改，实机审核还须核对官方 checkout 与本地改动。compatibility fork 继续为 `STOPPED / NOT PRODUCTION-SAFE / FORK_ROUTE_TOO_DEEP`。
+
+OpenClaw 从实际解析到的 SDK package 目录读取 package version，记录真实上下文的 agentId/workspace。它不是 `openclaw --version` 的替代：`cli_version`、config/profile、Gateway、Session/target 无可靠 API 证据时明确为 `UNKNOWN`，须在隔离环境另外运行 `openclaw --version` 并保存输出。现有绑定拒绝错误 agentId 或 workspace，但**不证明相同 agentId/workspace 被不同 Gateway/Profile 复用时的唯一性**。因此未取得独立 Gateway/Profile 证据前不得把结果称为真实 Host Sandbox PASS；本实现不虚构受信上下文字段。
+
+### 交付证据
+
+机械证据校验器 `sandbox.delivery_trace` 要求 `GENERATED → PREPARED → SENT → ACKNOWLEDGED`，同一 operation、明确本人 target，发送与 ACK 还须匹配 message ID。默认没有渠道验证器，最多认可 PREPARED；文件生成、media outbox、prepare 和模型提供的 evidence 均不能升级为 SENT/ACKNOWLEDGED。校验器只处理报告，不写业务 contacts，不发送消息。当前管理报告默认交付为 `NOT_EXECUTED`，回执能力为 `LIMITED`。
+
+原生插件现拒绝 `ack outcome=delivered`，返回 `UNVERIFIED_RECEIPT`；模型不能替渠道登记送达。管理 CLI 原有 ack 是操作员记录入口，不是渠道验证器，其历史 delivered 文本不会被沙箱报告转换为 ACKNOWLEDGED。未来接通真实渠道验证器需另行审核；本轮没有实现它。受控真实发送只能使用用户明确指定的本人目标，并另存原始渠道回执供独立审核，不可猜测 last route 或全渠道 fallback。
+
+### 实机记录仍须补齐
+
+真实试验另附 Host 命令输出、独立 Profile/Agent/Session/目标、官方来源检查、错误身份拒绝、测试 Host restart/reload 前后证据、主动联系静默规则以及实际发送/回执。自动报告不接受一份手工 JSON 将这些项目自动升级为 PASS。无隔离环境时记录 `NOT_EXECUTED — production host isolation unavailable`；真实 Hermes 和 OpenClaw 都保持 `PENDING_REAL_HOST_VALIDATION`。没有 ComfyUI 时 photo 为 `DISABLED / NOT CONFIGURED`，不阻塞其它测试。
+
 ## 四级测试边界
 
 | 级别 | 可做的验证 | 当前门禁 |

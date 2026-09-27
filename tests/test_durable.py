@@ -234,13 +234,33 @@ class DurableTests(unittest.TestCase):
             ctx.register_hook = lambda name, fn: ctx.hooks.update({name: fn})
             module.register(ctx)
             self.assertEqual(len(ctx.tools), 1)
+            tool = ctx.tools[0]['handler']
+            self.assertEqual(json.loads(tool({'action': 'ack', 'outcome': 'delivered',
+                                              'id': '不存在', 'evidence': '声称送达'}))['error'], 'UNVERIFIED_RECEIPT')
+            first_probe = json.loads(tool({'action': 'sandbox-probe'}))
+            self.assertIsNone(first_probe['hook_runtime'])
+            self.assertEqual(first_probe['probes']['photo']['status'], 'DISABLED')
+            self.assertEqual(first_probe['host']['version'], 'UNKNOWN')
+            self.assertEqual(first_probe['probes']['status']['runtime']['instance_id'], self.key)
+            self.assertEqual(first_probe['probes']['doctor']['runtime'], first_probe['probes']['status']['runtime'])
+            with self.assertRaises(ValueError):
+                tool({'action': 'sandbox-probe', 'evidence': '伪造身份'})
             result = ctx.hooks['pre_llm_call'](platform='weixin', sender_id='owner-123', turn_id='incoming-1')
             self.assertIn('CURRENT_STATE_JSON', result['context'])
             observed = read(self.root / 'instances' / self.key / 'observed.json')
             self.assertIn('last_owner_hook_at', observed)
+            validated = json.loads(tool({'action': 'sandbox-probe'}))
+            self.assertEqual(validated['hook_runtime'], first_probe['probes']['status']['runtime'])
+            reloaded = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(reloaded)
+            after_reload = reloaded._probe()
+            self.assertNotEqual(after_reload['plugin_epoch'], validated['plugin_epoch'])
+            self.assertIsNone(after_reload['hook_runtime'])
+            self.assertEqual(after_reload['probes']['status']['runtime'], validated['hook_runtime'])
             fake.get_hermes_home = lambda: self.base / 'another profile'
             self.assertIsNone(ctx.hooks['pre_llm_call'](platform='weixin'))
             self.assertFalse(json.loads(ctx.tools[0]['handler']({'action': 'status'}))['ok'])
+            self.assertFalse(json.loads(reloaded._handle({'action': 'sandbox-probe'}))['ok'])
 
     @unittest.skipUnless(shutil.which('node'), 'Node unavailable')
     def test_native_openclaw_adapter_scopes_tools_and_prompt_to_exact_agent(self):
@@ -260,14 +280,36 @@ let factory; const hooks = {};
 plugin.register({registerTool(fn){factory=fn}, on(name, fn){hooks[name]=fn}, logger: console});
 assert.equal(factory({agentId:'other', workspaceDir:host}), null);
 assert.equal(factory({agentId:'main'}), null);
-const tool = factory({agentId:'main',workspaceDir:host});
+const bound = {agentId:'main',workspaceDir:host};
+const tool = factory(bound);
+bound.agentId = 'other';
+await assert.rejects(tool.execute('wrong',{action:'status'}));
+bound.agentId = 'main';
 const result = await tool.execute('1',{action:'status'});
 assert.ok(result.details);
+await assert.rejects(tool.execute('ack',{action:'ack',outcome:'delivered',id:'不存在',evidence:'声称送达'}), /UNVERIFIED_RECEIPT/);
+assert.equal(result.details.runtime.host_agent_id, 'main');
+assert.deepEqual((await tool.execute('2',{action:'doctor'})).details.runtime, result.details.runtime);
+const before = (await tool.execute('3',{action:'sandbox-probe'})).details;
+assert.equal(before.hook_runtime, null);
+assert.equal(before.probes.photo.status, 'DISABLED');
+assert.equal(before.host.version, 'UNKNOWN');
+await assert.rejects(tool.execute('4',{action:'sandbox-probe', evidence:'伪造证据'}));
 assert.equal(await hooks.before_prompt_build({}, {agentId:'other',workspaceDir:host}), undefined);
 const context = await hooks.before_prompt_build({}, {agentId:'main',workspaceDir:host,
  inputProvenance:{kind:'external_user'}, senderId:'owner-123',channel:'weixin',runId:'run-1',
  toolAuthority:{allows(){return true}},hookInvocation:{assertActive(){}}});
 assert.ok(context.prependContext.includes('CURRENT_STATE_JSON'));
+const after = (await tool.execute('5',{action:'sandbox-probe'})).details;
+assert.deepEqual(after.hook_runtime, result.details.runtime);
+const reloaded = (await import(pathToFileURL(process.argv[2]) + '?reload=1')).default;
+let nextFactory;
+reloaded.register({registerTool(fn){nextFactory=fn}, on(){}, logger:console});
+assert.equal(nextFactory({agentId:'other',workspaceDir:host}), null);
+const fresh = (await nextFactory({agentId:'main',workspaceDir:host}).execute('6',{action:'sandbox-probe'})).details;
+assert.notEqual(fresh.plugin_epoch, after.plugin_epoch);
+assert.equal(fresh.hook_runtime, null);
+assert.deepEqual(fresh.probes.status.runtime, result.details.runtime);
 console.log('OpenClaw bridge contract probe passed');
 ''')
         result = subprocess.run(['node', str(script), str(bridge), str(self.host)], capture_output=True, text=True, timeout=25)

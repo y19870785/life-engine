@@ -87,6 +87,12 @@ class EngineTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.store.acknowledge(contact, "failed", "contradictory receipt")
 
+    def test_sandbox_wake_cooldown_and_daily_limit_remain_silent(self):
+        self.assertEqual(self.engine.wake(self.now)['action'], 'contact')
+        self.assertEqual(self.engine.wake(self.now)['reason'], 'contact_cooldown')
+        self.cfg['social']['daily_max'] = 1
+        self.assertEqual(self.engine.wake(self.now)['reason'], 'daily_budget')
+
     def test_invalid_time_and_assistant_routine_rejected(self):
         self.cfg["social"]["quiet_hours"][0] = "26:00"
         with self.assertRaises(ValueError):

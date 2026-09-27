@@ -57,7 +57,7 @@ def apply_preview(package, plan):
 def main(package, argv=None, input_fn=input, output=print):
     p = argparse.ArgumentParser(description='Life Engine v0.3 永久安装与维护')
     p.add_argument('action', nargs='?', default='install',
-                   choices=['install', 'upgrade', 'doctor', 'list', 'backup', 'restore', 'rollback-code', 'rollback-schema', 'connect', 'repair-python'])
+                   choices=['install', 'upgrade', 'doctor', 'sandbox', 'list', 'backup', 'restore', 'rollback-code', 'rollback-schema', 'connect', 'repair-python'])
     p.add_argument('--root', type=Path, default=Path.home() / '.life-engine')
     p.add_argument('--home', '--host-home', dest='home', type=Path)
     p.add_argument('--adapter', choices=['hermes', 'openclaw', 'generic'])
@@ -75,11 +75,22 @@ def main(package, argv=None, input_fn=input, output=print):
     p.add_argument('--python', type=Path)
     p.add_argument('--release', help='已安装的代码版本目录名，用于 rollback-code')
     p.add_argument('--checkpoint', type=Path, help='本安装的 Schema 整体回退记录')
+    p.add_argument('--probe', type=Path, help='原生插件 sandbox-probe 返回的 JSON；不含聊天正文')
+    p.add_argument('--previous', type=Path, help='上一次沙箱报告，用于比较 reload 与实例漂移')
+    p.add_argument('--evidence-kind', choices=['simulated', 'unverified_capture'], default='unverified_capture')
     args = p.parse_args(argv)
     root = absolute(args.root)
     try:
         result = None
-        if args.action == 'upgrade':
+        if args.action == 'sandbox':
+            if not args.instance:
+                raise ValueError('sandbox 需要 --instance')
+            from .sandbox import report
+            result = report(root, args.instance, probe=read(args.probe) if args.probe else None,
+                            previous=read(args.previous) if args.previous else None,
+                            evidence_kind=args.evidence_kind)
+            result['ok'] = result['validation_result'] != 'FAIL'
+        elif args.action == 'upgrade':
             result = upgrade(root, package)
         elif args.action == 'rollback-schema':
             if not args.checkpoint:
