@@ -1,6 +1,6 @@
 # v0.3 已知问题与历史记录
 
-本版本用于开发审阅和受控试用，尚未完成真实宿主验收。
+本版本用于开发审阅和受控试用，canonical Life Engine 尚未完成正式真实 Host Sandbox 验收。
 
 当前 canonical main 的 GitHub Actions 在 Ubuntu / Windows、Python 3.11 / 3.12 四矩阵通过。下述 2026-09-13 Windows 结果和缺库复现是历史记录，不代表当前测试状态。
 
@@ -38,5 +38,13 @@ SP-004E 已将上述 SQLite 测试改为显式 `contextlib.closing` 释放连接
 
 ## 真实环境验证（OPEN）
 
-尚未验证真实 Hermes / OpenClaw Gateway、聊天渠道、GPU 出图及发送回执闭环；World Memory 也尚未自动接入真实宿主对话。
+已对 Hermes / OpenClaw 的 Host 源码和能力做深入审计，并对 Hermes compatibility build 做过隔离的真实 execution-chain 验证；该 fork 验证发现失败，不能外推为 canonical Life Engine 的真实 Host 集成验收。canonical Life Engine 尚未完成正式真实 Hermes / OpenClaw Gateway 沙箱、聊天渠道、GPU 出图及发送回执闭环；World Memory 也尚未自动接入真实宿主对话。
 上传代码不代表已安装到本机 Agent，也不代表可宣称稳定发布。
+
+## Host Integration Security Boundary（OPEN / BLOCKING PRIVATE RP）
+
+Hermes 官方 Host 尚缺满足 H0 合同的完整 final-output commit 授权与 session incarnation 围栏。相关上游 [PR #120170](https://github.com/NousResearch/hermes-agent/pull/120170) 已将 final commit 能力纳入讨论范围，但不能把开放中的实现讨论当作已发布能力。实验性的 [compatibility fork PR #1](https://github.com/y19870785/hermes-agent/pull/1) 保持 Draft、未合并；隔离执行链验证曾发现 recovery 先持久化旧候选，以及 A→B→A session incarnation 后旧 writer 可恢复写入，因此 fork 路线已停止，不能生产使用。
+
+OpenClaw 已有 `lifecycleRevision`、writer fence 与多个有用 Hook，但 2026.9.5 的 CAP0/CAP1 审计及 2026.9.6 只读比对未找到插件可用的统一 fail-closed final-output commit boundary。单次授权尚不能机械覆盖首次 assistant 持久化、下一轮重放、最终交付和授权前的模型流式输出。参见 [Host 沙箱测试指南](HOST-SANDBOX-TESTING.md)。
+
+这只阻止 **Full Private RP 的生产 Host 接入**，不否定已完成的 World/Memory/Lore/Story/Bridge/Prompt Core Runtime，也不阻止隔离的 Soul Continuity 沙箱测试。
