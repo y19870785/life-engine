@@ -1,6 +1,6 @@
 # SP-005A1 测试设计矩阵
 
-本文件属于 SP-005A0 架构交付，**不是已执行的 A1 测试报告**。固定审计 Base：`95f7485d426a0eee36c7b87b4bac2ae52f34216d`。规范见 [Living Runtime 架构](../architecture/SP-005A-LIVING-RUNTIME.md)，既有能力见 [当前状态审计](../architecture/SP-005A-CURRENT-STATE-AUDIT.md)。SP-005A1 = NOT AUTHORIZED。
+本文件属于 SP-005A0 架构交付，**不是已执行的 A1 测试报告**。固定审计 Base：`95f7485d426a0eee36c7b87b4bac2ae52f34216d`。规范见 [Living Runtime 架构](../architecture/SP-005A-LIVING-RUNTIME.md)，既有能力见 [当前状态审计](../architecture/SP-005A-CURRENT-STATE-AUDIT.md)。R1 Base：`8dde23b3c1010f45562e50e9844e2cc6c8853c90`；SP-005A0-R1 = PENDING_INDEPENDENT_REVIEW；SP-005A1 = BLOCKED_BY_ARCHITECTURE_REVISION。原 42 项保留，新增 C13–C18 后共 48 项，全部仍是未来验收设计。
 
 ## 测试环境与判据
 
@@ -33,7 +33,7 @@
 | --- | --- | --- |
 | C01 允许/无理由 | 分别有有效机会与无有效机会 | 前者唯一 ALLOW/Intent/reservation；后者静默，不由模型编造理由 |
 | C02 Quiet hours | 跨午夜 quiet，窗口内及解除边界 tick | SUPPRESS 原因稳定；next_check 正确；跨规则边界重新判定 |
-| C03 Cooldown/spacing | 不同 cooldown/min spacing、recent inbound/outbound | 采用最严格解除时刻；优先级确定；重启不重置水位 |
+| C03 Cooldown/spacing | 新 Intent eligibility 下不同 cooldown/min spacing、recent inbound/outbound | 采用最严格解除时刻；优先级确定；重启不重置水位 |
 | C04 Daily/rolling budget | 最后名额并发竞争、失败与取消、时区修改 | 仅一份预留；失败不退额；同日及滚动 24h 限额均成立 |
 | C05 决定去重 | 未变输入重复 tick，再跨时间边界/新 inbound | 相同抑制决定不重复写；输入摘要变化后可重评，不永久卡 SUPPRESS |
 | C06 Inbound 竞态 | PREPARED 后、begin_attempt 前收到可信用户消息 | 旧资格失效、取消/重新判定；已开始外部发送不能声称已撤回 |
@@ -43,6 +43,12 @@
 | C10 Assistant | 无 follow-up、到期 follow-up、自发虚拟活动 | 保留 assistant 的到期事项联系限制，不强加 companion 虚构生活 |
 | C11 Photo | 同事件重复创建机会，quiet/无预算、机会过期 | 唯一 PhotoOpportunity；使用同一 contact budget；不创建 ComfyUI job、不补发过期机会 |
 | C12 Voice | 默认关闭与显式启用策略，重复 tick | 默认无 voice 机会；启用后自然键唯一、无 TTS/发送实现 |
+| C13 最后一个额度可执行 | daily/rolling cap 均为 1，已有预留 0；创建唯一 Intent 并 prepare，随后 begin_attempt | reserved count=1 等于 cap 仍允许 CLAIMED；无第二份预留；所有 execution gates 须满足 |
+| C14 Intent 不自我 cooldown | cooldown=150min，t0 预留并 prepare，t0+1s begin_attempt；另测单独 minimum spacing 与两者并存 | 其他执行门均允许时立即 CLAIMED，不用自身 reserved_at 自我阻断，也不要求额外等待 |
+| C15 新 Intent 仍受限 | A 在 t0 已预留；有剩余额度，cooldown 未结束时为 B 申请预留 | B SUPPRESS，无新 Intent；重复 tick 不重复 Decision；A 仍可通过执行重验，修订未取消 cooldown |
+| C16 Policy 改变 | cap=2 时取得两个预留，降至 1 后执行已有 Intent 并申请第三个；分别测 daily/rolling cap 下调及 cooldown/spacing 增长 | 旧预留保留、旧 Intent 不因这些变化失去执行资格；execution gates 满足时 CLAIMED；新 Intent 仍按新规则阻断，不删除或退款旧预留 |
+| C17 Intent 后进入 quiet | 22:58 预留并 prepare，23:02 begin_attempt；quiet 从 23:00 起；分别测仍有效与已过期窗口 | 无 Attempt；旧 Intent CANCELLED 或 EXPIRED，预留不退款，不等天亮复用旧 Intent；有效机会可在新 revision/input 下重评，新的 ALLOW 才建新 Intent/预留；并发重评至多一个活动 Intent |
+| C18 Intent 后收到 inbound | 预留后、Attempt 前收到可信 inbound，触发 recent-inbound suppression；窗口分别有效/过期 | 无 Attempt；旧 Intent CANCELLED/EXPIRED，不退款；有效机会恢复 OPEN 并新 input version 重评，到期 EXPIRED；新 Intent 仍受旧预留预算/cooldown 限制；已有 Attempt 不经此路径重发 |
 
 ## 并发、持久性与领域边界
 
