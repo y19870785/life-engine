@@ -12,7 +12,7 @@
 
 | 编号 | 前置与操作 | 必须断言 |
 | --- | --- | --- |
-| T01 午夜 | 有活动/机会，跨 local midnight 连续 tick 与重启后 tick | 旧日 CLOSED、新日唯一；过期机会不补发；预算按 UTC 边界计算；无重复 daily plan |
+| T01 午夜 | 有活动/机会，跨 local midnight 连续 tick 与重启后 tick | 旧日 CLOSED、新日唯一；过期机会不补发；daily budget 的业务日为角色当前 timezone 的 local day，数据库查询与比较使用该日相邻 local midnight 映射后的 UTC instants 区间 `[start_utc,end_utc)`，不得采用固定 UTC calendar day；rolling 24h cap 独立限制且须同时满足；DST 的 23/25 小时日不得产生第二份额度或错误重置；无重复 daily plan |
 | T02 活动前重启 | 14:00 计划 15:30–16:30，14:20 停机，15:20 重启 | 保持 PLANNED、原 choice/location；未提前 ACTIVE |
 | T03 活动中恢复 | 同计划 16:10 重启 | ACTIVE、effective_at=16:10，标记 inferred；不伪造 15:30 的已观察执行 |
 | T04 错过活动 | 改 end=16:00，16:10 重启 | SKIPPED；不先开始再完成，不发送过期 transition contact |
