@@ -1,6 +1,6 @@
 # SP-005A2 — Living Runtime Host Binding 架构
 
-状态：SP-005A2 = PENDING_INDEPENDENT_REVIEW。固定 Base：`84493be98d7ed675de6b859cafdb014a900325ca`。SP-005A0 / R1 / A1 和 H0 implementation 已 DONE。本稿提出待独立审核的冻结合同，所有新 facade/token/adapter 都是后续设计，当前尚未实现。
+状态：SP-005A2 = DONE；SP-005A2-R1 = PENDING_INDEPENDENT_REVIEW。R1 固定 Base / canonical main：`861734b0c4179e56a3251a775d831cd246278d7f`（A2 原审计基线为 `84493be98d7ed675de6b859cafdb014a900325ca`）。SP-005A0 / A0-R1 / A1 和 H0 implementation 已 DONE。R1 仅修订 Session World Revision Fence 合同，不修改 Runtime 或添加 Core tests；新 facade/token/adapter 尚未实现。
 
 DATA_SCHEMA = 8；Schema Signature = SP-005A-living-runtime-v1；Prompt Template = SP-004K-prompt-v1。本 PR 只修改文档，不改变 [A0 + R1](SP-005A-LIVING-RUNTIME.md) 的状态机、预算、迁移或恢复规则。现状依据 [CURRENT_HOST_BINDING_AUDIT](SP-005A2-CURRENT-HOST-BINDING-AUDIT.md)。
 
@@ -50,6 +50,42 @@ A3 候选 authority 采用每安装一个受信本地服务，拥有现有 Core 
 绑定映射、revision、模式、撤销和调用关联日志存安装目录的独立受保护版本化 metadata；不是 Living schedule/quota 真源，也不是 Schema 9。单写者、原子替换、校验摘要、限制权限；损坏/丢失拒绝服务并由 Owner 重绑，不能从聊天恢复。Core durable receipt 是业务操作唯一收据，metadata 只关联调用；不声称两个存储原子提交。成功响应丢失时用原 operation ID 重查，不能生成新 ID 重做副作用。
 
 authority 重建/reload barrier 会撤销旧 transport handles；仅服务端保有 epoch 活跃表。预检查到 Core 提交之间的 Scope/World 状态仍由同一 Core SQLite 事务重验。每实例 authority 串行处理绑定变更、claim 与执行权消费；不在现有非重入 durable lock 外再套同锁调用 Core。SQLite/durable 锁绝不跨网络、模型或 Host 等待。
+
+### SP-005A2-R1：Session World Revision Fence
+
+固定 Base 的 [LivingRuntime._authorize](../../runtime/life_engine/living_runtime.py) 已检查 Principal、Scope、Session OPEN、Session Principal/Scope、Session WriterEpoch 和 World WriterEpoch，但尚未检查 session 的 World revision。[Living projection](../../runtime/life_engine/living_projection.py) 已对不一致返回 `WORLD_STALE`。因此旧 session 可被 projection 拒绝，却仍可 prepare，甚至 claim 得到 `CLAIMED / execute=true`。这是待修复的 Core 缺口；本节定义未来修复合同，不表示已实现。
+
+所有 session-bearing `LivingContext` 必须携带受信 `session_id`、`writer_epoch`、`world_revision`；canonical 路径可继续使用 `PromptSessionContext`。这些字段只能由受信映射构造，不得来自 model text、tool arguments 或 Host 自报 JSON。对 query_context、prepare_contact、claim_attempt、session-bound Owner action 以及任何当前或未来的 session-authorized Living mutation，Core 必须验证：
+
+```text
+context.session.world_revision == current World.revision
+```
+
+不一致立即返回 `WORLD_STALE`，在 prepare、claim、Owner session command 或其它业务 mutation 前拒绝。`SESSION_STALE` 表示 Session binding / OPEN / WriterEpoch 等身份生命周期失效；`WORLD_STALE` 表示 Session 仍可识别，但所确认的 World revision 已过期。不得用 `SESSION_STALE` 代替 World revision 错误，语义与 Living projection / Prompt 保持一致。无 chat Session 的 `LivingTickContext` 不适用此 fence；无 session 的受信管理或 result-only 路径仍按原权限合同执行。
+
+最终校验必须在 `LivingRepository.transaction()` 打开的同一事务内，顺序为：
+
+```text
+BEGIN transaction
+→ load current World → validate Scope
+→ validate Session → validate WriterEpoch → validate current World revision
+→ validate Living root/generation
+→ lookup operation receipt（命中则返回；claim 强制 execute=false）
+→ 未命中：validate expected Living revision CAS → business mutation
+COMMIT
+```
+
+Facade precheck 负责快速拒绝与 capability validation；Core transaction 是最终业务权限 fence，两层缺一不可。最小竞态为：facade 预检查看到 R1 → 另一事务将 World revision 改为 R2 → prepare/claim 进入 Core 事务。此时旧 session 必须 `WORLD_STALE`，零业务 mutation、零新增 Attempt、零发送资格；不得依赖事务外预检查或降级 legacy。Scope、Policy 并发变化继续由各自冻结规则与 Core 同事务校验/CAS 处理，不以本修订替换。
+
+#### 授权重放与操作收据恢复
+
+Authorization replay 必须先通过当前授权。旧 session 即使使用历史成功的 operation ID 和相同 payload，也必须先返回 `WORLD_STALE`；不得先返回 operation receipt 来绕过授权 fence。
+
+Operation receipt recovery 则须先重新取得当前 World revision 对应的 fresh trusted session / ticket，再使用**原 operation ID + 原 payload**调用，保留原 producer namespace、principal、Scope、generation 等既有幂等关联。fresh 指重新取得受信授权上下文，不要求仅因 revision 更新而更换 session_id，也不改变既有 operation identity。此后才允许既有 receipt 机制工作：已提交则返回原 receipt，不重复 mutation；未提交则在有效授权下、通过既有 expected revision CAS 后执行。不静默更新原确认的 Living revision，也不承诺绕过其它授权或业务冲突。
+
+已提交的 `begin_attempt` 在 fresh session 下重放仍必须 `execute=false`，保持同一 Attempt，不创建第二个 Attempt，不重新签发 execution permit。收据恢复不恢复外部发送资格；若原操作未提交，也必须遵守既有 begin_attempt 的首次合法 claim 规则。
+
+遇到 `WORLD_STALE`，包括响应丢失、提交状态不明时，禁止自动生成新 operation ID、自动 retry mutation、自动重新 claim，或自动刷新 World revision 后静默继续。流程必须是：旧 session → `WORLD_STALE` → 重新取得 fresh trusted session/ticket → 原 operation ID + 原 payload → Core receipt 判定既有提交结果。具体未来场景见 [R1-01～R1-06 测试设计](../planning/SP-005A3-HOST-BINDING-TEST-MATRIX.md#r1-core-fence-未来测试设计)。
 
 ## 3. LivingHostFacade 与权限表
 
@@ -170,7 +206,9 @@ OpenClaw：Gateway/config/profile + agentId/workspace 一并绑定，不能选�
 
 ## 11. 后续授权和验收
 
-SP-005A3 = NOT AUTHORIZED。候选最小范围：受信本地 authority/facade、稳定绑定与 token、tick contract、结构化 context adapter、prepare/claim、delivery evidence adapter interface、enrolled legacy-path fence、fake transport / NO_REAL_SEND sandbox。A3 不默认改 Prompt，不实现真实渠道 validator、真实发送、媒体/语音、H1/H2；若需要 Schema 或现有冻结 Core 合同变化，先停止申请独立架构修订。
+SP-005A3 = BLOCKED_BY_ARCHITECTURE_REVISION。须先完成 SP-005A2-R1 独立审核、合并及 exact main push CI，再由 ChatGPT / 小雪单独授权最小修复阶段 **SP-005A3-B0 — Session World Revision Fence**。SP-005A3-B0 = NOT AUTHORIZED；未来仅允许 `_authorize` 最小修复、对应回归测试和 B06/B28/B14 blocker tests。B0 完成后才可恢复 A3 主实现；本 R1 文档 PR 不授权 Core 修复或 A3 自动续跑。
+
+A3 范围仍为受信本地 authority/facade、稳定绑定与 token、tick contract、结构化 context adapter、prepare/claim、delivery evidence adapter interface、enrolled legacy-path fence、fake transport / NO_REAL_SEND sandbox。A3 不默认改 Prompt，不实现真实渠道 validator、真实发送、媒体/语音、H1/H2；若需要 Schema 或其它冻结 Core 合同变化，仍须停止申请独立架构修订。R1 不需要 Schema 9，也不需要 Prompt Template 升级；DATA_SCHEMA = 8、Schema Signature = SP-005A-living-runtime-v1、Prompt Template = SP-004K-prompt-v1 保持不变。正式 Living Prompt 接入仍为 PROMPT_TEMPLATE_UPGRADE_REQUIRED = YES；SP-005A2-P1 = NOT AUTHORIZED。
 
 Prompt 接入候选 SP-005A2-P1 未授权；真实 Host 接线、真实发送需独立任务书和准确版本/目标授权。A2 不依赖 H0-RV PASS。未来测试见 [A3 与 H0-RV Living 扩展矩阵](../planning/SP-005A3-HOST-BINDING-TEST-MATRIX.md)，未执行项不能记 PASS。
 
