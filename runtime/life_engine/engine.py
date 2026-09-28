@@ -4,6 +4,7 @@ import random
 import uuid
 
 from .config import minutes
+from .store import legacy_writer
 
 
 def quiet(clock, interval):
@@ -59,6 +60,7 @@ class Engine:
 
     def status(self, now):
         with self.store.tx() as db:
+            legacy_writer(db)
             plan = self._plan(db, now)
             return {"agent_id": self.cfg["agent_id"], "moment": self._moment(now, plan),
                     "today": plan, **self._context(db)}
@@ -75,6 +77,7 @@ class Engine:
         # One transaction covers day creation, budget checks and slot claim.
         # Concurrent wake invocations cannot create duplicate contacts.
         with self.store.tx() as db:
+            legacy_writer(db)
             plan = self._plan(db, now)
             moment = self._moment(now, plan)
             context = self._context(db)

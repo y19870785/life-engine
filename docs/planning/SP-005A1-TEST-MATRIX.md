@@ -1,10 +1,10 @@
 # SP-005A1 测试设计矩阵
 
-本文件属于 SP-005A0 架构交付，**不是已执行的 A1 测试报告**。固定审计 Base：`95f7485d426a0eee36c7b87b4bac2ae52f34216d`。规范见 [Living Runtime 架构](../architecture/SP-005A-LIVING-RUNTIME.md)，既有能力见 [当前状态审计](../architecture/SP-005A-CURRENT-STATE-AUDIT.md)。R1 Base：`8dde23b3c1010f45562e50e9844e2cc6c8853c90`；SP-005A0-R1 = PENDING_INDEPENDENT_REVIEW；SP-005A1 = BLOCKED_BY_ARCHITECTURE_REVISION。原 42 项保留，新增 C13–C18 后共 48 项，全部仍是未来验收设计。
+本文件保留 A0 + R1 冻结的 48 项验收规格。A0 原审计 Base 为 `95f7485d426a0eee36c7b87b4bac2ae52f34216d`，R1 Base 为 `8dde23b3c1010f45562e50e9844e2cc6c8853c90`。A1 实施 Base 为 `9159c493ad435cf947ed8c0fef278e1f5fb9dc83`；实际测试名称见 [逐项映射](../SP-005A1-VALIDATION.md)。规范见 [冻结架构](../architecture/SP-005A-LIVING-RUNTIME.md)。A1 仍待独立审核，下面的判据不因自动测试通过而自动成为真实 Host 结论。
 
 ## 测试环境与判据
 
-未来 A1 使用临时 SQLite、独立 registry、受控 UTC clock、固定 IANA tzdata、可信 observation fixture 和 transport 替身。并发测试使用多个独立进程/连接，重启测试销毁进程后重开数据库，不能只重建 Python 对象。故障注入覆盖事务前、事务内、提交后与外部 side effect 前后。禁止调用生产 Host、真实聊天渠道、ComfyUI 或 TTS。
+A1 自动验证使用临时 SQLite、独立 registry、受控 UTC clock、固定 IANA tzdata、可信 observation fixture 和 transport 替身。并发测试使用多个独立进程/连接，重启测试销毁进程后重开数据库，不能只重建 Python 对象。故障注入覆盖事务前、事务内、提交后与外部 side effect 前后。禁止调用生产 Host、真实聊天渠道、ComfyUI 或 TTS。
 
 所有 case 同时检查当前行、transition、operation receipt、自然键唯一性与 scope；不得只比较自然语言输出。恢复确定性比较业务状态指纹，排除提交次数等诊断字段；保证同一输入、持久选择与最终时间下，不同合法批次大小收敛一致。模拟 SENT/receipt 仅测试内部合同，不能作为真实 Host 验收。
 
@@ -75,4 +75,4 @@
 
 复用现有 Engine quiet/cooldown/budget、contacts 去重、durable restore/generation、World/Prompt scope、照片 unknown/reuse、Host contract 测试的 fixture 与断言；增加跨进程和新生命周期断言，不能仅复制测试提高数量。A1 完成时逐项记录测试名称、环境、结果和缺口，并运行完整 Ubuntu / Windows × Python 3.11 / 3.12 CI。
 
-本矩阵不改变当前 `DATA_SCHEMA = 7`、`SP-004F-bridge-runtime-v1`、`SP-004K-prompt-v1`。Hermes / OpenClaw 真实验证仍为 `PENDING_REAL_HOST_VALIDATION`；Full Private RP / H1 / H2 仍为 `BLOCKED`。A0 文档及旧测试成功只能进入独立审核，不能当作以上未来行为已实现。
+A0 矩阵原本不执行 Schema 迁移；A1 单独授权后的实施为 `DATA_SCHEMA = 8`、`SP-005A-living-runtime-v1`，Prompt 保持 `SP-004K-prompt-v1`。Hermes / OpenClaw 真实验证仍为 `PENDING_REAL_HOST_VALIDATION`；Full Private RP / H1 / H2 仍为 `BLOCKED`。本矩阵定义验收；实施结果见逐项映射和验证记录，最终结论仍需独立审核。

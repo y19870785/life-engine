@@ -1,15 +1,15 @@
-"""识别历史 Schema 2–6 与 canonical Schema 7；仅迁移副本。"""
+"""识别历史 Schema 2–7 与 canonical Schema 8；仅迁移副本。"""
 from contextlib import closing
 from functools import lru_cache
 import sqlite3
 
 from .world_repository import FailureCode as Code, fail
 
-DATA_SCHEMA = 7
+DATA_SCHEMA = 8
 SCHEMA_SIGNATURES = {3: 'SP-004E-world-runtime-v1', 4: 'SP-004B-world-memory-v1',
                      5: 'SP-004J-lore-runtime-v1', 6: 'SP-004C-story-runtime-v1',
-                     7: 'SP-004F-bridge-runtime-v1'}
-SIGNATURE = SCHEMA_SIGNATURES[7]
+                     7: 'SP-004F-bridge-runtime-v1', 8: 'SP-005A-living-runtime-v1'}
+SIGNATURE = SCHEMA_SIGNATURES[8]
 WORLD_DDL = (
     """CREATE TABLE souls (
         soul_id TEXT PRIMARY KEY NOT NULL, owner_id TEXT NOT NULL,
@@ -73,7 +73,7 @@ def expected_structure(version):
     from .store import SCHEMA
     with closing(sqlite3.connect(':memory:')) as db:
         db.executescript(SCHEMA)
-        if version in (3, 4, 5, 6, 7):
+        if version in (3, 4, 5, 6, 7, 8):
             for sql in WORLD_DDL:
                 db.execute(sql)
         if version >= 4:
@@ -92,6 +92,10 @@ def expected_structure(version):
             from .bridge_schema import BRIDGE_DDL
             for sql in BRIDGE_DDL:
                 db.execute(sql)
+        if version >= 8:
+            from .living_schema import LIVING_DDL
+            for sql in LIVING_DDL:
+                db.execute(sql)
         return structure(db)
 
 
@@ -99,7 +103,7 @@ def validate_schema(db, expected=DATA_SCHEMA, agent_id=None):
     """先识别再验证；只读检查永远不建表、不迁移、不覆写元数据。"""
     try:
         meta = dict(db.execute('SELECT key,value FROM meta'))
-        if expected not in (2, 3, 4, 5, 6, 7) or meta.get('schema_version') != str(expected):
+        if expected not in (2, 3, 4, 5, 6, 7, 8) or meta.get('schema_version') != str(expected):
             fail(Code.SCHEMA_MISMATCH)
         if structure(db) != expected_structure(expected):
             fail(Code.SCHEMA_MISMATCH)
@@ -132,6 +136,9 @@ def create_world_schema(db, version=DATA_SCHEMA):
     if version >= 7:
         from .bridge_schema import create_bridge_schema
         create_bridge_schema(db)
+    if version >= 8:
+        from .living_schema import create_living_schema
+        create_living_schema(db)
 
 
 def migrate_2_to_3(db):
@@ -257,6 +264,32 @@ def migrate_copy(db):
     if version == '6':
         migrate_6_to_7(db)
         version = '7'
-    if version != '7':
+    if version == '7':
+        migrate_7_to_8(db)
+        version = '8'
+    if version != '8':
         fail(Code.SCHEMA_MISMATCH)
-    validate_schema(db, 7)
+    validate_schema(db, 8)
+
+
+def migrate_7_to_8(db):
+    """仅迁移非活动副本；旧表逐值比较，绝不自动 enrollment。"""
+    from .living_schema import create_living_schema
+    from .living_repository import validate_living_data
+    from .world_sqlite_repository import validate_world_data
+    from .memory_sqlite_repository import validate_memory_data
+    from .lore_sqlite_repository import validate_lore_data
+    from .story_sqlite_repository import validate_story_data
+    from .bridge_sqlite_repository import validate_bridge_data
+    validate_schema(db,7)
+    for validate in (validate_world_data,validate_memory_data,validate_lore_data,validate_story_data,validate_bridge_data):
+        validate(db)
+    names=[r[0] for r in db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name<>'meta'")]
+    before={n:db.execute('SELECT * FROM '+n+' ORDER BY rowid').fetchall() for n in names}
+    create_living_schema(db)
+    db.execute("UPDATE meta SET value='8' WHERE key='schema_version'")
+    db.execute("UPDATE meta SET value=? WHERE key='world_schema'",(SCHEMA_SIGNATURES[8],))
+    for name,rows in before.items():
+        if rows!=db.execute('SELECT * FROM '+name+' ORDER BY rowid').fetchall(): fail(Code.STORAGE_CORRUPT)
+    validate_schema(db,8)
+    validate_living_data(db)
