@@ -2,6 +2,13 @@
 
 本版本用于开发审阅和受控试用，canonical Life Engine 尚未完成正式真实 Host Sandbox 验收。
 
+## SP-005A1 Core 边界
+
+A1 提供 Schema 8、显式 enrollment、持久计划/联系状态和独立 projection，仍待独立审核。详见 [Living 操作与迁移](LIVING-RUNTIME.md)。现有 Prompt Template 未接入 Living，原生 Host 工具未切换新 Core；enrolled 实例的 legacy wake/status、prepare、loop 写入受 single-writer gate 拒绝。不要在生产实例 enrollment 后期待旧 Host callback 自动兼容。
+
+生产具名时区必须有真实 IANA tzdata，规则指纹变化要求显式 policy/epoch 更新。UTC 可独立使用；测试的固定 TZif 只验证 2026 DST，不是生产时区库。Core 没有联网天气 provider、真实 transport、渠道 receipt validator、ComfyUI job 或 TTS。UNKNOWN 只协调，不自动重发；rollback/restore 不会证明备份之后没有发生外部发送。
+
+
 ## SP-005H0 沙箱报告边界
 
 新增原生插件诊断与文件化报告只验证本地调用、捕获证据一致性及 reload 代次。真实 Host 身份、本人目标、restart、真实发送与渠道回执尚为 `PENDING_REAL_HOST_VALIDATION`。OpenClaw 现有 agentId/workspace 绑定不能单独证明跨 Gateway/Profile 唯一性；缺少这些实机证据时不签发真实 Sandbox PASS。Host 版本、Session、Gateway 等无法取得的字段必须保留 UNKNOWN。

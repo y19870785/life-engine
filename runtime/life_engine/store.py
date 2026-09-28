@@ -70,11 +70,13 @@ class Store:
 
     def loop_add(self, at, topic, due=None):
         with self.tx() as db:
+            legacy_writer(db)
             return db.execute("INSERT INTO loops(at,due,topic) VALUES(?,?,?)",
                               (at, due, topic)).lastrowid
 
     def loop_close(self, loop_id, resolution):
         with self.tx() as db:
+            legacy_writer(db)
             count = db.execute("UPDATE loops SET status='resolved',resolution=? WHERE id=? AND status='open'",
                                (resolution, loop_id)).rowcount
             if count != 1:
@@ -82,6 +84,7 @@ class Store:
 
     def prepare(self, contact_id, summary):
         with self.tx() as db:
+            legacy_writer(db)
             row = db.execute("SELECT * FROM contacts WHERE id=?", (contact_id,)).fetchone()
             if not row:
                 raise ValueError("Unknown contact")
@@ -119,3 +122,10 @@ class Store:
         with self.tx() as db:
             db.execute("INSERT INTO meta VALUES('paused',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
                        ("true" if paused else "false",))
+
+
+def legacy_writer(db):
+    """已 enrollment 的实例不能通过旧入口再次决定联系。"""
+    if db.execute("SELECT 1 FROM meta WHERE key='living_writer'").fetchone():
+        from .living_domain import fail
+        fail('LIVING_HANDOFF_REQUIRED')

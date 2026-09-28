@@ -1,5 +1,14 @@
 # v0.3 验证记录
 
+## SP-005A1 实施验证（待独立审核）
+
+固定 Base：`9159c493ad435cf947ed8c0fef278e1f5fb9dc83`。本次实现 `DATA_SCHEMA = 8`、`SP-005A-living-runtime-v1`；Prompt Template 仍为 `SP-004K-prompt-v1`。原始 A0/R1 判据与具体测试的 48 项对应关系见 [实施映射](SP-005A1-VALIDATION.md)，部署边界与 copy migration/rollback 见 [操作说明](LIVING-RUNTIME.md)。
+
+自动证据来自独立临时安装、Schema 7 canonical 原版发行包、进程 crash、两进程 tick/Scope 竞争、固定 DST fixture 和 fake delivery validator。未调用生产 Host、渠道、ComfyUI 或 TTS。Hermes/OpenClaw real Host validation 均保持 PENDING_REAL_HOST_VALIDATION；Full Private RP/H1/H2 继续 BLOCKED。
+
+最终本地完整测试：Windows、Python 3.12.10、Node 22.23.2；`python -m unittest discover -s tests -v`，371 项，370 通过、1 项既有 Unix symlink 平台跳过，0 失败/错误，245.458 秒。新增 48 项 Living 测试及 3 项 Schema 8 migration/rollback 测试；48 项架构矩阵逐项映射，测试数量不等于矩阵编号数量。其后仅清理四个模块 EOF 空行，并核对 AST 未变。100 个相对链接检查通过，`git diff --check` 通过。远端 Ubuntu / Windows × Python 3.11 / 3.12 以本 PR exact Head 的 CI 记录为准；PR 描述和实施报告提供 run 关联。下方 H0 和 2026-09-26 数据是历史基线，不代表 A1 的 schema 或测试数量。
+
+
 ## SP-005H0 实施验证（2026-09-27，待独立审核）
 
 固定 Base：`694b45a6f1cd10e28bef96a7e98261c1f85d66f6`。本阶段新增原生插件 `doctor`/`sandbox-probe`、durable 调用身份封套、文件化沙箱报告与交付证据链校验。报告不会签发真实 Host PASS，也不改变 Full Private RP 能力门禁。
@@ -22,13 +31,13 @@
 
 真实 Host restart/upgrade：`NOT_EXECUTED — production host isolation unavailable`。新 Life Engine 子进程与模拟插件 reload 的通过结果只证明自动合同。OpenClaw 跨 Gateway/Profile 的唯一性尚未证明；当前没有渠道 receipt 验证器。操作方法、结构化输出与剩余实机检查见[沙箱指南](HOST-SANDBOX-TESTING.md)。
 
-数据版本仍为 `DATA_SCHEMA = 7`，Schema Signature 为 `SP-004F-bridge-runtime-v1`，Prompt Template 为 `SP-004K-prompt-v1`；没有 Schema 迁移、Host Core patch 或 H1/H2 实现。最终阶段结论由 ChatGPT / 小雪审核 Draft PR 与真实证据后决定。
+H0 当时数据版本为 `DATA_SCHEMA = 7`，Schema Signature 为 `SP-004F-bridge-runtime-v1`，Prompt Template 为 `SP-004K-prompt-v1`；没有 Schema 迁移、Host Core patch 或 H1/H2 实现。最终阶段结论由 ChatGPT / 小雪审核 Draft PR 与真实证据后决定。
 
-## 当前 canonical validation（2026-09-26）
+## 历史 canonical validation（2026-09-26）
 
 固定 canonical main：`8e2db9ae50b1ac3c46bb1953851d14442c58f085`。合并 H0 后的 [main push CI #36088249987](https://github.com/y19870785/life-engine/actions/runs/36088249987) 在 Ubuntu / Windows × Python 3.11 / 3.12 四矩阵全绿。此处不推断本次 CI 的测试数量；下方 217 项是 SP-004B1 时点的**历史**记录。
 
-当前 `DATA_SCHEMA = 7`，World Schema Signature 为 `SP-004F-bridge-runtime-v1`，Prompt template 为 `SP-004K-prompt-v1`。World、Memory、Lore、Story、Bridge、Prompt Core Runtime 与 H0 Host Integration Contract 已进入 main；真实 Host Private RP 尚未通过能力门禁。自动 CI 和模拟宿主测试不等于真实渠道送达。
+该历史基线 `DATA_SCHEMA = 7`，World Schema Signature 为 `SP-004F-bridge-runtime-v1`，Prompt template 为 `SP-004K-prompt-v1`。World、Memory、Lore、Story、Bridge、Prompt Core Runtime 与 H0 Host Integration Contract 已进入 main；真实 Host Private RP 尚未通过能力门禁。自动 CI 和模拟宿主测试不等于真实渠道送达。
 
 ### Hermes Host Capability Audit
 

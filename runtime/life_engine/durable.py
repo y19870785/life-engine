@@ -113,7 +113,7 @@ def locked(root, key, timeout=15):
 
 def registry(root, *, allow_schema2=False):
     cfg = read(root / 'registry.json')
-    if cfg.get('format') != FORMAT or cfg.get('data_schema') not in ((2, 3, 4, 5, 6, DATA_SCHEMA) if allow_schema2 else (DATA_SCHEMA,)):
+    if cfg.get('format') != FORMAT or cfg.get('data_schema') not in ((2, 3, 4, 5, 6, 7, DATA_SCHEMA) if allow_schema2 else (DATA_SCHEMA,)):
         raise ValueError('Unsupported deployment/data schema; keep the existing installation')
     safe_name(cfg['release'])
     for key, instance in cfg['instances'].items():
@@ -166,6 +166,9 @@ def db_check(path, agent_id=None, *, expected_schema=DATA_SCHEMA):
         if expected_schema >= 7:
             from .bridge_sqlite_repository import validate_bridge_data
             validate_bridge_data(db)
+        if expected_schema >= 8:
+            from .living_repository import validate_living_data
+            validate_living_data(db)
 
 
 def copy_state(source, target, *, expected_schema=DATA_SCHEMA):
@@ -294,7 +297,7 @@ def verify_backup(path, instance, *, expected_schema=DATA_SCHEMA):
     return manifest
 
 
-def reconcile_memory_generation(root,reg,instance,data,manifest=None):
+def reconcile_memory_generation(root,reg,instance,data,manifest=None,*,expected_schema=DATA_SCHEMA):
     """激活副本前使用当前控制账本重放删除；不回滚管理域。调用方已持协调锁。"""
     from .memory_control import control
     from .memory_sqlite_repository import reconcile_db
@@ -312,10 +315,10 @@ def reconcile_memory_generation(root,reg,instance,data,manifest=None):
                 if current is None or not current[0].isdigit() or int(current[0])>len(entries):
                     raise ValueError('数据库控制水位无法验证')
                 reconcile_db(db,entries,instance['id'])
-    db_check(path,instance['agent_id'])
+    db_check(path,instance['agent_id'],expected_schema=expected_schema)
 
 
-def reconcile_bridge_generation(root, reg, instance, data, manifest=None):
+def reconcile_bridge_generation(root, reg, instance, data, manifest=None, *, expected_schema=DATA_SCHEMA):
     """激活前在业务副本重放不可回滚的 Grant 撤销事实。"""
     from .bridge_control import control as bridge_control
     from .bridge_sqlite_repository import reconcile_db
@@ -330,7 +333,7 @@ def reconcile_bridge_generation(root, reg, instance, data, manifest=None):
             with db:
                 db.execute('BEGIN IMMEDIATE')
                 reconcile_db(db, entries, instance['id'])
-    db_check(path, instance['agent_id'])
+    db_check(path, instance['agent_id'],expected_schema=expected_schema)
 
 
 def restore(root, instance_key, backup):
@@ -352,6 +355,8 @@ def restore(root, instance_key, backup):
         # reconciles recent actual deliveries and explicitly resumes.
         from .store import Store
         Store(data / 'agents' / instance['agent_id'] / 'life.db', instance['agent_id']).pause(True)
+        from .living_migration import fence_generation
+        fence_generation(data / 'agents' / instance['agent_id'] / 'life.db', generation)
         sync_tree(data)
         reg['instances'][instance_key] = candidate
         write(root / 'registry.json', reg)
@@ -573,8 +578,8 @@ def migrate_generation(root, data, instance):
     if any(data.resolve() == state_home(root, inst).resolve() for inst in active['instances'].values()):
         raise ValueError('禁止在活动 generation 中执行 Schema 迁移')
     expected = root / 'instances' / instance['id'] / 'data' / instance['generation']
-    if data != expected or not re.fullmatch(r'schema7-[0-9a-f]{32}', instance['generation']):
-        raise ValueError('迁移目标必须是本安装的新 Schema 7 generation')
+    if data != expected or not re.fullmatch(r'schema8-[0-9a-f]{32}', instance['generation']):
+        raise ValueError('迁移目标必须是本安装的新 Schema 8 generation')
     path = data / 'agents' / instance['agent_id'] / 'life.db'
     with contextlib.closing(sqlite3.connect(path)) as db:
         db.execute('PRAGMA foreign_keys=ON')
@@ -596,7 +601,7 @@ def upgrade(root, package):
             stack.enter_context(locked(root, key))
         for key, inst in sorted(reg['instances'].items()):
             state_check(state_home(root, inst), inst, expected_schema=schema)
-            saved = snapshot(root, reg, inst, reason='before-schema-7-migration' if schema < DATA_SCHEMA else 'before-upgrade')
+            saved = snapshot(root, reg, inst, reason='before-schema-8-migration' if schema < DATA_SCHEMA else 'before-upgrade')
             verify_backup(saved, inst, expected_schema=schema)
             backups.append(str(saved))
         release = release_install(root, package)
@@ -609,7 +614,7 @@ def upgrade(root, package):
         if schema < DATA_SCHEMA:
             for key, inst in sorted(reg['instances'].items()):
                 old_data = state_home(root, inst)
-                candidate = dict(inst, generation='schema7-' + uuid.uuid4().hex)
+                candidate = dict(inst, generation='schema8-' + uuid.uuid4().hex)
                 data = root / 'instances' / key / 'data' / candidate['generation']
                 copy_state(old_data, data, expected_schema=schema)
                 migrate_generation(root, data, candidate)
@@ -640,7 +645,7 @@ def rollback_schema(root, checkpoint):
         active = registry(root)
         record = read(checkpoint)
         previous = record['previous']
-        if record.get('format') != FORMAT or previous.get('data_schema') not in (2,3,4,5,6):
+        if record.get('format') != FORMAT or previous.get('data_schema') not in (2,3,4,5,6,7):
             raise ValueError('Schema 回退记录不兼容')
         if active['data_schema'] >= 7 and previous['data_schema'] < 7:
             raise ValueError('Schema 7 不提供自动降级；Bridge 授权与撤销控制必须保留')
@@ -648,6 +653,8 @@ def rollback_schema(root, checkpoint):
             raise ValueError('实例或 generation 已变化；拒绝使用过期回退记录')
         for key in sorted(active['instances']):
             stack.enter_context(locked(root, key))
+        if active['data_schema'] == 8 and previous['data_schema'] == 7:
+            return rollback_living(root, active, previous, record)
         from .memory_control import control
         with control(root,active.get('memory_install_id')) as (_,entries):
             if entries:
@@ -659,6 +666,35 @@ def rollback_schema(root, checkpoint):
             snapshot(root, active, inst, reason='before-schema-rollback')
         write(root / 'registry.json', previous)
         return {'ok': True, 'release': previous['release'], 'data_schema': previous['data_schema'], 'old_generations_retained': True}
+
+
+def rollback_living(root, active, previous, record):
+    """Schema 8 只回退到校验备份的新副本和旧 release；控制账本继续前进。"""
+    probe_release(root, previous['release'], previous['python'], expected_schema=7)
+    restored = dict(previous, instances={}, memory_install_id=active['memory_install_id'],
+                    bridge_install_id=active['bridge_install_id'])
+    backups = {read(Path(path)/'backup.json')['instance_id']: Path(path) for path in record['backups']}
+    for key, inst in previous['instances'].items():
+        backup = backups[key]
+        manifest = verify_backup(backup, inst, expected_schema=7)
+        snapshot(root, active, active['instances'][key], reason='before-schema-8-rollback')
+        generation = 'rollback-' + uuid.uuid4().hex
+        candidate = dict(inst, generation=generation)
+        data = root/'instances'/key/'data'/generation
+        copy_state(backup/'data', data, expected_schema=7)
+        rebase_photos(data, manifest['source_home'])
+        reconcile_memory_generation(root, active, candidate, data, manifest, expected_schema=7)
+        reconcile_bridge_generation(root, active, candidate, data, manifest, expected_schema=7)
+        path = data/'agents'/inst['agent_id']/'life.db'
+        with contextlib.closing(sqlite3.connect(path)) as db:
+            with db:
+                db.execute("INSERT OR REPLACE INTO meta VALUES('paused','true')")
+        state_check(data, candidate, expected_schema=7)
+        sync_tree(data)
+        restored['instances'][key] = candidate
+    write(root/'registry.json', restored)
+    return dict(ok=True, release=restored['release'], data_schema=7, proactive_paused=True,
+                old_generations_retained=True, reconciliation_required=True)
 
 
 def health(root, key=None):

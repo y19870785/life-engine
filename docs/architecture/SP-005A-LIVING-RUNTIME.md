@@ -1,6 +1,6 @@
 # SP-005A0 — Living Runtime 架构冻结候选
 
-状态：A0 已合并；**SP-005A0-R1 = PENDING_INDEPENDENT_REVIEW**。R1 固定 Base：`8dde23b3c1010f45562e50e9844e2cc6c8853c90`；原 A0 审计 Base 保留在审计文档中。本次只修订 Intent 预留与 Attempt 重验语义；以下“必须”约束未来 A1，不表示已有接口、表或行为。**SP-005A1 = BLOCKED_BY_ARCHITECTURE_REVISION**，待 R1 合并且 exact main push CI 全绿后再解除本项阻塞，不在本 PR 开始实现。
+状态：A0 与 R1 已合并，固定 A1 Base 为 `9159c493ad435cf947ed8c0fef278e1f5fb9dc83`。本文件保留冻结架构与 R1 语义，不因实现修改决策。SP-005A1 实施交付为 **PENDING_INDEPENDENT_REVIEW**；实际入口、迁移与限制见 [Core 操作说明](../LIVING-RUNTIME.md)，测试对应 [48 项映射](../SP-005A1-VALIDATION.md)。原 A0/R1 审计 Base 是历史证据。
 
 当前版本保持 `DATA_SCHEMA = 7`、`SP-004F-bridge-runtime-v1`、`SP-004K-prompt-v1`。GOV-DOC2、SP-005H0 implementation 已完成；Hermes/OpenClaw real Host validation 均为 **PENDING_REAL_HOST_VALIDATION**。Full Private RP、H1、H2 均 **BLOCKED**。A0 不依赖真实 Host PASS：本领域由 Core 持有状态，Host 只提供 wake/tool invocation/delivery；这不意味着宿主接线已经完成。
 
