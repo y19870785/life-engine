@@ -1,5 +1,9 @@
 # Hermes / OpenClaw Host Sandbox 测试指南
 
+## Living Core 合并后的适用边界
+
+canonical main `84493be98d7ed675de6b859cafdb014a900325ca` 已包含 A1 Core / Schema 8。下文既有原生插件探测流程仍针对 legacy 路由；enrolled 实例的 legacy status/wake/context 会遇到 LIVING_HANDOFF_REQUIRED，不能移除 gate 来完成清单。A2 的 [Host Binding 架构](architecture/SP-005A2-LIVING-HOST-BINDING.md)和 [Living 扩展矩阵](planning/SP-005A3-HOST-BINDING-TEST-MATRIX.md)属于后续设计，A3 未授权。默认 DRY_RUN / NO_REAL_SEND；真实接线、生产操作及真实发送不由 A2 授权。Hermes/OpenClaw 真实验证仍 PENDING_REAL_HOST_VALIDATION。
+
 > **当前允许：Soul Continuity / Living Agent / Host Sandbox 受控测试。当前不允许：Full Private RP 生产部署。** 已完成的 World、Memory、Lore、Story、Prompt 和 Bridge Core Runtime 不等于宿主已提供私密 RP 所需的最终输出授权、原始历史隔离和晚到回复围栏。不要通过 prompt 约束来替代 Host 能力。
 
 本指南供用户和本机 Agent 在真实 Hermes / OpenClaw 上建立**隔离测试**。先读 [START-HERE](../START-HERE.md) 和 [Host Integration 合同](architecture/SP-004H-HOST-INTEGRATION.md)。测试以当前实际安装版本和受控身份为准，不预设插件加载即代表功能已送达。
