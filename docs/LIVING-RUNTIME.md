@@ -1,6 +1,8 @@
 # Living Runtime Core 操作与迁移
 
-SP-005A1 基于 `9159c493ad435cf947ed8c0fef278e1f5fb9dc83` 实施 A0 + R1，交付仍待独立审核。数据版本为 `DATA_SCHEMA = 8`、`SP-005A-living-runtime-v1`；`SP-004K-prompt-v1` 保持不变。规范见 [冻结架构](architecture/SP-005A-LIVING-RUNTIME.md)，验收逐项对应 [48 项自动测试映射](SP-005A1-VALIDATION.md)。
+SP-005A1 已合并至 canonical main `84493be98d7ed675de6b859cafdb014a900325ca`，exact main push CI 四矩阵通过，Core 实施阶段 DONE。数据版本为 `DATA_SCHEMA = 8`、`SP-005A-living-runtime-v1`；`SP-004K-prompt-v1` 保持不变。规范见 [冻结架构](architecture/SP-005A-LIVING-RUNTIME.md)，验收逐项对应 [48 项自动测试映射](SP-005A1-VALIDATION.md)。
+
+后续 [A2 Host Binding 架构](architecture/SP-005A2-LIVING-HOST-BINDING.md)仅冻结受信调用、prepare/claim 与证据合同，待独立审核；A3 未授权。当前仍只有 Core API，旧插件不能自动接管 enrolled 实例。Living 正式 Prompt 拼装需要单独模板升级授权，真实 Host Living 尚未上线。
 
 ## 真源和入口
 

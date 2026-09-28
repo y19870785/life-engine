@@ -2,7 +2,7 @@
 
 ## 当前判断
 
-固定事实基线：本次 A1 固定 Base `9159c493ad435cf947ed8c0fef278e1f5fb9dc83`；A1 Draft 实施版本 `DATA_SCHEMA = 8`。SP-004 已完成 World → Memory → Lore → Story → Bridge → Prompt Core Runtime 和 H0 Host Integration Contract。**Core Runtime 已不是当前最大风险**；下一步要让它进入可验证、可回滚的真实 Host Sandbox，并把 Living Agent 从已有轻量规则推进为持久 Runtime。完整进度见 [SP-004 当前快照](SP-004-IMPLEMENTATION-PLAN.md#2026-09-26-当前状态快照)。
+固定事实基线：A2 固定 Base / canonical main `84493be98d7ed675de6b859cafdb014a900325ca`；A1 Core 已 DONE，`DATA_SCHEMA = 8`。SP-004 已完成 World → Memory → Lore → Story → Bridge → Prompt Core Runtime 和 H0 Host Integration Contract。**Core Runtime 已不是当前最大风险**；下一步要让它进入可验证、可回滚的真实 Host Sandbox，并为已持久化的 Living Runtime 冻结受信 Host 接线合同。完整进度见 [SP-004 当前快照](SP-004-IMPLEMENTATION-PLAN.md#2026-09-26-当前状态快照)。
 
 Full Private RP 仍被 Host capability 阻塞：Hermes 官方实现尚未提供已验证的 final-output commit / session incarnation 合同；OpenClaw CAP0/CAP1 也没有找到可组成一次 fail-closed 授权的插件边界。已有 World/Roleplay Runtime 与生产 Host 私密 RP 是两件事。路线中任何阶段都不自动解锁 H1/H2 Adapter。
 
@@ -13,13 +13,15 @@ Full Private RP 仍被 Host capability 阻塞：Hermes 官方实现尚未提供�
 | 1 | **GOV-DOC2** 当前状态、Host 沙箱指南与路线校准 | **DONE** | README、验证与已知问题同 canonical main 对齐；明确可测/不可测；提供[Host 沙箱指南](../HOST-SANDBOX-TESTING.md)。 |
 | 2 | **SP-005H0 Host Integration Sandbox** | implementation DONE；真实验证 PENDING | 同一 canonical Life Engine 分别接真实 Hermes / OpenClaw，仅 Soul Continuity 与 sandbox-safe 功能。记录真实 Host version、插件加载、唯一 instance binding、错误 Profile/Agent 拒绝、重启恢复、status/wake/photo、本人受控聊天、实际发送与 receipt 区别、upgrade/reload 后重验。**不包含** Full Private RP、Host Core patch、Hermes/OpenClaw fork。 |
 | 3 | **SP-005A0 Living Runtime Architecture** | **DONE；R1 DONE** | [冻结架构](../architecture/SP-005A-LIVING-RUNTIME.md)及[当前状态审计](../architecture/SP-005A-CURRENT-STATE-AUDIT.md)已合并；R1 仅澄清 Intent 预留与 Attempt 重验；冻结 time context、daily activity、location/weather/holiday context、主动联系和照片/语音计划、持久 schedule state、restart recovery 的真源与边界。它应是持久 domain/runtime，**不是 cron 脚本集合**。 |
-| 4 | **SP-005A1 Living Runtime** | **PENDING_INDEPENDENT_REVIEW** | [A1 测试矩阵](SP-005A1-TEST-MATRIX.md)及 [48 项实施映射](../SP-005A1-VALIDATION.md)用于独立审核；本次实现 daily state、contact opportunities、cooldown、quiet hours、daypart、context assembly 与 schedule recovery；Host 负责唤醒/发送，Life Engine 保留规则与状态真源。 |
-| 5 | **SP-005M Media Runtime** | PROPOSED | ComfyUI job、image identity、同日视觉连续性、媒体 receipt 与 retry semantics；区分“生成”“发送”“确认送达”。 |
-| 6 | **SP-005V Voice** | PROPOSED | voice message、TTS provider abstraction、voice identity 与 delivery receipt，单独验证语音生命周期。 |
+| 4 | **SP-005A1 Living Runtime** | **DONE** | [A1 测试矩阵](SP-005A1-TEST-MATRIX.md)及 [48 项实施映射](../SP-005A1-VALIDATION.md)已完成独立审核及 exact main push CI；已实现 daily state、contact opportunities、cooldown、quiet hours、daypart、独立 LivingContextSnapshot 与 schedule recovery；Host 负责唤醒/发送，Life Engine 保留规则与状态真源。 |
+| 5 | **SP-005A2 Living Runtime Host Binding Architecture** | **PENDING_INDEPENDENT_REVIEW** | [现状审计](../architecture/SP-005A2-CURRENT-HOST-BINDING-AUDIT.md)、[分层合同](../architecture/SP-005A2-LIVING-HOST-BINDING.md)与[未来测试矩阵](SP-005A3-HOST-BINDING-TEST-MATRIX.md)；只做文档，不接真实 Host。 |
+| 6 | **SP-005A3 Living Host Binding Implementation** | **NOT AUTHORIZED** | 候选 facade/token/tick/context query/prepare/claim/证据接口与 legacy fence；默认 DRY_RUN / NO_REAL_SEND；Prompt 正式接入须另审模板升级。 |
+| 7 | **SP-005M Media Runtime** | PROPOSED | ComfyUI job、image identity、同日视觉连续性、媒体 receipt 与 retry semantics；区分“生成”“发送”“确认送达”。 |
+| 8 | **SP-005V Voice** | PROPOSED | voice message、TTS provider abstraction、voice identity 与 delivery receipt，单独验证语音生命周期。 |
 
 SP-005H0 的实现合并不等于真实 Host 验收：Hermes / OpenClaw 均保持 `PENDING_REAL_HOST_VALIDATION`。A0 是 Core 架构阶段，不依赖真实 Host PASS，也不宣称 Host 集成完成。A0/R1 已冻结架构；A1 经单独授权实施 Schema 8，Prompt v1 不变，自动迁移不等于 Living enrollment。
 
-建议顺序：`GOV-DOC2 → SP-005H0 → SP-005A0 → SP-005A1 → SP-005M → SP-005V`。每个 PROPOSED 阶段仍需独立任务书、固定 Base、验收与授权；本路线不构成自动实现队列。
+建议顺序：`GOV-DOC2 → SP-005H0 → SP-005A0 → SP-005A1 → SP-005A2 → SP-005A3（须单独授权）→ SP-005M → SP-005V`。每个 PROPOSED 阶段仍需独立任务书、固定 Base、验收与授权；本路线不构成自动实现队列。
 
 ## 并行的 Private RP capability watchers
 
