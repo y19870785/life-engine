@@ -1,8 +1,8 @@
 # SP-005A2 — Living Runtime Host Binding 架构
 
-状态：SP-005A2 = DONE；SP-005A2-R1 = PENDING_INDEPENDENT_REVIEW。R1 固定 Base / canonical main：`861734b0c4179e56a3251a775d831cd246278d7f`（A2 原审计基线为 `84493be98d7ed675de6b859cafdb014a900325ca`）。SP-005A0 / A0-R1 / A1 和 H0 implementation 已 DONE。R1 仅修订 Session World Revision Fence 合同，不修改 Runtime 或添加 Core tests；新 facade/token/adapter 尚未实现。
+状态：SP-005A2 = DONE；SP-005A2-R1 = DONE。R1 固定 Base / canonical main：`861734b0c4179e56a3251a775d831cd246278d7f`（A2 原审计基线为 `84493be98d7ed675de6b859cafdb014a900325ca`）。SP-005A0 / A0-R1 / A1 和 H0 implementation 已 DONE。R1 仅修订 Session World Revision Fence 合同，不修改 Runtime 或添加 Core tests；新 facade/token/adapter 尚未实现。
 
-DATA_SCHEMA = 8；Schema Signature = SP-005A-living-runtime-v1；Prompt Template = SP-004K-prompt-v1。本 PR 只修改文档，不改变 [A0 + R1](SP-005A-LIVING-RUNTIME.md) 的状态机、预算、迁移或恢复规则。现状依据 [CURRENT_HOST_BINDING_AUDIT](SP-005A2-CURRENT-HOST-BINDING-AUDIT.md)。
+DATA_SCHEMA = 8；Schema Signature = SP-005A-living-runtime-v1；Prompt Template = SP-004K-prompt-v1。A2 / R1 架构 PR 只修改文档，不改变 [A0 + R1](SP-005A-LIVING-RUNTIME.md) 的状态机、预算、迁移或恢复规则。现状依据 [CURRENT_HOST_BINDING_AUDIT](SP-005A2-CURRENT-HOST-BINDING-AUDIT.md)。
 
 ## 1. 真源与四层边界
 
@@ -53,7 +53,7 @@ authority 重建/reload barrier 会撤销旧 transport handles；仅服务端保
 
 ### SP-005A2-R1：Session World Revision Fence
 
-固定 Base 的 [LivingRuntime._authorize](../../runtime/life_engine/living_runtime.py) 已检查 Principal、Scope、Session OPEN、Session Principal/Scope、Session WriterEpoch 和 World WriterEpoch，但尚未检查 session 的 World revision。[Living projection](../../runtime/life_engine/living_projection.py) 已对不一致返回 `WORLD_STALE`。因此旧 session 可被 projection 拒绝，却仍可 prepare，甚至 claim 得到 `CLAIMED / execute=true`。这是待修复的 Core 缺口；本节定义未来修复合同，不表示已实现。
+固定 Base 的 [LivingRuntime._authorize](../../runtime/life_engine/living_runtime.py) 已检查 Principal、Scope、Session OPEN、Session Principal/Scope、Session WriterEpoch 和 World WriterEpoch，但尚未检查 session 的 World revision。[Living projection](../../runtime/life_engine/living_projection.py) 已对不一致返回 `WORLD_STALE`。因此旧 session 可被 projection 拒绝，却仍可 prepare，甚至 claim 得到 `CLAIMED / execute=true`。这是 R1 固定 Base 的 Core 缺口；当前 SP-005A3-B0 已提交最小修复并处于 PENDING_INDEPENDENT_REVIEW，具体证据见 [B0 验证映射](../SP-005A3-B0-VALIDATION.md)。本节冻结合同不变，A3 Host 层仍未实现。
 
 所有 session-bearing `LivingContext` 必须携带受信 `session_id`、`writer_epoch`、`world_revision`；canonical 路径可继续使用 `PromptSessionContext`。这些字段只能由受信映射构造，不得来自 model text、tool arguments 或 Host 自报 JSON。对 query_context、prepare_contact、claim_attempt、session-bound Owner action 以及任何当前或未来的 session-authorized Living mutation，Core 必须验证：
 
@@ -206,7 +206,7 @@ OpenClaw：Gateway/config/profile + agentId/workspace 一并绑定，不能选�
 
 ## 11. 后续授权和验收
 
-SP-005A3 = BLOCKED_BY_ARCHITECTURE_REVISION。须先完成 SP-005A2-R1 独立审核、合并及 exact main push CI，再由 ChatGPT / 小雪单独授权最小修复阶段 **SP-005A3-B0 — Session World Revision Fence**。SP-005A3-B0 = NOT AUTHORIZED；未来仅允许 `_authorize` 最小修复、对应回归测试和 B06/B28/B14 blocker tests。B0 完成后才可恢复 A3 主实现；本 R1 文档 PR 不授权 Core 修复或 A3 自动续跑。
+SP-005A2-R1 已完成独立审核、合并及 exact main push CI；B0 经单独授权实施。SP-005A3-B0 = PENDING_INDEPENDENT_REVIEW；范围仅为 `_authorize` 最小修复、对应回归测试和 B06/B28/B14 Core blocker tests。SP-005A3 = BLOCKED_BY_B0；B0 完成后才可恢复 A3 主实现，本轮 Draft 交付不授权 A3 自动续跑。
 
 A3 范围仍为受信本地 authority/facade、稳定绑定与 token、tick contract、结构化 context adapter、prepare/claim、delivery evidence adapter interface、enrolled legacy-path fence、fake transport / NO_REAL_SEND sandbox。A3 不默认改 Prompt，不实现真实渠道 validator、真实发送、媒体/语音、H1/H2；若需要 Schema 或其它冻结 Core 合同变化，仍须停止申请独立架构修订。R1 不需要 Schema 9，也不需要 Prompt Template 升级；DATA_SCHEMA = 8、Schema Signature = SP-005A-living-runtime-v1、Prompt Template = SP-004K-prompt-v1 保持不变。正式 Living Prompt 接入仍为 PROMPT_TEMPLATE_UPGRADE_REQUIRED = YES；SP-005A2-P1 = NOT AUTHORIZED。
 

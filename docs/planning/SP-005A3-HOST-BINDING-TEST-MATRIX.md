@@ -1,6 +1,6 @@
 # SP-005A3 与 H0-RV Living 扩展测试设计
 
-本表是 [A2 架构](../architecture/SP-005A2-LIVING-HOST-BINDING.md)的未来验收设计，不是已运行测试映射。SP-005A2 = DONE；SP-005A2-R1 = PENDING_INDEPENDENT_REVIEW；R1 固定 Base：`861734b0c4179e56a3251a775d831cd246278d7f`。SP-005A3 = BLOCKED_BY_ARCHITECTURE_REVISION；SP-005A3-B0 = NOT AUTHORIZED。R1 仅更新文档，不修改 Runtime、不添加 Core tests。自动化只使用隔离 fixture/fake transport，不访问生产 Host；真实验证另行授权，默认 DRY_RUN / NO_REAL_SEND。
+本表保留 [A2 架构](../architecture/SP-005A2-LIVING-HOST-BINDING.md)的验收设计；R1 Core 场景已有 [B0 实测映射](../SP-005A3-B0-VALIDATION.md)，其余 A3 Host 场景仍是未来设计。SP-005A2 = DONE；SP-005A2-R1 = DONE；R1 固定 Base：`861734b0c4179e56a3251a775d831cd246278d7f`。SP-005A3 = BLOCKED_BY_B0；SP-005A3-B0 = PENDING_INDEPENDENT_REVIEW。R1 阶段仅更新文档；后续 B0 的最小 Core 修复与测试待独立审核。自动化只使用隔离 fixture/fake transport，不访问生产 Host；真实验证另行授权，默认 DRY_RUN / NO_REAL_SEND。
 
 ## A3 自动化合同矩阵
 
@@ -45,7 +45,7 @@ A3 必须逐项映射具体测试，保留 A1 的 48 项回归。A2 不添加空
 
 ## R1 Core fence 未来测试设计
 
-以下 R1-01～R1-06 均为 **NOT_EXECUTED** 的未来 Core 修复验收设计，不是本轮测试或 PASS。R1 合并并通过 exact main push CI 后，SP-005A3-B0 仍需单独授权。所有带 session 的 LivingContext（包括 session-bound Owner action）均须先授权，再允许 receipt recovery 或 mutation；LivingTickContext 无 chat session，不受此 fence 影响。下列 fresh session 指重新取得当前受信授权上下文，保持原 operation 的 producer/principal/Scope/generation 关联；不得把 freshness 当成新 operation identity。
+以下保留 R1-01～R1-06 冻结设计，现已在单独授权的 B0 中映射到真实测试并通过，见 [具体测试与证据边界](../SP-005A3-B0-VALIDATION.md)。仅 B06/B28/B14 的 Core 子集通过，不宣称完整 A3 PASS。所有带 session 的 LivingContext（包括 session-bound Owner action）均须先授权，再允许 receipt recovery 或 mutation；LivingTickContext 无 chat session，不受此 fence 影响。下列 fresh session 指重新取得当前受信授权上下文，保持原 operation 的 producer/principal/Scope/generation 关联；不得把 freshness 当成新 operation identity。
 
 | 编号 | 输入 / 交错顺序 | 必须断言 | 关联 |
 | --- | --- | --- | --- |
@@ -56,7 +56,7 @@ A3 必须逐项映射具体测试，保留 A1 的 48 项回归。A2 不添加空
 | R1-05 | claim 已提交但 response 丢失，随后 World revision bump；以原 operation ID + 原 payload 先旧 session、再 fresh trusted session 重放 | 旧 session WORLD_STALE；fresh session 返回既有 Attempt receipt 且 execute=false；无第二个 Attempt、无重新签发 execution permit、无再次外部调用 | B14、B13 |
 | R1-06 | World revision bump 后重新取得 fresh trusted session；执行尚未提交的正常 prepare/claim | 其它授权与 expected revision CAS 有效时成功；首次合法 claim 才可 execute=true。覆盖原调用在提交前失败、fresh session 沿用原 operation ID + 原 payload 的恢复，不自动重试或换 ID | B06、B14 |
 
-R1-03 应使用独立事务与明确同步点控制竞态顺序；R1-04/R1-05 的响应丢失必须保留真实进程边界设计（subprocess / fresh Python process / os._exit），不得仅靠 mock exception。未来 B0 验证 Core receipt 与 execute 行为；execution permit、context handle、ticket 的 Host 层断言留给 A3，不在 B0 实现 facade。还须回归 session-bound Owner mutation 的 fence 与无 session tick 的既有行为；Scope/Policy 并发按原冻结规则验证，不改变预算、恢复或 Attempt lifecycle。
+R1-03 应使用独立事务与明确同步点控制竞态顺序；R1-04/R1-05 的响应丢失必须保留真实进程边界设计（subprocess / fresh Python process / os._exit），不得仅靠 mock exception。B0 验证 Core receipt 与 execute 行为；execution permit、context handle、ticket 的 Host 层断言留给 A3，不在 B0 实现 facade。还须回归 session-bound Owner mutation 的 fence 与无 session tick 的既有行为；Scope/Policy 并发按原冻结规则验证，不改变预算、恢复或 Attempt lifecycle。
 
 DATA_SCHEMA = 8；Schema Signature = SP-005A-living-runtime-v1；Prompt Template = SP-004K-prompt-v1。PROMPT_TEMPLATE_UPGRADE_REQUIRED = YES；SP-005A2-P1 = NOT AUTHORIZED。
 

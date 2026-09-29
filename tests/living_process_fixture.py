@@ -24,6 +24,29 @@ if __name__=='__main__':
     scope=WorldScope(*map(DomainId.parse,config['scope']))
     ctx=LivingContext(principal,scope,repo.generation,'child')
     runtime=LivingRuntime(repo,clock=lambda:datetime.fromisoformat(config['now']))
+    if mode=='world-revision':
+        from dataclasses import replace
+        world=SQLiteWorldRepository(Path(config['path']),runtime_id=rid)
+        with world.transaction() as tx:
+            current=tx.get_world(scope.world_id)
+            updated=replace(current,world=replace(current.world,revision=current.world.revision.next()))
+            tx.save_world(updated,current.world.revision)
+        print(json.dumps(dict(world_revision=updated.world.revision.value,writer_epoch=updated.world.writer_epoch.value)))
+        sys.exit(0)
+    if mode in ('prepare-lost','claim-lost'):
+        from life_engine.domain import Revision, WriterEpoch
+        from life_engine.prompt import PromptSessionContext, PromptPurpose
+        from life_engine.memory import MemoryAudience, AudienceKind
+        s=config['session']
+        session=PromptSessionContext(principal,scope,DomainId.parse(s['id']),WriterEpoch(s['writer_epoch']),
+            rid,repo.generation,MemoryAudience(AudienceKind.SOUL,scope.soul_id),Revision(s['world_revision']),
+            PromptPurpose.SOUL_RESPONSE)
+        ctx=LivingContext(principal,scope,repo.generation,config['producer'],session)
+        args=(ctx,config['expected'],sys.argv[3],config['intent'])
+        if mode=='prepare-lost': runtime.prepare_intent(*args,config['material'])
+        else: runtime.begin_attempt(*args)
+        # Core 已提交；进程退出，不把返回值交给调用者，不执行任何发送。
+        os._exit(75)
     if mode=='scope':
         from dataclasses import replace
         from life_engine.domain import WorldStatus

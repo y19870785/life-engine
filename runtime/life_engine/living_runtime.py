@@ -57,6 +57,7 @@ class LivingRuntime:
                 s=context.session; b=world.get_session(s.session_id)
                 if (b.principal!=context.principal or b.scope!=context.scope or b.status is not BindingStatus.OPEN
                     or b.writer_epoch!=s.writer_epoch or w.world.writer_epoch!=s.writer_epoch): fail('SESSION_STALE')
+                if s.world_revision!=w.world.revision: fail('WORLD_STALE')
         elif context.instance_id!=self.repository.instance_id:
             fail('SCOPE_MISMATCH')
         return w

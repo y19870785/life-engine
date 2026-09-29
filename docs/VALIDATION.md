@@ -1,5 +1,13 @@
 # v0.3 验证记录
 
+## SP-005A3-B0 实施验证（待独立审核）
+
+固定 Base：`3367a8906060af129d7ee29ef4da7959926b5d0b`。Runtime 仅增加 session World revision 的事务内 fence；R1-01～R1-06 与补充回归的具体测试见 [B0 实施映射](SP-005A3-B0-VALIDATION.md)。新增 10 项测试，包含独立进程 World 更新、提交后 os._exit 响应丢失及原 operation receipt recovery。原 A1 的 [48 项合同映射](SP-005A1-VALIDATION.md)继续保留。
+
+本地完整测试：Windows、Python 3.12.10、Node 22.23.2；`py -3.12 -m unittest discover -s tests -v`，381 项，380 passed、1 skipped（既有 Unix symlink 平台跳过）、0 failed、0 errors，282.666 秒。新增 10 项 B0 测试全部通过；按日志核验 A1 48 个合同编号映射的 52 个具体测试全部通过。32 个相对链接及锚点检查、`git diff --check` 通过。exact Head 四矩阵 CI 结果在 Draft PR 和交付报告中关联。B06/B28/B14 仅 Core 子集验收，不代表 A3 Host 层 PASS。
+
+DATA_SCHEMA = 8；Schema Signature = SP-005A-living-runtime-v1；Prompt Template = SP-004K-prompt-v1。SP-005A3-B0 = PENDING_INDEPENDENT_REVIEW；SP-005A3 = BLOCKED_BY_B0；SP-005A2-P1 = NOT AUTHORIZED；PROMPT_TEMPLATE_UPGRADE_REQUIRED = YES。没有真实 Host 操作或发送，H1/H2、Full Private RP 保持 BLOCKED。
+
 ## SP-005A1 实施验证（待独立审核）
 
 固定 Base：`9159c493ad435cf947ed8c0fef278e1f5fb9dc83`。本次实现 `DATA_SCHEMA = 8`、`SP-005A-living-runtime-v1`；Prompt Template 仍为 `SP-004K-prompt-v1`。原始 A0/R1 判据与具体测试的 48 项对应关系见 [实施映射](SP-005A1-VALIDATION.md)，部署边界与 copy migration/rollback 见 [操作说明](LIVING-RUNTIME.md)。
