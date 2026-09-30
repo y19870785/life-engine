@@ -53,7 +53,7 @@ authority 重建/reload barrier 会撤销旧 transport handles；仅服务端保
 
 ### SP-005A2-R1：Session World Revision Fence
 
-固定 Base 的 [LivingRuntime._authorize](../../runtime/life_engine/living_runtime.py) 已检查 Principal、Scope、Session OPEN、Session Principal/Scope、Session WriterEpoch 和 World WriterEpoch，但尚未检查 session 的 World revision。[Living projection](../../runtime/life_engine/living_projection.py) 已对不一致返回 `WORLD_STALE`。因此旧 session 可被 projection 拒绝，却仍可 prepare，甚至 claim 得到 `CLAIMED / execute=true`。这是 R1 固定 Base 的 Core 缺口；当前 SP-005A3-B0 已提交最小修复并处于 PENDING_INDEPENDENT_REVIEW，具体证据见 [B0 验证映射](../SP-005A3-B0-VALIDATION.md)。本节冻结合同不变，A3 Host 层仍未实现。
+固定 Base 的 [LivingRuntime._authorize](../../runtime/life_engine/living_runtime.py) 已检查 Principal、Scope、Session OPEN、Session Principal/Scope、Session WriterEpoch 和 World WriterEpoch，但尚未检查 session 的 World revision。[Living projection](../../runtime/life_engine/living_projection.py) 已对不一致返回 `WORLD_STALE`。因此旧 session 可被 projection 拒绝，却仍可 prepare，甚至 claim 得到 `CLAIMED / execute=true`。这是 R1 固定 Base 的 Core 缺口；当前 SP-005A3-B0 已完成最小修复、独立审核、合并及 exact main push CI，状态为 DONE，具体证据见 [B0 验证映射](../SP-005A3-B0-VALIDATION.md)。本节冻结合同不变，A3 Host 层仍未实现。
 
 所有 session-bearing `LivingContext` 必须携带受信 `session_id`、`writer_epoch`、`world_revision`；canonical 路径可继续使用 `PromptSessionContext`。这些字段只能由受信映射构造，不得来自 model text、tool arguments 或 Host 自报 JSON。对 query_context、prepare_contact、claim_attempt、session-bound Owner action 以及任何当前或未来的 session-authorized Living mutation，Core 必须验证：
 
@@ -157,6 +157,10 @@ validator 必须由受信部署注册，模型字符串、手工 JSON、工具�
 
 插件 reload 但 Core incarnation 未变时，Core 不会仅凭插件 UUID 自动把 CLAIMED 转 UNKNOWN。A3 authority 必须先阻断该绑定的新 claim，核对持久 invocation→Attempt 关联；不确定结果经受信 UNKNOWN 证据或 Owner reconcile 处理。此过程是待实现合同，不能描述成已有插件行为。authority 自身重启走 Core 新 incarnation 恢复后，先执行恢复 tick、处理遗留 CLAIMED，再开放业务。所有路径默认不退款。
 
+### B1：关联尚未保存时的只读恢复
+
+若 Core claim 已 durable commit，但 authority 在保存 invocation→Attempt 关联前崩溃，不能依赖 metadata 推断提交事实，也不能调用 begin_attempt 充当查询。按 [B1 冻结合同](SP-005A3-B1-OPERATION-RECOVERY-PROJECTION.md)，新 epoch 下独立认证的 recovery-only authority 使用原完整 identity / digest 查询 Core durable receipt，恢复经 Core 验证的关联，绝不取得 execute / execution permit。session-bound 查询仍先执行 B0 授权；authority-bound 是独立窄只读权限，不是普通 LivingContext(session=None) 绕过。只读查询不触发恢复 tick、不修改 Attempt；生命周期恢复与协调另走原合同。该查询尚未实现，A3 被 B1 阻塞。
+
 ## 8. Legacy 共存与显式切换
 
 | 实例状态 | 唯一 Host 路由 |
@@ -206,7 +210,7 @@ OpenClaw：Gateway/config/profile + agentId/workspace 一并绑定，不能选�
 
 ## 11. 后续授权和验收
 
-SP-005A2-R1 已完成独立审核、合并及 exact main push CI；B0 经单独授权实施。SP-005A3-B0 = PENDING_INDEPENDENT_REVIEW；范围仅为 `_authorize` 最小修复、对应回归测试和 B06/B28/B14 Core blocker tests。SP-005A3 = BLOCKED_BY_B0；B0 完成后才可恢复 A3 主实现，本轮 Draft 交付不授权 A3 自动续跑。
+SP-005A2-R1 = DONE；SP-005A3-B0 = DONE，二者已完成合并与 exact main push CI。当前 canonical main 为 `76fee9bc82240dfcf52fb7a017175fbe7df40fc2`。A3 发现 durable operation recovery 缺少公开只读查询，已停止实施；[B1 架构修订](SP-005A3-B1-OPERATION-RECOVERY-PROJECTION.md)冻结独立 authority-bound recovery 权限、exact identity / fingerprint 校验与无执行资格的投影。SP-005A3-B1 = PENDING_INDEPENDENT_REVIEW（仅架构）；B1 implementation = NOT AUTHORIZED；SP-005A3 = BLOCKED_BY_B1。架构与后续单独授权的 implementation 都 DONE 后，仍须重新授权 A3，默认从新 canonical main 建立 v3；A3 v2 保持 clean，不继续实现。
 
 A3 范围仍为受信本地 authority/facade、稳定绑定与 token、tick contract、结构化 context adapter、prepare/claim、delivery evidence adapter interface、enrolled legacy-path fence、fake transport / NO_REAL_SEND sandbox。A3 不默认改 Prompt，不实现真实渠道 validator、真实发送、媒体/语音、H1/H2；若需要 Schema 或其它冻结 Core 合同变化，仍须停止申请独立架构修订。R1 不需要 Schema 9，也不需要 Prompt Template 升级；DATA_SCHEMA = 8、Schema Signature = SP-005A-living-runtime-v1、Prompt Template = SP-004K-prompt-v1 保持不变。正式 Living Prompt 接入仍为 PROMPT_TEMPLATE_UPGRADE_REQUIRED = YES；SP-005A2-P1 = NOT AUTHORIZED。
 
