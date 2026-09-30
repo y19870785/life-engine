@@ -1,6 +1,6 @@
 # SP-005A3 与 H0-RV Living 扩展测试设计
 
-本表保留 [A2 架构](../architecture/SP-005A2-LIVING-HOST-BINDING.md)的验收设计；R1 Core 场景已有 [B0 实测映射](../SP-005A3-B0-VALIDATION.md)，其余 A3 Host 场景仍是未来设计。SP-005A2 = DONE；SP-005A2-R1 = DONE；R1 固定 Base：`861734b0c4179e56a3251a775d831cd246278d7f`。SP-005A3-B0 = DONE；当前 canonical main 为 `76fee9bc82240dfcf52fb7a017175fbe7df40fc2`。SP-005A3-B1 = PENDING_INDEPENDENT_REVIEW（仅架构）；B1 implementation = NOT AUTHORIZED；SP-005A3 = BLOCKED_BY_B1。自动化只使用隔离 fixture/fake transport，不访问生产 Host；真实验证另行授权，默认 DRY_RUN / NO_REAL_SEND。
+本表保留 [A2 架构](../architecture/SP-005A2-LIVING-HOST-BINDING.md)的验收设计；R1 Core 场景已有 [B0 实测映射](../SP-005A3-B0-VALIDATION.md)，其余 A3 Host 场景仍是未来设计。SP-005A2 = DONE；SP-005A2-R1 = DONE；R1 固定 Base：`861734b0c4179e56a3251a775d831cd246278d7f`。SP-005A3-B0 = DONE；B1 implementation 固定 canonical main 为 `a27caf372a263932346d5b193ca35c92fea6f5dd`。SP-005A3-B1 Architecture = DONE；SP-005A3-B1 Implementation = PENDING_INDEPENDENT_REVIEW；SP-005A3 = BLOCKED_BY_B1。自动化只使用隔离 fixture/fake transport，不访问生产 Host；真实验证另行授权，默认 DRY_RUN / NO_REAL_SEND。
 
 ## A3 自动化合同矩阵
 
@@ -45,7 +45,7 @@ A3 必须逐项映射具体测试，保留 A1 的 48 项回归。A2 不添加空
 
 ## B1 Durable Operation Recovery 未来测试设计
 
-[B1 架构与 B1-01～B1-10 计划](../architecture/SP-005A3-B1-OPERATION-RECOVERY-PROJECTION.md)冻结 exact identity、原 Core fingerprint、授权先于 lookup、有界 typed receipt 和零 mutation。全部 B1 场景为 NOT_EXECUTED；本轮 docs-only，不新增 Runtime 或 tests。B1-01～B1-07 / B1-10 验证 Core 只读合同；B1-08 / B1-09 的 Host epoch、capability、真实进程恢复编排由 A3 补齐，实施时分别映射真实测试，不笼统称 covered。
+[B1 架构与 B1-01～B1-10 计划](../architecture/SP-005A3-B1-OPERATION-RECOVERY-PROJECTION.md)冻结 exact identity、原 Core fingerprint、授权先于 lookup、有界 typed receipt 和零 mutation。Core 实测名称见 [B1 验证映射](../SP-005A3-B1-VALIDATION.md)。B1-01～B1-07 / B1-10 已完成 Core 自动测试；B1-08_CORE_PASS（真实子进程 commit 后退出再只读恢复），B1-09_CORE_PASS（权限类型与委托隔离）。Host epoch/token、revoke/reload、transport 部分 DEFERRED_TO_A3 / NOT_EXECUTED，不能标完整 B1-08/B1-09 PASS。
 
 B14 的 B0 子集是 fresh trusted mutation context + 原 operation replay → execute=false；B1 增加 authority crash + lost association → 独立只读查询 → 无执行资格。两者不是同一个接口。B06_CORE_FENCE_PASS、B28_CORE_FENCE_PASS、B14_CORE_RECOVERY_PASS 保持；不得升级成完整 B06/B28/B14 PASS。A3 必须等待 B1 architecture 与 implementation 均 DONE 后重新授权。
 
