@@ -119,21 +119,200 @@ class LivingTests(MemoryFixture,unittest.TestCase):
         self.assertNotEqual(*[x['decision_id'] for x in self.rows('living_intents')])
 
 
-    def process(self, mode='tick', token='one', *, wait=True, intent=None):
+    def process(self, mode='tick', token='one', *, wait=True, intent=None, context=None, expected=None):
         import subprocess,sys
         from pathlib import Path
         from life_engine.living_domain import scope_values
         config=dict(root=str(self.root),instance=self.key,path=str(self.path),runtime_id=self.lr.runtime_id,
                     principal=str(self.actor.principal_id),scope=scope_values(self.scope),now=self.now.isoformat(),
                     intent=intent,send_file=str(self.base/'fake-send.json'))
+        if context is not None:
+            s=context.session
+            config.update(producer=context.producer,expected=expected,material='合成内容引用',
+                          session=dict(id=str(s.session_id),writer_epoch=s.writer_epoch.value,
+                                       world_revision=s.world_revision.value))
         path=self.base/('child-'+token+'.json');path.write_text(json.dumps(config),encoding='utf-8')
         child=subprocess.Popen([sys.executable,'-X','utf8',str(Path(__file__).with_name('living_process_fixture.py')),str(path),mode,token],stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,encoding='utf-8')
         if not wait: return child
         out,err=child.communicate(timeout=30)
+        if mode in ('prepare-lost','claim-lost'):
+            self.assertEqual(child.returncode,75,err);self.assertEqual(out,'');return None
         if mode in ('before','inside','after','claimed','sent'):
             self.assertIn(child.returncode,(71,72,73,74),err);return None
         self.assertEqual(child.returncode,0,err)
         return json.loads(out)
+
+    def fence_context(self):
+        """仅合成测试的受信 Session 映射；fresh 保留既有 session_id。"""
+        from life_engine.prompt import PromptSessionContext,PromptPurpose
+        from life_engine.memory import MemoryAudience,AudienceKind
+        with self.world_repo.transaction() as tx:w=tx.get_world(self.scope.world_id)
+        if not w.sessions:
+            w=self.world.enter(self.actor,self.scope.world_id,self.scope.timeline_id,None,w.world.revision,w.world.writer_epoch)
+        b=w.sessions[-1]
+        session=PromptSessionContext(self.actor,self.scope,b.session_id,b.writer_epoch,self.lr.runtime_id,
+            self.lr.generation,MemoryAudience(AudienceKind.SOUL,self.scope.soul_id),w.world.revision,PromptPurpose.SOUL_RESPONSE)
+        return replace(self.ctx,session=session)
+
+    def bump_world_revision(self):
+        with self.world_repo.transaction() as tx:
+            w=tx.get_world(self.scope.world_id)
+            tx.save_world(replace(w,world=replace(w.world,revision=w.world.revision.next())),w.world.revision)
+
+    def living_state(self):
+        from life_engine.living_repository import TABLES
+        return {t:self.rows(t) for t in (*TABLES,'living_operations','living_transitions')}
+
+    def assert_fence_unchanged(self,call,code='WORLD_STALE'):
+        before=self.living_state()
+        with self.assertRaises(LivingError) as caught:call()
+        self.assertEqual(caught.exception.code,code)
+        self.assertEqual(self.living_state(),before)
+
+    def test_r1_01_stale_prepare_no_mutation(self):
+        self.enroll();i=self.reserve();ctx=self.fence_context();rev=self.rev()
+        self.bump_world_revision()
+        self.assert_fence_unchanged(lambda:self.living.prepare_intent(ctx,rev,'r1-prepare',i,'合成内容引用'))
+        self.assertEqual(self.rows('living_intents')[0]['state'],'DECIDED')
+        self.assertEqual(self.rows('living_attempts'),[])
+
+    def test_r1_02_stale_claim_no_attempt(self):
+        self.enroll();i=self.reserve();self.prepare(i);ctx=self.fence_context();rev=self.rev()
+        self.bump_world_revision()
+        self.assert_fence_unchanged(lambda:self.living.begin_attempt(ctx,rev,'r1-claim',i))
+        self.assertEqual(self.rows('living_intents')[0]['state'],'PREPARED')
+        self.assertEqual(self.rows('living_attempts'),[])
+
+    def test_r1_03_precheck_then_independent_world_commit(self):
+        from life_engine.living_projection import query
+        self.enroll()
+        for method in ('prepare','claim'):
+            with self.subTest(method=method):
+                i=self.reserve()
+                if method=='claim':self.prepare(i)
+                ctx=self.fence_context();rev=self.rev()
+                # 外层真实 projection 预检查成功；随后子进程独立连接提交 World 更新。
+                snap=json.loads(query(self.living,ctx.session).payload)
+                self.assertEqual(snap['world_revision'],ctx.session.world_revision.value)
+                changed=self.process('world-revision','bump-'+method)
+                # communicate/进程退出是同步点：Core 命令只能在 R2 提交后开始。
+                self.assertEqual(changed['world_revision'],snap['world_revision']+1)
+                self.assertEqual(changed['writer_epoch'],ctx.session.writer_epoch.value)
+                call=(lambda:self.living.prepare_intent(ctx,rev,'race-prepare',i,'合成内容引用')) if method=='prepare' else (
+                      lambda:self.living.begin_attempt(ctx,rev,'race-claim',i))
+                self.assert_fence_unchanged(call)
+                self.assertEqual(self.rows('living_attempts'),[])
+
+    def test_r1_04_prepare_response_lost_authorization_before_receipt(self):
+        self.enroll();i=self.reserve();ctx=self.fence_context();rev=self.rev();op='prepare-response-lost'
+        self.process('prepare-lost',op,intent=i,context=ctx,expected=rev)
+        receipt=json.loads(next(r['receipt'] for r in self.rows('living_operations') if r['operation_id']==op))
+        self.assertEqual(receipt,dict(id=i,revision=rev+1))
+        self.assertEqual(self.rows('living_intents')[0]['state'],'PREPARED')
+        self.bump_world_revision()
+        self.assert_fence_unchanged(lambda:self.living.prepare_intent(ctx,rev,op,i,'合成内容引用'))
+        fresh=self.fence_context();before=self.living_state()
+        self.assertEqual(fresh.session.session_id,ctx.session.session_id)
+        self.assertEqual(self.living.prepare_intent(fresh,rev,op,i,'合成内容引用'),receipt)
+        self.assertEqual(self.living_state(),before)
+
+    def test_r1_05_claim_response_lost_replay_never_executes(self):
+        self.enroll();i=self.reserve();self.prepare(i);ctx=self.fence_context();rev=self.rev();op='claim-response-lost'
+        self.process('claim-lost',op,intent=i,context=ctx,expected=rev)
+        receipt=json.loads(next(r['receipt'] for r in self.rows('living_operations') if r['operation_id']==op))
+        self.assertTrue(receipt['execute']);self.assertEqual(receipt['state'],'CLAIMED')
+        self.assertEqual(receipt['revision'],rev+1)
+        self.bump_world_revision()
+        self.assert_fence_unchanged(lambda:self.living.begin_attempt(ctx,rev,op,i))
+        fresh=self.fence_context();before=self.living_state()
+        self.assertEqual(fresh.session.session_id,ctx.session.session_id)
+        self.assertEqual(self.living.begin_attempt(fresh,rev,op,i),{**receipt,'execute':False})
+        self.assertEqual(self.living_state(),before)
+        self.assertEqual(len(self.rows('living_attempts')),1)
+        self.assertEqual(self.rows('living_attempts')[0]['id'],receipt['attempt_id'])
+
+    def test_r1_06_fresh_context_original_uncommitted_operations(self):
+        self.enroll();i=self.reserve();ctx=self.fence_context()
+        for method,op in [('prepare','original-prepare'),('claim','original-claim')]:
+            with self.subTest(method=method):
+                rev=self.rev();self.bump_world_revision()
+                def call(context):
+                    if method=='prepare':return self.living.prepare_intent(context,rev,op,i,'合成内容引用')
+                    return self.living.begin_attempt(context,rev,op,i)
+                self.assert_fence_unchanged(lambda:call(ctx))
+                self.assertFalse(any(r['operation_id']==op for r in self.rows('living_operations')))
+                fresh=self.fence_context()
+                self.assertEqual(fresh,replace(ctx,session=replace(ctx.session,world_revision=fresh.session.world_revision)))
+                out=call(fresh);self.assertEqual(out['revision'],rev+1)
+                if method=='claim':
+                    self.assertTrue(out['execute']);self.assertEqual(out['state'],'CLAIMED')
+                    self.assertEqual(len(self.rows('living_attempts')),1)
+                ctx=fresh
+
+    def test_r1_fresh_context_does_not_bypass_living_cas(self):
+        self.enroll();i=self.reserve();ctx=self.fence_context();rev=self.rev()
+        self.living.configure(self.ctx,rev,self.op(),paused=False)
+        self.bump_world_revision()
+        call=lambda c:self.living.prepare_intent(c,rev,'cas-prepare',i,'合成内容引用')
+        self.assert_fence_unchanged(lambda:call(ctx))
+        self.assert_fence_unchanged(lambda:call(self.fence_context()),'REVISION_CONFLICT')
+        self.prepare(i);ctx=self.fence_context();rev=self.rev()
+        self.living.configure(self.ctx,rev,self.op(),paused=False)
+        self.bump_world_revision()
+        call=lambda c:self.living.begin_attempt(c,rev,'cas-claim',i)
+        self.assert_fence_unchanged(lambda:call(ctx))
+        self.assert_fence_unchanged(lambda:call(self.fence_context()),'REVISION_CONFLICT')
+
+    def test_r1_session_identity_precedes_world_fence(self):
+        self.enroll();i=self.reserve();ctx=self.fence_context();self.bump_world_revision()
+        bad=replace(ctx,session=replace(ctx.session,writer_epoch=ctx.session.writer_epoch.next()))
+        self.assert_fence_unchanged(lambda:self.living.prepare_intent(bad,self.rev(),'bad-epoch',i,'合成内容引用'),'SESSION_STALE')
+        fresh=self.fence_context();s=fresh.session
+        self.world.exit(self.actor,self.scope.world_id,self.scope.timeline_id,s.session_id,s.world_revision,s.writer_epoch)
+        self.assert_fence_unchanged(lambda:self.living.prepare_intent(fresh,self.rev(),'closed',i,'合成内容引用'),'SESSION_STALE')
+
+    def test_r1_session_owner_commands_share_fence(self):
+        self.enroll();follow=self.follow();activity=self.activity();i=self.reserve();self.prepare(i)
+        attempt=self.living.begin_attempt(self.ctx,self.rev(),self.op(),i)['attempt_id']
+        ctx=self.fence_context();rev=self.rev();self.bump_world_revision()
+        class FixtureValidator:
+            def verify(_,evidence):return evidence
+        self.living.delivery_validator=FixtureValidator()
+        commands={
+            'create_followup':lambda:self.living.create_followup(ctx,rev,'owner-create',due=self.now,expires=self.now+timedelta(hours=1),topic='合成',provenance='Owner'),
+            'resolve_followup':lambda:self.living.resolve_followup(ctx,rev,'owner-resolve',follow),
+            'cancel_followup':lambda:self.living.cancel_followup(ctx,rev,'owner-cancel',follow),
+            'cancel_activity':lambda:self.living.cancel_activity(ctx,rev,'owner-cancel-activity',activity),
+            'reconcile':lambda:self.living.reconcile(ctx,rev,'owner-reconcile',evidence_ref='合成',blocked_until=self.now),
+            'configure':lambda:self.living.configure(ctx,rev,'owner-configure',paused=True),
+            'observe_inbound':lambda:self.living.observe_inbound(ctx,rev,'owner-inbound',source='fixture',event_id='one',received_at=self.now),
+            'observe_environment':lambda:self.living.observe_environment(ctx,rev,'owner-weather',kind='WEATHER',provider='fixture',event_id='one',observed=self.now,fetched=self.now,expires=self.now+timedelta(hours=1),summary='合成',region='synthetic'),
+            'reschedule_activity':lambda:self.living.reschedule_activity(ctx,rev,'owner-activity',ident=None,start=self.now,end=self.now+timedelta(minutes=1),name='合成',location='合成',category='OTHER'),
+            'record_delivery':lambda:self.living.record_delivery(ctx,rev,'collector',attempt,dict(attempt_id=attempt,target='本人合成目标',state='UNKNOWN',source='fixture',event_id='one')),
+            'tick':lambda:self.living.tick(ctx,'session-tick'),
+            'enroll':lambda:self.living.enroll(ctx,self.p,'本人合成目标','session-enroll'),
+            'status':lambda:self.living.status(ctx),
+            'observation_context':lambda:self.living.observation_context(ctx),
+        }
+        for name,call in commands.items():
+            with self.subTest(command=name):
+                # 既有管理面命令禁止所有 chat session；不扩大其权限。
+                code='AUTHORIZATION_DENIED' if name in ('configure','reconcile') else 'WORLD_STALE'
+                self.assert_fence_unchanged(call,code)
+
+    def test_r1_narrow_tick_without_session_unchanged(self):
+        from life_engine.living_domain import LivingTickContext
+        self.enroll();self.follow();self.bump_world_revision()
+        root=self.living.status(self.ctx)['root']
+        ctx=LivingTickContext(self.scope,self.key,self.lr.generation,root['policy_revision'])
+        recovery=self.living.tick(ctx,'narrow-recovery')
+        self.assertEqual(recovery['result'],'RECOVERY_IN_PROGRESS')
+        self.assertEqual(self.living.tick(ctx,'narrow-recovery'),recovery)
+        result=self.living.tick(ctx,'narrow-tick')
+        self.assertEqual(result['result'],'RESERVED')
+        self.assertEqual(self.living.tick(ctx,'narrow-tick'),result)
+        self.assertEqual(len(self.rows('living_intents')),1)
+        self.assertEqual(self.rows('living_attempts'),[])
 
     def activity(self,start=15,end=16):
         return self.living.reschedule_activity(self.ctx,self.rev(),self.op(),ident=None,

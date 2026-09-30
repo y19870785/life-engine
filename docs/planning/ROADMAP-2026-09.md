@@ -2,7 +2,7 @@
 
 ## 当前判断
 
-固定事实基线：A2-R1 固定 Base / canonical main `861734b0c4179e56a3251a775d831cd246278d7f`；A1 Core 已 DONE，`DATA_SCHEMA = 8`。SP-004 已完成 World → Memory → Lore → Story → Bridge → Prompt Core Runtime 和 H0 Host Integration Contract。当前先完成 Session World Revision Fence 架构修订，再单独授权最小 Core 修复，以解除 Living Host Binding 实现阻断；真实 Host Sandbox 仍需独立授权与验证。完整进度见 [SP-004 当前快照](SP-004-IMPLEMENTATION-PLAN.md#2026-09-26-当前状态快照)。
+固定事实基线：B0 固定 Base / canonical main `3367a8906060af129d7ee29ef4da7959926b5d0b`；A1 Core 已 DONE，`DATA_SCHEMA = 8`。SP-004 已完成 World → Memory → Lore → Story → Bridge → Prompt Core Runtime 和 H0 Host Integration Contract。Session World Revision Fence 架构修订已 DONE，B0 最小 Core 修复待独立审核；Living Host Binding 主实现保持阻塞；真实 Host Sandbox 仍需独立授权与验证。完整进度见 [SP-004 当前快照](SP-004-IMPLEMENTATION-PLAN.md#2026-09-26-当前状态快照)。
 
 Full Private RP 仍被 Host capability 阻塞：Hermes 官方实现尚未提供已验证的 final-output commit / session incarnation 合同；OpenClaw CAP0/CAP1 也没有找到可组成一次 fail-closed 授权的插件边界。已有 World/Roleplay Runtime 与生产 Host 私密 RP 是两件事。路线中任何阶段都不自动解锁 H1/H2 Adapter。
 
@@ -15,15 +15,15 @@ Full Private RP 仍被 Host capability 阻塞：Hermes 官方实现尚未提供�
 | 3 | **SP-005A0 Living Runtime Architecture** | **DONE；R1 DONE** | [冻结架构](../architecture/SP-005A-LIVING-RUNTIME.md)及[当前状态审计](../architecture/SP-005A-CURRENT-STATE-AUDIT.md)已合并；R1 仅澄清 Intent 预留与 Attempt 重验；冻结 time context、daily activity、location/weather/holiday context、主动联系和照片/语音计划、持久 schedule state、restart recovery 的真源与边界。它应是持久 domain/runtime，**不是 cron 脚本集合**。 |
 | 4 | **SP-005A1 Living Runtime** | **DONE** | [A1 测试矩阵](SP-005A1-TEST-MATRIX.md)及 [48 项实施映射](../SP-005A1-VALIDATION.md)已完成独立审核及 exact main push CI；已实现 daily state、contact opportunities、cooldown、quiet hours、daypart、独立 LivingContextSnapshot 与 schedule recovery；Host 负责唤醒/发送，Life Engine 保留规则与状态真源。 |
 | 5 | **SP-005A2 Living Runtime Host Binding Architecture** | **DONE** | [现状审计](../architecture/SP-005A2-CURRENT-HOST-BINDING-AUDIT.md)、[分层合同](../architecture/SP-005A2-LIVING-HOST-BINDING.md)与[未来测试矩阵](SP-005A3-HOST-BINDING-TEST-MATRIX.md)；只做文档，不接真实 Host。 |
-| 6 | **SP-005A3 Living Host Binding Implementation** | **BLOCKED_BY_ARCHITECTURE_REVISION** | 候选 facade/token/tick/context query/prepare/claim/证据接口与 legacy fence；默认 DRY_RUN / NO_REAL_SEND；Prompt 正式接入须另审模板升级。 |
+| 6 | **SP-005A3 Living Host Binding Implementation** | **BLOCKED_BY_B0** | 候选 facade/token/tick/context query/prepare/claim/证据接口与 legacy fence；默认 DRY_RUN / NO_REAL_SEND；Prompt 正式接入须另审模板升级。 |
 | 7 | **SP-005M Media Runtime** | PROPOSED | ComfyUI job、image identity、同日视觉连续性、媒体 receipt 与 retry semantics；区分“生成”“发送”“确认送达”。 |
 | 8 | **SP-005V Voice** | PROPOSED | voice message、TTS provider abstraction、voice identity 与 delivery receipt，单独验证语音生命周期。 |
 
 SP-005H0 的实现合并不等于真实 Host 验收：Hermes / OpenClaw 均保持 `PENDING_REAL_HOST_VALIDATION`。A0 是 Core 架构阶段，不依赖真实 Host PASS，也不宣称 Host 集成完成。A0/R1 已冻结架构；A1 经单独授权实施 Schema 8，Prompt v1 不变，自动迁移不等于 Living enrollment。
 
-SP-005A2-R1 = PENDING_INDEPENDENT_REVIEW：仅修订 [Session World Revision Fence 合同](../architecture/SP-005A2-LIVING-HOST-BINDING.md)及 [B06/B28/B14、R1-01～R1-06 场景](SP-005A3-HOST-BINDING-TEST-MATRIX.md)，不修改 Runtime 或添加 Core tests。R1 合并并完成 exact main push CI 后，由 ChatGPT / 小雪单独授权最小 Core 修复；SP-005A3-B0 = NOT AUTHORIZED。B0 仅允许 `_authorize` 最小修复、对应回归与 blocker tests，完成后才可恢复 A3。DATA_SCHEMA = 8；Schema Signature = SP-005A-living-runtime-v1；Prompt Template = SP-004K-prompt-v1；PROMPT_TEMPLATE_UPGRADE_REQUIRED = YES；SP-005A2-P1 = NOT AUTHORIZED。
+SP-005A2-R1 = DONE；SP-005A3-B0 = PENDING_INDEPENDENT_REVIEW。[B0 实施映射](../SP-005A3-B0-VALIDATION.md)记录 `_authorize` 最小修复、R1-01～R1-06 与 B06/B28/B14 Core 子集验证；不代表 A3 Host 层完成。SP-005A3 = BLOCKED_BY_B0，本轮完成 Draft 后停止，不恢复 A3 主实现。DATA_SCHEMA = 8；Schema Signature = SP-005A-living-runtime-v1；Prompt Template = SP-004K-prompt-v1；PROMPT_TEMPLATE_UPGRADE_REQUIRED = YES；SP-005A2-P1 = NOT AUTHORIZED。
 
-建议顺序：`GOV-DOC2 → SP-005H0 → SP-005A0 → SP-005A1 → SP-005A2 → SP-005A2-R1 → SP-005A3-B0（须单独授权）→ SP-005A3（B0 完成后恢复）→ SP-005M → SP-005V`。每个 PROPOSED 阶段仍需独立任务书、固定 Base、验收与授权；本路线不构成自动实现队列。
+建议顺序：`GOV-DOC2 → SP-005H0 → SP-005A0 → SP-005A1 → SP-005A2 → SP-005A2-R1 → SP-005A3-B0（待独立审核）→ SP-005A3（B0 完成后恢复）→ SP-005M → SP-005V`。每个 PROPOSED 阶段仍需独立任务书、固定 Base、验收与授权；本路线不构成自动实现队列。
 
 ## 并行的 Private RP capability watchers
 
