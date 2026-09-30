@@ -1,6 +1,6 @@
 # SP-005A3 与 H0-RV Living 扩展测试设计
 
-本表保留 [A2 架构](../architecture/SP-005A2-LIVING-HOST-BINDING.md)的验收设计；R1 Core 场景已有 [B0 实测映射](../SP-005A3-B0-VALIDATION.md)，其余 A3 Host 场景仍是未来设计。SP-005A2 = DONE；SP-005A2-R1 = DONE；R1 固定 Base：`861734b0c4179e56a3251a775d831cd246278d7f`。SP-005A3 = BLOCKED_BY_B0；SP-005A3-B0 = PENDING_INDEPENDENT_REVIEW。R1 阶段仅更新文档；后续 B0 的最小 Core 修复与测试待独立审核。自动化只使用隔离 fixture/fake transport，不访问生产 Host；真实验证另行授权，默认 DRY_RUN / NO_REAL_SEND。
+本表保留 [A2 架构](../architecture/SP-005A2-LIVING-HOST-BINDING.md)的验收设计；R1 Core 场景已有 [B0 实测映射](../SP-005A3-B0-VALIDATION.md)，其余 A3 Host 场景仍是未来设计。SP-005A2 = DONE；SP-005A2-R1 = DONE；R1 固定 Base：`861734b0c4179e56a3251a775d831cd246278d7f`。SP-005A3-B0 = DONE；当前 canonical main 为 `76fee9bc82240dfcf52fb7a017175fbe7df40fc2`。SP-005A3-B1 = PENDING_INDEPENDENT_REVIEW（仅架构）；B1 implementation = NOT AUTHORIZED；SP-005A3 = BLOCKED_BY_B1。自动化只使用隔离 fixture/fake transport，不访问生产 Host；真实验证另行授权，默认 DRY_RUN / NO_REAL_SEND。
 
 ## A3 自动化合同矩阵
 
@@ -19,7 +19,7 @@
 | B11 | Life Engine restore | 新 generation、paused/协调、CLAIMED→UNKNOWN；旧 receipt 不直接写新代次 |
 | B12 | prepare replay / 同 key 不同内容 | 幂等/IDEMPOTENCY_CONFLICT；不改 target/reason/quota；512 bytes 超限拒绝 |
 | B13 | claim replay / 新 invocation 再 claim 同 Intent | 只有首次 execute=true + CLAIMED，其余 execute=false，无第二次 external call |
-| B14 | claim 前 crash / commit 后响应丢失，随后 World revision 更新 | 旧 session 先 WORLD_STALE；重新取得 fresh trusted session/ticket 后，仅用原 operation ID + 原 payload 恢复；已提交 claim 返回 execute=false、无第二个 Attempt/新 execution permit。超时不能当未提交，不自动换 ID、重试 mutation 或刷新 revision 静默继续 |
+| B14 | claim 前 crash / commit 后响应丢失，随后 World revision 更新 | 旧 session 先 WORLD_STALE；重新取得 fresh trusted session/ticket 后，仅用原 operation ID + 原 payload 恢复；已提交 claim 返回 execute=false、无第二个 Attempt/新 execution permit。超时不能当未提交，不自动换 ID、重试 mutation 或刷新 revision 静默继续。另覆盖 authority crash 丢失关联：新 recovery-only authority 用原 exact identity/digest 经 B1 只读 lookup 恢复 durable Attempt 关联；不调用 mutation 探测，不返回 execute、不签 permit，只协调 |
 | B15 | CLAIMED 后 send 前、send 后记录前 crash | UNKNOWN/协调，不自动重发；fake 外部计数不超过一次 |
 | B16 | SENT 后 ACK 前 crash、无 ACK Host | 保留 SENT，不重发不伪造 ACK；无 SENT 证据不升级 |
 | B17 | duplicate receipt，同 source/event/digest | 幂等状态推进，不生成 Attempt |
@@ -42,6 +42,12 @@
 | B34 | revoked epoch 与发送执行权竞争 | 当前执行器最多消费一次；发送前失效即停；已在途只收集/协调，不能声称可撤回 |
 
 A3 必须逐项映射具体测试，保留 A1 的 48 项回归。A2 不添加空壳自动测试。Claim 故障至少用新进程与进程退出，不能只 mock exception；Core 并发继续包含双进程竞态。
+
+## B1 Durable Operation Recovery 未来测试设计
+
+[B1 架构与 B1-01～B1-10 计划](../architecture/SP-005A3-B1-OPERATION-RECOVERY-PROJECTION.md)冻结 exact identity、原 Core fingerprint、授权先于 lookup、有界 typed receipt 和零 mutation。全部 B1 场景为 NOT_EXECUTED；本轮 docs-only，不新增 Runtime 或 tests。B1-01～B1-07 / B1-10 验证 Core 只读合同；B1-08 / B1-09 的 Host epoch、capability、真实进程恢复编排由 A3 补齐，实施时分别映射真实测试，不笼统称 covered。
+
+B14 的 B0 子集是 fresh trusted mutation context + 原 operation replay → execute=false；B1 增加 authority crash + lost association → 独立只读查询 → 无执行资格。两者不是同一个接口。B06_CORE_FENCE_PASS、B28_CORE_FENCE_PASS、B14_CORE_RECOVERY_PASS 保持；不得升级成完整 B06/B28/B14 PASS。A3 必须等待 B1 architecture 与 implementation 均 DONE 后重新授权。
 
 ## R1 Core fence 未来测试设计
 
