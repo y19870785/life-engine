@@ -1,10 +1,12 @@
 # SP-005A3-B1 — Durable Operation Recovery Projection
 
+**2026-10-01 当前状态校准**：B1 Architecture / Implementation = DONE；合并后 canonical main 为 `f83d36c76fea6de1a31b449535d5df6cea3909b5`。合并与 exact main push CI 证据见 [B1 验证映射](../SP-005A3-B1-VALIDATION.md)。下文历史 Base 与冻结合同保留；A3 Host 层仍 BLOCKED，恢复实施须另行授权。历史 Hermes legacy 测试不升级 Living R01–R12 或未执行的 Host 子集。
+
 ## 状态与范围
 
-架构冻结 Base：`76fee9bc82240dfcf52fb7a017175fbe7df40fc2`；implementation 固定 Base / canonical main：`a27caf372a263932346d5b193ca35c92fea6f5dd`。
+架构冻结 Base：`76fee9bc82240dfcf52fb7a017175fbe7df40fc2`；implementation 历史固定 Base：`a27caf372a263932346d5b193ca35c92fea6f5dd`。
 
-SP-005A3-B0 = DONE；SP-005A3-B1 Architecture = DONE；SP-005A3-B1 Implementation = PENDING_INDEPENDENT_REVIEW；SP-005A3 = BLOCKED_BY_B1。Core 只读入口已按单独授权实施，见 [B1 验证映射](../SP-005A3-B1-VALIDATION.md)。下文保留冻结合同，Host epoch/capability 不在本轮实现范围。
+SP-005A3-B0 = DONE；SP-005A3-B1 Architecture = DONE；SP-005A3-B1 Implementation = DONE；SP-005A3 = BLOCKED（Host 层未完成，恢复实施须另行授权）。Core 只读入口已按单独授权实施，见 [B1 验证映射](../SP-005A3-B1-VALIDATION.md)。下文保留冻结合同，Host epoch/capability 不在本轮实现范围。
 
 DATA_SCHEMA = 8；Schema Signature = SP-005A-living-runtime-v1；Prompt Template = SP-004K-prompt-v1。SP-005A2-P1 = NOT AUTHORIZED；PROMPT_TEMPLATE_UPGRADE_REQUIRED = YES。不新增 Schema、migration、Prompt 接入或真实 Host 操作。Hermes / OpenClaw real Host validation 均为 PENDING_REAL_HOST_VALIDATION；Full Private RP、H1、H2 均为 BLOCKED。
 
@@ -111,16 +113,16 @@ CLAIMED != SENT != ACK。B1 不改变 DeliveryEvidence、退款、Attempt lifecy
 
 | 编号 | 场景 | 必须断言 | 状态 |
 | --- | --- | --- | --- |
-| B1-01 | 当前授权内 exact operation 不存在 | NOT_COMMITTED；零 mutation；不自动 claim/send；同 ID 的其他 producer 记录不可返回。 | CORE_PASS（待独立审核） |
-| B1-02 | prepare 已提交 | COMMITTED，原 durable prepare receipt / revision / digest；查询不再次修改 Intent。 | CORE_PASS（待独立审核） |
-| B1-03 | claim 已提交 | 校验 Attempt association，无 execute 字段、无 permit；另测 blockers receipt 无 Attempt、历史 CLAIMED 与当前 UNKNOWN 的区分及损坏关联拒绝。 | CORE_PASS（待独立审核） |
-| B1-04 | 同 identity、错误 payload digest / action | IDEMPOTENCY_CONFLICT，不返回 receipt；canonical key ordering、UTF-8、原 actor 与新 recovery actor 的映射和原 Core fingerprint 一致。 | CORE_PASS（待独立审核） |
-| B1-05 | 旧 generation，包括 restore 后旧 receipt 仍存在 | GENERATION_STALE，在 lookup 前拒绝；不恢复发送资格。 | CORE_PASS（待独立审核） |
-| B1-06 | 错误 instance / owner / soul / world / timeline / producer 委托 | fail-closed、不泄露其他 receipt；裸 operation_id、wildcard、普通 session=None 和未知字段拒绝。 | CORE_PASS（待独立审核） |
-| B1-07 | session-bound stale World + 已存在匹配 receipt | WORLD_STALE 在 receipt 返回前发生；同时覆盖 Session / WriterEpoch 失效，不自动转 authority-bound。 | CORE_PASS（待独立审核） |
+| B1-01 | 当前授权内 exact operation 不存在 | NOT_COMMITTED；零 mutation；不自动 claim/send；同 ID 的其他 producer 记录不可返回。 | PASS（仅 Core） |
+| B1-02 | prepare 已提交 | COMMITTED，原 durable prepare receipt / revision / digest；查询不再次修改 Intent。 | PASS（仅 Core） |
+| B1-03 | claim 已提交 | 校验 Attempt association，无 execute 字段、无 permit；另测 blockers receipt 无 Attempt、历史 CLAIMED 与当前 UNKNOWN 的区分及损坏关联拒绝。 | PASS（仅 Core） |
+| B1-04 | 同 identity、错误 payload digest / action | IDEMPOTENCY_CONFLICT，不返回 receipt；canonical key ordering、UTF-8、原 actor 与新 recovery actor 的映射和原 Core fingerprint 一致。 | PASS（仅 Core） |
+| B1-05 | 旧 generation，包括 restore 后旧 receipt 仍存在 | GENERATION_STALE，在 lookup 前拒绝；不恢复发送资格。 | PASS（仅 Core） |
+| B1-06 | 错误 instance / owner / soul / world / timeline / producer 委托 | fail-closed、不泄露其他 receipt；裸 operation_id、wildcard、普通 session=None 和未知字段拒绝。 | PASS（仅 Core） |
+| B1-07 | session-bound stale World + 已存在匹配 receipt | WORLD_STALE 在 receipt 返回前发生；同时覆盖 Session / WriterEpoch 失效，不自动转 authority-bound。 | PASS（仅 Core） |
 | B1-08 | Core claim commit 后、关联保存前 authority 真实进程退出 | subprocess / fresh Python / os._exit 边界；新受信 recovery authority 读取原 identity，恢复关联但不 send；覆盖 commit 前退出、fake send 后 result 前退出，仅协调不重复外部调用。 | B1-08_CORE_PASS；Host DEFERRED_TO_A3 |
 | B1-09 | 旧 authority epoch / capability 或权限升级尝试 | 拒绝；新 recovery-only 权限不能用于 prepare/claim/send/delivery；reload/revoke 与查询并发 fail-closed。 | B1-09_CORE_PASS；Host DEFERRED_TO_A3 |
-| B1-10 | 成功、未提交、错误、超限及并发读取前后比较 | 所有 Living business tables、operations、root revision / last_evaluated_at、transitions、recovery state 完全不变；无 transport；验证 8/16 KiB 边界与一致快照，不返回部分或未经验证的 receipt。 | CORE_PASS（待独立审核） |
+| B1-10 | 成功、未提交、错误、超限及并发读取前后比较 | 所有 Living business tables、operations、root revision / last_evaluated_at、transitions、recovery state 完全不变；无 transport；验证 8/16 KiB 边界与一致快照，不返回部分或未经验证的 receipt。 | PASS（仅 Core） |
 
 B1-08/B1-09 的 Host capability 与进程编排由后续 A3 实现阶段补齐；B1 Core implementation 必须明确其实际完成子集，不把 fixture 权限证明标成真实 Host 验收。[A3 矩阵 B14](../planning/SP-005A3-HOST-BINDING-TEST-MATRIX.md) 同时依赖 B0 mutation replay 与 B1 read-only lookup，两者分别映射；B06/B28/B14 目前仍仅保留 B06_CORE_FENCE_PASS、B28_CORE_FENCE_PASS、B14_CORE_RECOVERY_PASS。A1 48 项及 B0 R1 回归继续保留。本轮 Core 测试不代表 Host authority、epoch/token、permit 或 transport 已实现。
 

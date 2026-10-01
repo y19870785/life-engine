@@ -2,7 +2,9 @@
 
 固定 Base：`a27caf372a263932346d5b193ca35c92fea6f5dd`。分支：`feat/sp-005a3-b1-operation-recovery`。
 
-SP-005A3-B0 = DONE；SP-005A3-B1 Architecture = DONE；SP-005A3-B1 Implementation = PENDING_INDEPENDENT_REVIEW；SP-005A3 = BLOCKED_BY_B1。本轮只实现 [冻结的 B1 Core recovery 合同](architecture/SP-005A3-B1-OPERATION-RECOVERY-PROJECTION.md)，不实现 A3 Host Binding。
+SP-005A3-B0 = DONE；SP-005A3-B1 Architecture = DONE；SP-005A3-B1 Implementation = DONE；SP-005A3 = BLOCKED（Host 层未完成，恢复实施须另行授权）。本轮只实现 [冻结的 B1 Core recovery 合同](architecture/SP-005A3-B1-OPERATION-RECOVERY-PROJECTION.md)，不实现 A3 Host Binding。
+
+合并证据：[PR #32](https://github.com/y19870785/life-engine/pull/32) 经独立审核、Ready 后终审及 Squash Merge，canonical main 为 `f83d36c76fea6de1a31b449535d5df6cea3909b5`，唯一 parent 为上述 Base。[exact main push CI #36795009694](https://github.com/y19870785/life-engine/actions/runs/36795009694) 的 event=push、branch=main、head 为该 SHA，Ubuntu / Windows × Python 3.11 / 3.12 全部 PASS。以下测试计数保留 B1 实施时点，不冒充 GOV-DOC3 新运行结果。
 
 ## API 与权限边界
 
@@ -54,4 +56,4 @@ B1-08 的 Host authority epoch、遗失 Host association metadata、fake-send/DB
 
 DATA_SCHEMA = 8；Schema Signature = SP-005A-living-runtime-v1；Prompt Template = SP-004K-prompt-v1；无 migration。SP-005A2-P1 = NOT AUTHORIZED；PROMPT_TEMPLATE_UPGRADE_REQUIRED = YES。
 
-Hermes / OpenClaw real Host validation = PENDING_REAL_HOST_VALIDATION；Full Private RP / H1 / H2 = BLOCKED；R01–R12 = NOT_EXECUTED。本轮不实现 facade、Host authority、HMAC capability、execution permit、fake transport 或 legacy routing。Draft 交付后停止，不 Ready、不 Merge、不恢复 A3。
+Hermes / OpenClaw real Host validation = PENDING_REAL_HOST_VALIDATION；Full Private RP / H1 / H2 = BLOCKED；R01–R12 = NOT_EXECUTED。本轮不实现 facade、Host authority、HMAC capability、execution permit、fake transport 或 legacy routing。本阶段已完成既定审核与合并门禁；完成 B1 不自动恢复 A3。

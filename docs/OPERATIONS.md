@@ -1,6 +1,8 @@
 # v0.3 运维说明
 
-日常维护使用永久目录中的 manage.py；运行能力使用同目录中的 life.py。每个宿主工作目录绑定一个实例，内部角色名相同也不会复用数据库。不要手工改 registry.json 的实例标识或路径，它负责原子选择已激活的代码和数据代次。
+日常维护使用永久目录中的 manage.py；运行能力使用同目录中的 life.py。实例 ID 由 adapter 与规范化 host_home 生成：不同 permanent root 使用同一 host_home 时可以得到同一 ID，数据仍按 root / generation 分开。运维与证据必须同时记录这些字段，不能把 instance_id 当成跨安装全局唯一。不要手工改 registry.json 的实例标识或路径，它负责原子选择已激活的代码和数据代次。
+
+当前 B1 Core recovery 已 DONE，事实基线 `f83d36c76fea6de1a31b449535d5df6cea3909b5`；版本保持 DATA_SCHEMA = 8、SP-005A-living-runtime-v1、SP-004K-prompt-v1。公开只读 recovery 查询不能触发 claim、reconcile、tick、transport 或新 Core incarnation，也不返回 execute。详见 [B1 映射](SP-005A3-B1-VALIDATION.md)。A3 Host Binding 尚未完成；以下旧 Host 业务命令不得用于 enrolled 实例，不得绕过 LIVING_HANDOFF_REQUIRED。副作用前 routing 的缺口见 [已知问题](KNOWN-ISSUES.md)，本次文档校准不执行运维命令。
 
 ## 非交互安装
 
@@ -54,7 +56,7 @@ OpenClaw 的桥接器严格要求同时匹配 agentId 和 workspaceDir。未提�
 
 ComfyUI API 工作流需要包含 {{POSITIVE_PROMPT}}；其余可用占位符与身份一致性方法延续 v0.2。原图在永久数据目录，OpenClaw 仅把该实例实际生成的图片复制到 workspace/life-engine-media/实例ID 下，用于遵守工作区媒体访问规则；不会把数据库目录加入全局允许路径。
 
-photo 成功只表示文件生成并可读取，宿主媒体工具/渠道还需实际投递。本版不会猜消息回执与 contact ID 的对应关系；若需要完全自动的送达确认，应由本机接入层按真实发送返回值调用 ack。超时或未知回执不自动重发，恢复备份也不补发旧任务。
+photo 成功只表示文件生成并可读取，宿主媒体工具/渠道还需实际投递。本版没有受信渠道 ACK validator：原生工具拒绝 ack outcome=delivered，管理 CLI 的人工记录不能构成机械送达证明。真实发送返回值、message ID、API 回读不等于 ACKNOWLEDGED。超时或未知回执不自动重发，恢复备份也不补发旧任务；可信 validator 与完整媒体闭环须另立任务。
 
 ## 老版参考
 

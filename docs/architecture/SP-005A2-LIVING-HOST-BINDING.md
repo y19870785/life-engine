@@ -1,5 +1,7 @@
 # SP-005A2 — Living Runtime Host Binding 架构
 
+**2026-10-01 当前状态校准**：B1 Architecture / Implementation = DONE；合并后 canonical main 为 `f83d36c76fea6de1a31b449535d5df6cea3909b5`。合并与 exact main push CI 证据见 [B1 验证映射](../SP-005A3-B1-VALIDATION.md)。下文历史 Base 与冻结合同保留；A3 Host 层仍 BLOCKED，恢复实施须另行授权。历史 Hermes legacy 测试不升级 Living R01–R12 或未执行的 Host 子集。
+
 状态：SP-005A2 = DONE；SP-005A2-R1 = DONE。R1 固定 Base / canonical main：`861734b0c4179e56a3251a775d831cd246278d7f`（A2 原审计基线为 `84493be98d7ed675de6b859cafdb014a900325ca`）。SP-005A0 / A0-R1 / A1 和 H0 implementation 已 DONE。R1 仅修订 Session World Revision Fence 合同，不修改 Runtime 或添加 Core tests；新 facade/token/adapter 尚未实现。
 
 DATA_SCHEMA = 8；Schema Signature = SP-005A-living-runtime-v1；Prompt Template = SP-004K-prompt-v1。A2 / R1 架构 PR 只修改文档，不改变 [A0 + R1](SP-005A-LIVING-RUNTIME.md) 的状态机、预算、迁移或恢复规则。现状依据 [CURRENT_HOST_BINDING_AUDIT](SP-005A2-CURRENT-HOST-BINDING-AUDIT.md)。
@@ -159,7 +161,7 @@ validator 必须由受信部署注册，模型字符串、手工 JSON、工具�
 
 ### B1：关联尚未保存时的只读恢复
 
-若 Core claim 已 durable commit，但 authority 在保存 invocation→Attempt 关联前崩溃，不能依赖 metadata 推断提交事实，也不能调用 begin_attempt 充当查询。按 [B1 冻结合同](SP-005A3-B1-OPERATION-RECOVERY-PROJECTION.md)，新 epoch 下独立认证的 recovery-only authority 使用原完整 identity / digest 查询 Core durable receipt，恢复经 Core 验证的关联，绝不取得 execute / execution permit。session-bound 查询仍先执行 B0 授权；authority-bound 是独立窄只读权限，不是普通 LivingContext(session=None) 绕过。只读查询不触发恢复 tick、不修改 Attempt；生命周期恢复与协调另走原合同。Core 查询已实施并待独立审核，见 [B1 验证映射](../SP-005A3-B1-VALIDATION.md)；Host authority/epoch 未实现，A3 继续被 B1 阻塞。
+若 Core claim 已 durable commit，但 authority 在保存 invocation→Attempt 关联前崩溃，不能依赖 metadata 推断提交事实，也不能调用 begin_attempt 充当查询。按 [B1 冻结合同](SP-005A3-B1-OPERATION-RECOVERY-PROJECTION.md)，新 epoch 下独立认证的 recovery-only authority 使用原完整 identity / digest 查询 Core durable receipt，恢复经 Core 验证的关联，绝不取得 execute / execution permit。session-bound 查询仍先执行 B0 授权；authority-bound 是独立窄只读权限，不是普通 LivingContext(session=None) 绕过。只读查询不触发恢复 tick、不修改 Attempt；生命周期恢复与协调另走原合同。Core 查询已完成独立审核、合并及 exact main push CI，见 [B1 验证映射](../SP-005A3-B1-VALIDATION.md)；Host authority/epoch 未实现，A3 Host 实施仍待新任务授权。
 
 ## 8. Legacy 共存与显式切换
 
@@ -210,7 +212,7 @@ OpenClaw：Gateway/config/profile + agentId/workspace 一并绑定，不能选�
 
 ## 11. 后续授权和验收
 
-SP-005A2-R1 = DONE；SP-005A3-B0 = DONE，二者已完成合并与 exact main push CI。B1 implementation 固定 canonical main 为 `a27caf372a263932346d5b193ca35c92fea6f5dd`。A3 发现 durable operation recovery 缺少公开只读查询，已停止实施；[B1 架构修订](SP-005A3-B1-OPERATION-RECOVERY-PROJECTION.md)冻结独立 authority-bound recovery 权限、exact identity / fingerprint 校验与无执行资格的投影。SP-005A3-B1 Architecture = DONE；SP-005A3-B1 Implementation = PENDING_INDEPENDENT_REVIEW；SP-005A3 = BLOCKED_BY_B1。架构与后续单独授权的 implementation 都 DONE 后，仍须重新授权 A3，默认从新 canonical main 建立 v3；A3 v2 保持 clean，不继续实现。
+SP-005A2-R1 = DONE；SP-005A3-B0 = DONE，二者已完成合并与 exact main push CI。B1 implementation 的历史固定 Base 为 `a27caf372a263932346d5b193ca35c92fea6f5dd`。A3 发现 durable operation recovery 缺少公开只读查询，已停止实施；[B1 架构修订](SP-005A3-B1-OPERATION-RECOVERY-PROJECTION.md)冻结独立 authority-bound recovery 权限、exact identity / fingerprint 校验与无执行资格的投影。SP-005A3-B1 Architecture = DONE；SP-005A3-B1 Implementation = DONE；SP-005A3 = BLOCKED（Host 层未完成，恢复实施须另行授权）。架构与 implementation 已均为 DONE，恢复 A3 仍须重新授权，默认从新 canonical main 建立 v3；A3 v2 保持 clean，不继续实现。
 
 A3 范围仍为受信本地 authority/facade、稳定绑定与 token、tick contract、结构化 context adapter、prepare/claim、delivery evidence adapter interface、enrolled legacy-path fence、fake transport / NO_REAL_SEND sandbox。A3 不默认改 Prompt，不实现真实渠道 validator、真实发送、媒体/语音、H1/H2；若需要 Schema 或其它冻结 Core 合同变化，仍须停止申请独立架构修订。R1 不需要 Schema 9，也不需要 Prompt Template 升级；DATA_SCHEMA = 8、Schema Signature = SP-005A-living-runtime-v1、Prompt Template = SP-004K-prompt-v1 保持不变。正式 Living Prompt 接入仍为 PROMPT_TEMPLATE_UPGRADE_REQUIRED = YES；SP-005A2-P1 = NOT AUTHORIZED。
 

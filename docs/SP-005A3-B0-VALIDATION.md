@@ -1,6 +1,6 @@
 # SP-005A3-B0 — Session World Revision Fence 验证
 
-固定 Base：`3367a8906060af129d7ee29ef4da7959926b5d0b`。SP-005A2 / SP-005A2-R1 = DONE；SP-005A3-B0 = PENDING_INDEPENDENT_REVIEW；SP-005A3 = BLOCKED_BY_B0。合同依据 [A2-R1](architecture/SP-005A2-LIVING-HOST-BINDING.md)与 [A3 测试矩阵](planning/SP-005A3-HOST-BINDING-TEST-MATRIX.md)。
+固定 Base：`3367a8906060af129d7ee29ef4da7959926b5d0b`。SP-005A2 / SP-005A2-R1 = DONE；SP-005A3-B0 = DONE；SP-005A3 = BLOCKED（Host 层未完成，恢复实施须另行授权）。合同依据 [A2-R1](architecture/SP-005A2-LIVING-HOST-BINDING.md)与 [A3 测试矩阵](planning/SP-005A3-HOST-BINDING-TEST-MATRIX.md)。
 
 ## 最小修复与授权顺序
 
@@ -39,4 +39,4 @@ B06_CORE_FENCE_PASS：仅 World revision、WORLD_STALE、零 mutation/Attempt �
 
 B0 新增 10 项测试；完整 unittest 与 A1 T01–T14 / C01–C18 / P01–P16 的 48 项合同映射回归结果见 [验证记录](VALIDATION.md)。CI 使用 exact Head 的 Ubuntu / Windows × Python 3.11 / 3.12 四矩阵，最终 run 与 SHA 在 Draft PR 及交付报告中关联；自动测试通过不代替独立审核。
 
-DATA_SCHEMA = 8；Schema Signature = SP-005A-living-runtime-v1；Prompt Template = SP-004K-prompt-v1。无 migration、Prompt Runtime 或 Host Adapter 修改。SP-005A2-P1 = NOT AUTHORIZED；PROMPT_TEMPLATE_UPGRADE_REQUIRED = YES。Hermes / OpenClaw real Host validation = PENDING_REAL_HOST_VALIDATION；R01–R12 = NOT_EXECUTED；Full Private RP / H1 / H2 = BLOCKED。B0 完成 Draft 后停止，不恢复 A3 主实现。
+DATA_SCHEMA = 8；Schema Signature = SP-005A-living-runtime-v1；Prompt Template = SP-004K-prompt-v1。无 migration、Prompt Runtime 或 Host Adapter 修改。SP-005A2-P1 = NOT AUTHORIZED；PROMPT_TEMPLATE_UPGRADE_REQUIRED = YES。Hermes / OpenClaw real Host validation = PENDING_REAL_HOST_VALIDATION；R01–R12 = NOT_EXECUTED；Full Private RP / H1 / H2 = BLOCKED。B0 已完成审核、Squash Merge 与 exact main push CI；其完成不自动恢复 A3 主实现。
