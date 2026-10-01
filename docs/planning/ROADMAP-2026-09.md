@@ -2,7 +2,7 @@
 
 ## 当前判断
 
-固定事实基线：B1 架构固定 Base / canonical main `76fee9bc82240dfcf52fb7a017175fbe7df40fc2`；A1 Core 已 DONE，`DATA_SCHEMA = 8`。SP-004 已完成 World → Memory → Lore → Story → Bridge → Prompt Core Runtime 和 H0 Host Integration Contract。Session World Revision Fence 架构修订已 DONE，B0 最小 Core 修复已 DONE，B1 Durable Operation Recovery Projection 当前仅冻结架构；Living Host Binding 主实现保持阻塞；真实 Host Sandbox 仍需独立授权与验证。完整进度见 [SP-004 当前快照](SP-004-IMPLEMENTATION-PLAN.md#2026-09-26-当前状态快照)。
+固定事实基线：B1 implementation 固定 Base / canonical main `a27caf372a263932346d5b193ca35c92fea6f5dd`；A1 Core 已 DONE，`DATA_SCHEMA = 8`。SP-004 已完成 World → Memory → Lore → Story → Bridge → Prompt Core Runtime 和 H0 Host Integration Contract。Session World Revision Fence 架构修订已 DONE，B0 最小 Core 修复已 DONE，B1 Durable Operation Recovery Projection 架构已 DONE，Core implementation 待独立审核；Living Host Binding 主实现保持阻塞；真实 Host Sandbox 仍需独立授权与验证。完整进度见 [SP-004 当前快照](SP-004-IMPLEMENTATION-PLAN.md#2026-09-26-当前状态快照)。
 
 Full Private RP 仍被 Host capability 阻塞：Hermes 官方实现尚未提供已验证的 final-output commit / session incarnation 合同；OpenClaw CAP0/CAP1 也没有找到可组成一次 fail-closed 授权的插件边界。已有 World/Roleplay Runtime 与生产 Host 私密 RP 是两件事。路线中任何阶段都不自动解锁 H1/H2 Adapter。
 
@@ -21,9 +21,9 @@ Full Private RP 仍被 Host capability 阻塞：Hermes 官方实现尚未提供�
 
 SP-005H0 的实现合并不等于真实 Host 验收：Hermes / OpenClaw 均保持 `PENDING_REAL_HOST_VALIDATION`。A0 是 Core 架构阶段，不依赖真实 Host PASS，也不宣称 Host 集成完成。A0/R1 已冻结架构；A1 经单独授权实施 Schema 8，Prompt v1 不变，自动迁移不等于 Living enrollment。
 
-SP-005A2-R1 = DONE；SP-005A3-B0 = DONE。[B0 实施映射](../SP-005A3-B0-VALIDATION.md)记录 `_authorize` 最小修复、R1-01～R1-06 与 B06/B28/B14 Core 子集验证；不代表 A3 Host 层完成。SP-005A3-B1 = PENDING_INDEPENDENT_REVIEW（仅架构），见 [B1 只读恢复合同](../architecture/SP-005A3-B1-OPERATION-RECOVERY-PROJECTION.md)；B1 implementation = NOT AUTHORIZED。SP-005A3 = BLOCKED_BY_B1，本轮 docs-only Draft 后停止，不实现 recovery API、不恢复 A3。现有 A3 v2 分支保持 clean；B1 架构和 implementation 均 DONE 后，默认从新的 canonical main 建立 A3 v3，须另行授权。DATA_SCHEMA = 8；Schema Signature = SP-005A-living-runtime-v1；Prompt Template = SP-004K-prompt-v1；PROMPT_TEMPLATE_UPGRADE_REQUIRED = YES；SP-005A2-P1 = NOT AUTHORIZED。
+SP-005A2-R1 = DONE；SP-005A3-B0 = DONE。[B0 实施映射](../SP-005A3-B0-VALIDATION.md)记录 `_authorize` 最小修复、R1-01～R1-06 与 B06/B28/B14 Core 子集验证；不代表 A3 Host 层完成。SP-005A3-B1 Architecture = DONE，见 [B1 只读恢复合同](../architecture/SP-005A3-B1-OPERATION-RECOVERY-PROJECTION.md)；SP-005A3-B1 Implementation = PENDING_INDEPENDENT_REVIEW，见 [B1 实测映射](../SP-005A3-B1-VALIDATION.md)。SP-005A3 = BLOCKED_BY_B1，本轮 Core implementation Draft 后停止，不恢复 A3。现有 A3 v2 分支保持 clean；B1 架构和 implementation 均 DONE 后，默认从新的 canonical main 建立 A3 v3，须另行授权。DATA_SCHEMA = 8；Schema Signature = SP-005A-living-runtime-v1；Prompt Template = SP-004K-prompt-v1；PROMPT_TEMPLATE_UPGRADE_REQUIRED = YES；SP-005A2-P1 = NOT AUTHORIZED。
 
-建议顺序：`GOV-DOC2 → SP-005H0 → SP-005A0 → SP-005A1 → SP-005A2 → SP-005A2-R1 → SP-005A3-B0（DONE）→ SP-005A3-B1 架构审核/合并 → B1 implementation（单独授权）→ SP-005A3（新基线重新授权）→ SP-005M → SP-005V`。每个 PROPOSED 阶段仍需独立任务书、固定 Base、验收与授权；本路线不构成自动实现队列。
+建议顺序：`GOV-DOC2 → SP-005H0 → SP-005A0 → SP-005A1 → SP-005A2 → SP-005A2-R1 → SP-005A3-B0（DONE）→ SP-005A3-B1 Architecture（DONE）→ B1 Implementation（待独立审核）→ SP-005A3（新基线重新授权）→ SP-005M → SP-005V`。每个 PROPOSED 阶段仍需独立任务书、固定 Base、验收与授权；本路线不构成自动实现队列。
 
 ## 并行的 Private RP capability watchers
 

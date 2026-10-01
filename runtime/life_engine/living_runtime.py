@@ -36,6 +36,11 @@ def finish(db, root, at, action, detail):
 
 
 class LivingRuntime:
+    def query_operation_recovery(self, context, request):
+        """受信只读 durable operation 查询；永不返回 execution qualification。"""
+        from .living_recovery import query_operation_recovery
+        return query_operation_recovery(self, context, request)
+
     def __init__(self, repository, *, clock=None, delivery_validator=None, recovery_limit=128):
         if type(recovery_limit) is not int or not 1<=recovery_limit<=128: fail('INVALID_ARGUMENT')
         self.repository=repository
@@ -80,6 +85,8 @@ class LivingRuntime:
         return result
 
     def _command(self, ctx, expected, operation, action, payload, fn, *, tick=False):
+        if type(ctx) not in ((LivingContext,LivingTickContext) if tick else (LivingContext,)):
+            fail('AUTHORIZATION_DENIED')
         if not tick and (type(expected) is not int or expected<0): fail('REVISION_CONFLICT')
         text(operation); at=instant(self.clock())
         request=[action,payload,scope_values(ctx.scope),str(ctx.principal.principal_id) if type(ctx) is LivingContext else 'tick']
@@ -307,7 +314,7 @@ class LivingRuntime:
 
     def reconcile(self, ctx, expected, operation, *, evidence_ref, blocked_until):
         """Owner 明确协调后保守暂停至指定水位；不退款、不重发旧 Attempt。"""
-        if ctx.session is not None: fail('AUTHORIZATION_DENIED')
+        if type(ctx) is not LivingContext or ctx.session is not None: fail('AUTHORIZATION_DENIED')
         text(evidence_ref); boundary=instant(blocked_until)
         def apply(db,r,p,at):
             minimum=max(at+86400,time_context(at,p,r['timezone_epoch'])['end_utc'],at+p['cooldown'],at+p['spacing'],at+p['recent_outbound'])
@@ -320,7 +327,7 @@ class LivingRuntime:
         return self._command(ctx,expected,operation,'reconcile',[evidence_ref,boundary],apply)
 
     def configure(self, ctx, expected, operation, *, policy=None, paused=None, target=None):
-        if ctx.session is not None: fail('AUTHORIZATION_DENIED')
+        if type(ctx) is not LivingContext or ctx.session is not None: fail('AUTHORIZATION_DENIED')
         pnew=validate_policy({**policy,'tzdata_fingerprint':zone_fingerprint(policy['timezone'])}) if policy is not None else None
         def apply(db,r,p,at):
             rid=r['root_id']
@@ -548,6 +555,7 @@ class LivingRuntime:
         return self._command(ctx,expected,operation,'begin_attempt',ident,apply)
 
     def record_delivery(self, ctx, expected, operation, ident, evidence):
+        if type(ctx) is not LivingContext: fail('AUTHORIZATION_DENIED')
         # 验证器在持锁前执行；生产默认不配置，模型传布尔标记无效。
         if self.delivery_validator is None: fail('RECEIPT_UNVERIFIED')
         result=self.delivery_validator.verify(evidence)

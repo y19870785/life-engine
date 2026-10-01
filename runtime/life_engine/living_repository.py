@@ -8,6 +8,7 @@ from .living_domain import fail, fingerprint, scope_values, LivingError, REASONS
 from .living_policy import validate_policy
 from .world_schema import validate_schema
 from .world_sqlite_repository import _SQLiteTransaction
+from .world_repository import WorldRuntimeError, FailureCode
 
 TABLES = ('living_roots','living_policies','living_days','living_locations','living_activities',
           'living_followups','living_observations','living_choices','living_opportunities',
@@ -83,6 +84,40 @@ class LivingRepository:
         reg=registry(self.root); inst=reg['instances'][instance_id]
         self.generation=inst['generation']
         self.path=state_home(self.root,inst)/'agents'/inst['agent_id']/'life.db'
+
+    @contextmanager
+    def recovery_read_transaction(self):
+        """只读一致快照；授权后由 recovery projection 有界校验选中的记录。
+
+        不运行 mutation transaction 的全库 receipt materialization，也不新建 incarnation。
+        安装锁阻止 restore/受信 writer 交错；mode=ro 和 query_only 双重禁止写入。
+        """
+        from .durable import locked, registry
+        db = None
+        try:
+            with locked(self.root, 'management'), locked(self.root, self.instance_id):
+                if registry(self.root)['instances'][self.instance_id]['generation'] != self.generation:
+                    fail('GENERATION_STALE')
+                db = sqlite3.connect(self.path.as_uri()+'?mode=ro', uri=True,
+                                     isolation_level=None, timeout=5)
+                db.row_factory = sqlite3.Row
+                db.execute('PRAGMA query_only=ON')
+                db.execute('BEGIN')
+                validate_schema(db)
+                row = db.execute("SELECT value FROM meta WHERE key='world_runtime_id'").fetchone()
+                if not row or row[0] != self.runtime_id:
+                    fail('GENERATION_STALE')
+                yield db
+        except WorldRuntimeError as exc:
+            if exc.code in (FailureCode.STORAGE_CORRUPT, FailureCode.SCHEMA_MISMATCH):
+                fail('STATE_CORRUPT')
+            raise
+        except sqlite3.Error:
+            fail('STATE_CORRUPT')
+        finally:
+            if db is not None:
+                db.rollback()
+                db.close()
 
     @contextmanager
     def transaction(self):

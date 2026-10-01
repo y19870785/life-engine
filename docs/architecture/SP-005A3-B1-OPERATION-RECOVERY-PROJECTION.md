@@ -2,9 +2,9 @@
 
 ## 状态与范围
 
-固定 Base / canonical main：`76fee9bc82240dfcf52fb7a017175fbe7df40fc2`。
+架构冻结 Base：`76fee9bc82240dfcf52fb7a017175fbe7df40fc2`；implementation 固定 Base / canonical main：`a27caf372a263932346d5b193ca35c92fea6f5dd`。
 
-SP-005A3-B0 = DONE；SP-005A3-B1 = PENDING_INDEPENDENT_REVIEW（本 Draft 仅架构）；B1 implementation = NOT AUTHORIZED；SP-005A3 = BLOCKED_BY_B1。本轮只修改文档，以下 API、权限与测试均为待实施合同，不代表已存在的能力。
+SP-005A3-B0 = DONE；SP-005A3-B1 Architecture = DONE；SP-005A3-B1 Implementation = PENDING_INDEPENDENT_REVIEW；SP-005A3 = BLOCKED_BY_B1。Core 只读入口已按单独授权实施，见 [B1 验证映射](../SP-005A3-B1-VALIDATION.md)。下文保留冻结合同，Host epoch/capability 不在本轮实现范围。
 
 DATA_SCHEMA = 8；Schema Signature = SP-005A-living-runtime-v1；Prompt Template = SP-004K-prompt-v1。SP-005A2-P1 = NOT AUTHORIZED；PROMPT_TEMPLATE_UPGRADE_REQUIRED = YES。不新增 Schema、migration、Prompt 接入或真实 Host 操作。Hermes / OpenClaw real Host validation 均为 PENDING_REAL_HOST_VALIDATION；Full Private RP、H1、H2 均为 BLOCKED。
 
@@ -12,7 +12,7 @@ DATA_SCHEMA = 8；Schema Signature = SP-005A-living-runtime-v1；Prompt Template
 
 ## 1. 缺口与唯一真源
 
-当前 [LivingRuntime](../../runtime/life_engine/living_runtime.py) 的 `status()` 不提供 operation receipt / Attempt association，[Living projection](../../runtime/life_engine/living_projection.py) 也没有 recovery 查询。`begin_attempt()` 是 mutation command，不能为了探测是否提交而调用。
+架构冻结时 [LivingRuntime](../../runtime/life_engine/living_runtime.py) 的 `status()` 不提供 operation receipt / Attempt association，[Living projection](../../runtime/life_engine/living_projection.py) 也没有 recovery 查询。`begin_attempt()` 是 mutation command，不能为了探测是否提交而调用。
 
 新增概念 `OperationRecoveryProjection`：只读查询原 operation 是否已 durable commit，以及对应的有界 durable receipt。唯一真源是 Core `living_operations` 及 Core 验证的 Attempt 关联。authority metadata 只能保存 invocation correlation、完整 operation identity、payload digest 和 Host lifecycle metadata；不得声明 CLAIMED、Attempt 存在、SENT 或 ACK，也不能在重启后替代重新查询。必须在原调用前保有足够的原 identity/digest 关联；缺失时 fail-closed，不能枚举数据库或猜测 identity 补救。
 
@@ -105,23 +105,29 @@ CLAIMED != SENT != ACK。B1 不改变 DeliveryEvidence、退款、Attempt lifecy
 
 正常可信 mutation context 仍可使用原 operation ID + 原 payload 重放，B0 保证 stale session 先 WORLD_STALE、fresh session 才恢复 receipt；已提交 claim replay 为 execute=false，无第二 Attempt。B1 不替代该机制：它专门解决不能安全重新调用 mutation command、却需要获知提交事实的 crash recovery。两者都不允许自动换 operation ID。
 
-## 7. 未来测试计划（全部 NOT_EXECUTED）
+## 7. 冻结测试计划与 implementation 状态
 
-以下是 implementation 验收设计，不新增空壳 tests，不声称 Core 或 Host 已 PASS。
+以下保留验收场景，实际测试名称与证据见 [B1 验证映射](../SP-005A3-B1-VALIDATION.md)。B1-08 / B1-09 仅完成 Core 子集，不声称完整 Host 验收通过。
 
 | 编号 | 场景 | 必须断言 | 状态 |
 | --- | --- | --- | --- |
-| B1-01 | 当前授权内 exact operation 不存在 | NOT_COMMITTED；零 mutation；不自动 claim/send；同 ID 的其他 producer 记录不可返回。 | NOT_EXECUTED |
-| B1-02 | prepare 已提交 | COMMITTED，原 durable prepare receipt / revision / digest；查询不再次修改 Intent。 | NOT_EXECUTED |
-| B1-03 | claim 已提交 | 校验 Attempt association，无 execute 字段、无 permit；另测 blockers receipt 无 Attempt、历史 CLAIMED 与当前 UNKNOWN 的区分及损坏关联拒绝。 | NOT_EXECUTED |
-| B1-04 | 同 identity、错误 payload digest / action | IDEMPOTENCY_CONFLICT，不返回 receipt；canonical key ordering、UTF-8、原 actor 与新 recovery actor 的映射和原 Core fingerprint 一致。 | NOT_EXECUTED |
-| B1-05 | 旧 generation，包括 restore 后旧 receipt 仍存在 | GENERATION_STALE，在 lookup 前拒绝；不恢复发送资格。 | NOT_EXECUTED |
-| B1-06 | 错误 instance / owner / soul / world / timeline / producer 委托 | fail-closed、不泄露其他 receipt；裸 operation_id、wildcard、普通 session=None 和未知字段拒绝。 | NOT_EXECUTED |
-| B1-07 | session-bound stale World + 已存在匹配 receipt | WORLD_STALE 在 receipt 返回前发生；同时覆盖 Session / WriterEpoch 失效，不自动转 authority-bound。 | NOT_EXECUTED |
-| B1-08 | Core claim commit 后、关联保存前 authority 真实进程退出 | subprocess / fresh Python / os._exit 边界；新受信 recovery authority 读取原 identity，恢复关联但不 send；覆盖 commit 前退出、fake send 后 result 前退出，仅协调不重复外部调用。 | NOT_EXECUTED |
-| B1-09 | 旧 authority epoch / capability 或权限升级尝试 | 拒绝；新 recovery-only 权限不能用于 prepare/claim/send/delivery；reload/revoke 与查询并发 fail-closed。 | NOT_EXECUTED |
-| B1-10 | 成功、未提交、错误、超限及并发读取前后比较 | 所有 Living business tables、operations、root revision / last_evaluated_at、transitions、recovery state 完全不变；无 transport；验证 8/16 KiB 边界与一致快照，不返回部分或未经验证的 receipt。 | NOT_EXECUTED |
+| B1-01 | 当前授权内 exact operation 不存在 | NOT_COMMITTED；零 mutation；不自动 claim/send；同 ID 的其他 producer 记录不可返回。 | CORE_PASS（待独立审核） |
+| B1-02 | prepare 已提交 | COMMITTED，原 durable prepare receipt / revision / digest；查询不再次修改 Intent。 | CORE_PASS（待独立审核） |
+| B1-03 | claim 已提交 | 校验 Attempt association，无 execute 字段、无 permit；另测 blockers receipt 无 Attempt、历史 CLAIMED 与当前 UNKNOWN 的区分及损坏关联拒绝。 | CORE_PASS（待独立审核） |
+| B1-04 | 同 identity、错误 payload digest / action | IDEMPOTENCY_CONFLICT，不返回 receipt；canonical key ordering、UTF-8、原 actor 与新 recovery actor 的映射和原 Core fingerprint 一致。 | CORE_PASS（待独立审核） |
+| B1-05 | 旧 generation，包括 restore 后旧 receipt 仍存在 | GENERATION_STALE，在 lookup 前拒绝；不恢复发送资格。 | CORE_PASS（待独立审核） |
+| B1-06 | 错误 instance / owner / soul / world / timeline / producer 委托 | fail-closed、不泄露其他 receipt；裸 operation_id、wildcard、普通 session=None 和未知字段拒绝。 | CORE_PASS（待独立审核） |
+| B1-07 | session-bound stale World + 已存在匹配 receipt | WORLD_STALE 在 receipt 返回前发生；同时覆盖 Session / WriterEpoch 失效，不自动转 authority-bound。 | CORE_PASS（待独立审核） |
+| B1-08 | Core claim commit 后、关联保存前 authority 真实进程退出 | subprocess / fresh Python / os._exit 边界；新受信 recovery authority 读取原 identity，恢复关联但不 send；覆盖 commit 前退出、fake send 后 result 前退出，仅协调不重复外部调用。 | B1-08_CORE_PASS；Host DEFERRED_TO_A3 |
+| B1-09 | 旧 authority epoch / capability 或权限升级尝试 | 拒绝；新 recovery-only 权限不能用于 prepare/claim/send/delivery；reload/revoke 与查询并发 fail-closed。 | B1-09_CORE_PASS；Host DEFERRED_TO_A3 |
+| B1-10 | 成功、未提交、错误、超限及并发读取前后比较 | 所有 Living business tables、operations、root revision / last_evaluated_at、transitions、recovery state 完全不变；无 transport；验证 8/16 KiB 边界与一致快照，不返回部分或未经验证的 receipt。 | CORE_PASS（待独立审核） |
 
-B1-08/B1-09 的 Host capability 与进程编排由后续 A3 实现阶段补齐；B1 Core implementation 必须明确其实际完成子集，不把 fixture 权限证明标成真实 Host 验收。[A3 矩阵 B14](../planning/SP-005A3-HOST-BINDING-TEST-MATRIX.md) 同时依赖 B0 mutation replay 与 B1 read-only lookup，两者分别映射；B06/B28/B14 目前仍仅保留 B06_CORE_FENCE_PASS、B28_CORE_FENCE_PASS、B14_CORE_RECOVERY_PASS。A1 48 项及 B0 R1 回归在未来 implementation 中保留。本架构 PR 的 existing CI 通过只证明文档变更未破坏当前检查，不表示本表已执行。
+B1-08/B1-09 的 Host capability 与进程编排由后续 A3 实现阶段补齐；B1 Core implementation 必须明确其实际完成子集，不把 fixture 权限证明标成真实 Host 验收。[A3 矩阵 B14](../planning/SP-005A3-HOST-BINDING-TEST-MATRIX.md) 同时依赖 B0 mutation replay 与 B1 read-only lookup，两者分别映射；B06/B28/B14 目前仍仅保留 B06_CORE_FENCE_PASS、B28_CORE_FENCE_PASS、B14_CORE_RECOVERY_PASS。A1 48 项及 B0 R1 回归继续保留。本轮 Core 测试不代表 Host authority、epoch/token、permit 或 transport 已实现。
 
 真实 Host R01–R12 = NOT_EXECUTED。未来模拟恢复验证必须标记 SIMULATED / NO_REAL_SEND / NOT_REAL_HOST_VALIDATION，不连接真实 transport。
+
+## 8. Core implementation 边界
+
+公开入口为 `LivingRuntime.query_operation_recovery(context, request)`，也可使用 `living_recovery.query_operation_recovery`；请求为严格 `OperationRecoveryRequest`，结果为不可变 `OperationRecoveryProjection`。`LivingRecoveryContext(principal, delegation)` 携带独立 `RecoveryDelegation`：Owner authority、grantee、原 actor、Scope、instance、generation、producer 和 provenance。它们与现有 Principal 一样，是受信本地进程提供的认证断言，不是凭证；没有 JSON factory、网络入口或 Host capability。普通 LivingContext(session=None) 拒绝，带 PromptSessionContext 的路径复用 B0 `_root/_authorize`。具体 Host 身份认证与旧 epoch/token 拒绝仍 DEFERRED_TO_A3。
+
+只读仓储使用既有安装锁、SQLite mode=ro / query_only / 同一快照，保留 schema/runtime 检查；授权后校验当前 root 的既有 state_digest，按 exact identity 先检查 payload/receipt 字节长度再读取，验证所选 record、transition 关联及真实 Attempt。它不调用 mutation transaction 的全库 receipt materialization，不复制业务 eligibility。mutation 入口仅增补 recovery-only 类型拒绝，原合法 command 的 fingerprint、B0 fence、receipt、CAS、Attempt 和预算语义均未改变。
