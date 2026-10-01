@@ -137,3 +137,5 @@ B06_CORE_FENCE_PASS / B28_CORE_FENCE_PASS / B14_CORE_RECOVERY_PASS 继续保留�
 B1-08 的 Host 子集由 B14/P1、B15/P3/P4 与 before-claim subprocess 映射；B1-09 的 Host 子集由 `test_b1_09_recovery_capability_never_execution`、`test_recovery_reload_barrier_and_no_privilege_upgrade` 映射。只有本地 Host 子集 SIMULATED_PASS，B1 原 Core 标签不修改，真实 Host R01–R12 仍 NOT_EXECUTED。
 
 并发补充：`test_capability_concurrent_consume_once`；`test_lifecycle_races_claim_reload_restart`；`test_claim_authority_restart_race`；`test_recovery_reload_barrier_and_no_privilege_upgrade`。permit 参数/expiry/authority restart：`test_permit_wrong_fields_expired_and_authority_restart`。metadata无业务真源：`test_metadata_contains_only_identity_and_missing_cannot_reinitialize`。JSON上限：`test_response_and_envelope_bounds`。
+
+B11 另映射 `test_permit_generation_barrier_after_core_precheck`：最后 Core 预检查后，独立线程持既有 management barrier 改变 registry generation，permit 消费必须 GENERATION_STALE，零 fake side effect；该注入不是实际 restore，实际 restore 仍由 A1/B1 回归验证。B34 另映射 `test_owner_pause_revokes_unconsumed_execution`：可信 lifecycle transition 内 Core pause→旧 permit 撤销→resume 也不可恢复，Core CLAIMED 不冒充 SENT/UNKNOWN。最终 Host 专项合计 46 tests。

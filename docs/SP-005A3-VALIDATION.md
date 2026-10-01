@@ -55,7 +55,9 @@ HostIdentityEnvelope 为受信不可变类型，带 seal；session-bearing ident
 
 World fence 最终由 B0 Core 同事务完成：current World→Scope→Session→WriterEpoch→WorldRevision→Living root→receipt/CAS/mutation。Facade 不悄悄更新陈旧 session/revision；receipt replay 也先受当前授权。B06 与 B28 同时验证 Host path 和 Core transaction 前交错。
 
-one-time execution permit 为 opaque memory-only、10 秒 TTL；绑定 current authority/plugin epoch、generation、target、Attempt、invocation、SIMULATED_CONTACT purpose。consume 与 lifecycle 在同一 authority mutex 下；wrong target/Attempt/invocation/epoch、expired、重复 consume 拒绝。发送前重验当前 target 与原 trusted session；permit 消费后仍保留未决 claim 生命周期关联，直到可信结果登记或协调。它不是 SENT/ACK evidence，也不持久化为业务真源。
+one-time execution permit 为 opaque memory-only、10 秒 TTL；绑定 current authority/plugin epoch、generation、target、Attempt、invocation、SIMULATED_CONTACT purpose。consume 与 lifecycle 在同一 authority mutex 下；wrong target/Attempt/invocation/epoch、expired、重复 consume 拒绝。发送前重验当前 target 与原 trusted session；Core paused/disabled 则撤销旧权限，resume 不恢复旧 permit。可信管理面通过 `lifecycle_transition()` 将 Core pause/target/restore 等操作与外部消费串行，不由 authority 决定业务 policy。
+
+Core 预检查结束后，以既有 management barrier 将最后一次 registry generation 校验与内存 permit 消费原子排序；不在该非重入锁内调用 Core。barrier 在进入 fake transport 前释放，既不跨 DB/network，也不将两者伪装为原子。专用 regression 在最后 Core 预检查后并发注入 registry generation transition，必须 GENERATION_STALE、零 fake side effect。permit 消费后仍保留未决 claim 生命周期关联，直到可信结果登记或协调。它不是 SENT/ACK evidence，也不持久化为业务真源。
 
 外部边界严格为 Core CLAIMED commit→DB/安装事务锁结束→permit→原子消费→fake 外部副作用→provider evidence→Core record_delivery。DB 与外部副作用不原子。Fake provider 无网络、真实渠道、真实用户或正式 Owner target；只写隔离本地 journal，并可注入进程退出。SENT 需要签名 provider reference / message identity / sent_at；ACK 是独立已验证 fake provider event。FAILED / UNKNOWN 为独立结果；CLAIMED != SENT != ACKNOWLEDGED。
 
@@ -63,7 +65,7 @@ NO_REAL_SEND = true，本任务没有关闭。正式实例默认只作结构化�
 
 ## 自动验收与恢复证据
 
-[B01–B34 executable mapping / expected result](planning/SP-005A3-HOST-BINDING-TEST-MATRIX.md#a3-v3-可执行证据映射)全部有实际 unittest。Host 专项 44 tests，结果 SIMULATED_PASS。B06 / B14 / B28 的完整本地 Host 子集通过；原 B06_CORE_FENCE_PASS / B14_CORE_RECOVERY_PASS / B28_CORE_FENCE_PASS 与 B1-08_CORE_PASS / B1-09_CORE_PASS 原样保留。
+[B01–B34 executable mapping / expected result](planning/SP-005A3-HOST-BINDING-TEST-MATRIX.md#a3-v3-可执行证据映射)全部有实际 unittest。Host 专项 46 tests，结果 SIMULATED_PASS。B06 / B14 / B28 的完整本地 Host 子集通过；原 B06_CORE_FENCE_PASS / B14_CORE_RECOVERY_PASS / B28_CORE_FENCE_PASS 与 B1-08_CORE_PASS / B1-09_CORE_PASS 原样保留。
 
 B14 两个合同分别成立：fresh valid session + 同 operation mutation replay 返回既有 receipt、execute=false、无第二 Attempt；authority 关联丢失时只使用原 exact identity/digest 经 B1 read-only projection 恢复。后者 COMMITTED / historical CLAIMED 不表示执行权，响应中没有 execute/permit，业务表前后不变，fake journal无新增。
 
@@ -81,7 +83,7 @@ Concurrency：duplicate tick（同与不同 invocation）、prepare、claim、ca
 
 B1-08/B1-09 Host authority/capability 子集为 SIMULATED_PASS，仅在本轮测试实际通过后记录；不能升级真实 Host PASS。A1 48 contract IDs、B0 10 R1 tests、B1 16 specialized tests 与 complete unittest 必须全部继续通过，运行计数/时间与 exact Head CI 记录在交付报告。没有改变 Core business semantics 或 operation fingerprint。
 
-本地实测：Windows / Python 3.12.10 完整 unittest 441 tests，440 passed、1 skipped、0 failures/errors，383.529s；skip 为既有 Unix-only symlink 测试。日志逐项确认 A1 48 IDs 对应 52 tests PASS、B0 10 tests PASS、B1 16 tests PASS。最后 Windows ACL 加固后重跑 Host 专项 44 tests 全部 PASS（53.812s）。5 份变更文档的 58 个本地链接/锚点通过，B01–B34 executable ID 映射及 Host source boundary 检查通过。完整 exact Head 四矩阵仍由 Draft PR CI 再验证，不用本地环境替代。
+本地实测：Windows / Python 3.12.10 第一轮完整 unittest 441 tests，440 passed、1 skipped、0 failures/errors，383.529s；skip 为既有 Unix-only symlink 测试。日志逐项确认 A1 48 IDs 对应 52 tests PASS、B0 10 tests PASS、B1 16 tests PASS。后续追加 generation barrier / Owner pause 的两个回归，Host 专项 46 tests 全部 PASS（63.698s）；最终完整套件计数为 443，结果及 exact Head 四矩阵记录于 PR 交付报告，不冒充上述第一轮计数。5 份变更文档的 58 个本地链接/锚点通过，B01–B34 executable ID 映射及 Host source boundary 检查通过。不用本地环境替代 exact Head CI。
 
 ## 验证门禁与后续状态
 

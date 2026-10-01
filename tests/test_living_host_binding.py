@@ -427,7 +427,7 @@ class HostBindingTests(MemoryFixture, unittest.TestCase):
                 return exc.code
         def target_change():
             start.wait()
-            with self.authority._mutex:
+            with self.authority.lifecycle_transition():
                 self.living.configure(self.ctx, self.rev(), self.op(), target='new-target')
                 self.authority.update_target('new-target')
         with ThreadPoolExecutor(2) as pool:
@@ -706,4 +706,52 @@ class HostBindingTests(MemoryFixture, unittest.TestCase):
         else:
             self.error('CAPABILITY_STALE', lambda: self.transport.send(outcome.permit,
                 target='本人合成目标', attempt=outcome.response['result']['attempt_id'], invocation='restart-race'))
+        self.assertFalse(self.transport.journal.exists())
+
+    def test_permit_generation_barrier_after_core_precheck(self):
+        from life_engine.durable import locked, registry, write
+        _, out = self.claimed(); attempt = out.response['result']['attempt_id']
+        checked, release, locked_event = threading.Event(), threading.Event(), threading.Event()
+        original = self.living.status
+        def status(context):
+            result = original(context)
+            if context.session is None:
+                return result
+            checked.set()
+            if not release.wait(5):
+                raise AssertionError('barrier timeout')
+            return result
+        def send():
+            try:
+                self.transport.send(out.permit, target='本人合成目标', attempt=attempt, invocation='host-claim')
+                return 'unexpected-send'
+            except LivingError as exc:
+                return exc.code
+        def generation_transition():
+            self.assertTrue(checked.wait(5))
+            with locked(self.root, 'management'):
+                # 只注入 registry generation transition；真实 durable restore 另由 A1/B1 覆盖。
+                data = registry(self.root)
+                data['instances'][self.key]['generation'] = 'restored-generation'
+                write(self.root / 'registry.json', data)
+                locked_event.set()
+                release.set()
+        with patch.object(self.living, 'status', side_effect=status):
+            with ThreadPoolExecutor(2) as pool:
+                a, b = pool.submit(send), pool.submit(generation_transition)
+                self.assertEqual(a.result(), 'GENERATION_STALE')
+                b.result()
+        self.assertTrue(locked_event.is_set())
+        self.assertFalse(self.transport.journal.exists())
+
+    def test_owner_pause_revokes_unconsumed_execution(self):
+        _, out = self.claimed(); attempt = out.response['result']['attempt_id']
+        with self.authority.lifecycle_transition():
+            self.living.configure(self.ctx, self.rev(), self.op(), paused=True)
+        self.error('EXECUTION_REVOKED', lambda: self.transport.send(out.permit,
+            target='本人合成目标', attempt=attempt, invocation='host-claim'))
+        self.living.configure(self.ctx, self.rev(), self.op(), paused=False)
+        self.error('CAPABILITY_STALE', lambda: self.transport.send(out.permit,
+            target='本人合成目标', attempt=attempt, invocation='host-claim'))
+        self.assertEqual(self.rows('living_attempts')[0]['state'], 'CLAIMED')
         self.assertFalse(self.transport.journal.exists())

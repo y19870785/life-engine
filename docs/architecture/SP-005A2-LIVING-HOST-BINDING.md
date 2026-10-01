@@ -232,6 +232,8 @@ capability 与 execution permit 由 [CredentialVault](../../runtime/life_engine/
 
 [DeliveryEvidence / deterministic fake transport](../../runtime/life_engine/living_host_evidence.py) 是 SIMULATED provider 边界，无网络与真实渠道参数。SENT/ACK 要有独立 provider HMAC evidence、message identity 和时间；ACK 是单独 provider event。CLAIMED 不代表 SENT 或 ACK。NO_REAL_SEND 恒为 true；本阶段 claim 与 fake transport 仅允许隔离测试 authority，生产入口可做结构化预览，不消费正式实例 reservation。
 
+可信管理面用 `authority.lifecycle_transition()` 串行 Core pause/target/restore 等 transition 与权限消费；它不定义业务 policy。消费前检查 Core paused/enabled 并撤销旧权限，resume 不恢复旧 permit。最后 registry generation 校验与内存消费还受既有 management barrier 保护；该锁在 transport 前释放，锁内不调用 Core，避免非重入 deadlock 与 DB/network 原子假象。
+
 可信部署是进程内/同 OS 用户信任边界：不能把任意 Python 执行权当作不可信模型沙箱。没有公开 JSON enrollment、identity attestation、凭据序列化或模型签发入口。真实 connector、受保护 IPC 与服务启动器必须另行授权；A3 提供可验证本地组件与 dispatch fence，未安装真实 Host plugin。现有 legacy adapter 不自动切换；未来部署必须让所有业务入口先经过 `authority.route`，LIVING_PENDING/ACTIVE 拒绝 legacy 回调，Living 异常没有 fallback。
 
 可信 Core runtime/session factory 的生命周期仍属安装服务：plugin reload 保持 Core incarnation；独立服务接管可经既有 Core factory 创建新 incarnation并走既有 UNKNOWN/reconciliation。authority epoch 本身不修改 Core generation、不隐藏 tick 或恢复 mutation。单独 authority 重新附着仍存活的 Core 时，同样撤销旧权限并保守冻结已有关联的 claim，直到可信协调；这不宣称 Core 已自动把 CLAIMED 改成 UNKNOWN。

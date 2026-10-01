@@ -207,6 +207,20 @@ class BindingAuthority:
             self.plugin_epoch = uuid4().hex
             self._revoke()
 
+    @contextmanager
+    def lifecycle_transition(self):
+        """可信管理面把 Core pause/target/restore 等 transition 与外部消费串行。
+
+        不决定 Core policy；调用者仅在此执行已授权的 Core 管理操作，不运行 transport。
+        即使管理操作失败也撤销旧权限，不恢复旧执行资格。
+        """
+        with self._mutex:
+            self._data()
+            try:
+                yield
+            finally:
+                self._revoke()
+
     def context(self, envelope=None):
         return LivingContext(self.owner, self.scope, self._generation(), self.producer,
                              None if envelope is None else envelope.session)
@@ -353,12 +367,20 @@ class BindingAuthority:
                 revision=data['revision'], generation=self._generation(),
                 authority_epoch=self.binding_runtime_epoch, plugin_epoch=self.plugin_epoch,
                 target=target, attempt=attempt, invocation=invocation, purpose=purpose)
-            if target != data['target'] or self.runtime.status(self.context())['root']['target'] != target:
+            root = self.runtime.status(self.context())['root']
+            if target != data['target'] or root['target'] != target:
                 fail('TARGET_MISMATCH')
+            if root['paused'] or not root['enabled']:
+                self._revoke()
+                fail('EXECUTION_REVOKED')
             session = self._permit_sessions.get(attempt)
             if session is not None:
                 from .living_domain import LivingContext
                 self.runtime.status(LivingContext(self.owner, self.scope, self._generation(), self.producer, session))
-            self._vault.consume(permit, ExecutionPermit, expected, instant(self.runtime.clock()))
+            # restore 使用同一 management barrier；最后 generation fence 与消费原子排序。
+            # 不在该非重入锁内调用 Core，不把安装锁带入外部 transport。
+            with locked(self.runtime.repository.root, 'management'):
+                expected['generation'] = self._generation()
+                self._vault.consume(permit, ExecutionPermit, expected, instant(self.runtime.clock()))
             self._permit_sessions.pop(attempt, None)
             yield
