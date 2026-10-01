@@ -1,6 +1,24 @@
 # Hermes / OpenClaw Host Sandbox 测试指南
 
+## CURRENT CANONICAL STATE — SP-005A4-HLV0（2026-10-01）
+
+事实基线：`eedc32b719336ba063b99da95eac4e2b6a56c0c5`；[PR #34](https://github.com/y19870785/life-engine/pull/34) 已 Squash Merge，parent 为 `b78b849b1bfac1cbd28359cfb317fd1d4cb84402`；[exact main push CI #36847806554](https://github.com/y19870785/life-engine/actions/runs/36847806554) 为 push / main / exact SHA、completed / success，Ubuntu / Windows × Python 3.11 / 3.12 全部 SUCCESS，并经独立核验。
+
+SP-005A3 = DONE；SP-005A3-B0 = DONE；SP-005A3-B1 Architecture / Implementation = DONE。A3 已实现 Host-neutral Binding Authority、protected metadata、trusted routing、authority/plugin lifecycle、capability vault、recovery-only capability、HostIdentityEnvelope、LivingHostFacade、one-time execution permit、DeliveryEvidence、fake transport、legacy fence 与 crash recovery。B01-B34 = SIMULATED_PASS；B1-08_CORE_PASS / B1-09_CORE_PASS 原样保留，不升级历史证据。
+
+DATA_SCHEMA = 8；Schema Signature = SP-005A-living-runtime-v1；Prompt Template = SP-004K-prompt-v1；SP-005A2-P1 = NOT AUTHORIZED；PROMPT_TEMPLATE_UPGRADE_REQUIRED = YES；NO_REAL_SEND = true。Hermes real Host validation = PENDING_REAL_HOST_VALIDATION；OpenClaw real Host validation = PENDING_REAL_HOST_VALIDATION；Full Private RP = BLOCKED；H1 = BLOCKED；H2 = BLOCKED。
+
+SP-005A4-HLV0 = PENDING_INDEPENDENT_REVIEW，仅冻结架构、验证计划与治理文档。NO_REAL_HOST_OPERATION = true。本轮没有执行 Hermes、plugin load/reload、Gateway restart、Living mutation、permit consume、fake send、real send 或 cron。H-LV1～H-LV3 是未来分阶段授权的计划，均 NOT_EXECUTED / NOT_AUTHORIZED；H-LV4 = DEFINED_ONLY / NOT_AUTHORIZED。历史 2026-09-30 环境仅为 HISTORICAL_EVIDENCE，不能默认复用。
+
+架构与权限见 [HLV0 architecture](architecture/SP-005A4-HERMES-LIVING-VALIDATION.md)，逐项验证见 [HLV matrix](planning/SP-005A4-HERMES-LIVING-VALIDATION-MATRIX.md)。
+
+## HISTORICAL — GOV-DOC3 / B1 与既有 Host 指南快照
+
+以下原文保留历史状态、计数、finding 和步骤；其中“当前”“本轮”“尚未实现”均指当时，不覆盖顶部 CURRENT CANONICAL STATE，也不是本轮操作授权。原 legacy 入口的 gap 记录保留；A3 新 dispatcher 的受信 routing fence 已 SIMULATED_PASS，但旧 Hermes 插件未接入 A3，不能自动获得此保证。真实验证仍需逐阶段独立授权。
+
 ## Living Core 合并后的适用边界
+
+> HISTORICAL：本节保留当时状态与证据；当前状态以顶部 CURRENT CANONICAL STATE 为准。
 
 当前事实基线 `f83d36c76fea6de1a31b449535d5df6cea3909b5` 已包含 A1、B0、B1 Core，DATA_SCHEMA = 8、Schema Signature = SP-005A-living-runtime-v1、Prompt Template = SP-004K-prompt-v1。[B1](SP-005A3-B1-VALIDATION.md)只新增只读 durable recovery，不提供 Host binding 或发送资格；A3 剩余实现仍 BLOCKED，需新任务授权。下文旧插件流程只适用于未 enrollment 的 legacy 隔离测试；enrolled 实例不得沿用此流程或绕过 LIVING_HANDOFF_REQUIRED。现有 gate 尚未覆盖所有副作用之前的入口，详见 [已知问题](KNOWN-ISSUES.md)。[A3 矩阵](planning/SP-005A3-HOST-BINDING-TEST-MATRIX.md)的 Host 部分仍未完成。
 
@@ -8,11 +26,15 @@
 
 ## 2026-09-30 canonical Hermes 综合评测（历史）
 
+> HISTORICAL：本节保留当时状态与证据；当前状态以顶部 CURRENT CANONICAL STATE 为准。
+
 Hermes 0.21.3 在独立 HERMES_HOME / Profile、独立 canonical permanent root 与 Discord 专用测试渠道上完成历史综合评测；干净源码为 `861734b0c4179e56a3251a775d831cd246278d7f`，release 为 `0.3.0-eefb56b42b6eb8f4`。插件加载、Owner binding 与错误身份拒绝、Soul Continuity context、上一轮一次真实文字发送的证据、当轮静默 gate、持久性及备份/恢复均写入历史报告，生产环境未被污染。完整统计、证据来源与限制见[脱敏历史记录](validation/HERMES-COMPREHENSIVE-EVALUATION-2026-09-30.md)。
 
 报告引用的上一轮发送 external send count = 1，无自动重试；综合评测本轮新发 0 条；边界仍是 SENT / ACK UNKNOWN。真实 wake --preview 返回 silent / recent_conversation，即 ORGANIC_CONTACT_NOT_DUE、send count = 0；未证明自然 eligible 的 organic real-send 闭环。World/Lore/Story/Bridge grant mutation 与 grant revoke 均 NOT_EXECUTED — NO SAFE TEST PATH。B1 没有新增这些 Host mutation 入口，不升级其状态。
 
 ## B1 后探测、绑定与回执的含义
+
+> HISTORICAL：本节保留当时状态与证据；当前状态以顶部 CURRENT CANONICAL STATE 为准。
 
 | 项目 | 当前含义与限制 |
 | --- | --- |
@@ -29,6 +51,8 @@ Hermes 0.21.3 在独立 HERMES_HOME / Profile、独立 canonical permanent root 
 本指南供用户和本机 Agent 在真实 Hermes / OpenClaw 上建立**隔离测试**。先读 [START-HERE](../START-HERE.md) 和 [Host Integration 合同](architecture/SP-004H-HOST-INTEGRATION.md)。测试以当前实际安装版本和受控身份为准，不预设插件加载即代表功能已送达。
 
 ## SP-005H0：机械报告与原生插件探测
+
+> HISTORICAL：本节保留当时状态与证据；当前状态以顶部 CURRENT CANONICAL STATE 为准。
 
 H0 实施时的历史基线为 `694b45a6f1cd10e28bef96a7e98261c1f85d66f6`。本层复用 durable registry、instance ID、generation 与现有 Profile/Agent 绑定，当时未新增数据库表，保持当时的 `DATA_SCHEMA = 7`、`SP-004F-bridge-runtime-v1` 和 `SP-004K-prompt-v1`。当前 Schema 8 见本文开头；此段不是当前版本声明。H0 不实现 H1/H2 或 Host final-output transaction。
 
@@ -95,6 +119,8 @@ OpenClaw 从实际解析到的 SDK package 目录读取 package version，记录
 
 ## 四级测试边界
 
+> HISTORICAL：本节保留当时状态与证据；当前状态以顶部 CURRENT CANONICAL STATE 为准。
+
 | 级别 | 可做的验证 | 当前门禁 |
 | --- | --- | --- |
 | Level 0 — Core Runtime | 不接 Host；直接验证 World、Memory、Lore、Story、Bridge、PromptSnapshot、持久化与恢复 | 可进行；是 Runtime 证据，不是 Host 私密 RP 证据 |
@@ -105,6 +131,8 @@ OpenClaw 从实际解析到的 SDK package 目录读取 package version，记录
 Level 0 中可直接构造 Roleplay World 和 PromptSnapshot；这不把 Level 3 变成可用状态。
 
 ## 建立隔离测试环境
+
+> HISTORICAL：本节保留当时状态与证据；当前状态以顶部 CURRENT CANONICAL STATE 为准。
 
 使用独立 Life Engine instance、独立测试 World、独立 Host Session，以及只由本人控制的测试聊天目标。不要导入真实敏感聊天历史；不要在生产会话试探跨 World 或 DROP 安全性质。不需要修改原 Soul、替换主模型或开放 Full RP。照片是可选项；没有合适 ComfyUI 工作流时保持关闭。宿主插件审查、权限及发送政策继续生效。
 
@@ -140,6 +168,8 @@ OpenClaw 有 `before_message_write`、`before_agent_finalize`、`message_sending
 
 ## Level 0：Core Runtime 检查
 
+> HISTORICAL：本节保留当时状态与证据；当前状态以顶部 CURRENT CANONICAL STATE 为准。
+
 - [ ] 创建 Soul World 和独立测试 RP World；同一 CharacterDefinition 在不同 World 中对应不同 CharacterInstance。
 - [ ] 两个 World 的 Memory 默认隔离；有界查询只返回授权 scope/audience。
 - [ ] Lore 仅在绑定的 World 和条件下激活。
@@ -151,6 +181,8 @@ OpenClaw 有 `before_message_write`、`before_agent_finalize`、`message_sending
 这些检查可以通过独立测试数据和 Runtime API 完成，不宣称已通过 Host 私密历史隔离。
 
 ## Level 1–2：真实 Host 沙箱检查
+
+> HISTORICAL：本节保留当时状态与证据；当前状态以顶部 CURRENT CANONICAL STATE 为准。
 
 - [ ] Life Engine `status` 和 `doctor` 正常，实际插件工具能访问**测试实例**。
 - [ ] Host Profile/Agent 与实例绑定唯一；错误 Profile/Agent 被拒绝。
@@ -165,6 +197,8 @@ OpenClaw 有 `before_message_write`、`before_agent_finalize`、`message_sending
 任一出现 Host 身份不稳定、错误 Profile/Agent 可读取实例、重启后状态丢失、错误 Session 取得历史、未授权 Bridge 字段出现，或生产 conversation 被测试污染，**立即停止测试并保留证据**。
 
 ## 本阶段不进行的验证与不得宣称的结果
+
+> HISTORICAL：本节保留当时状态与证据；当前状态以顶部 CURRENT CANONICAL STATE 为准。
 
 暂不在真实 Host 中执行 Soul secret → RP 原始历史、RP secret → Soul 原始历史、RP 切换后晚到模型回复、Full RP delivery fence 或 Host final-output transaction 试验。当前不能宣称：Full Private RP production-safe、Soul/RP raw Host history 已机械隔离、stale model output 不可能出现、Bridge 上下文总能受 Host final commit 保护，或模型输出 DROP 已同时覆盖持久化、下一轮重放、最终交付和流式输出。
 

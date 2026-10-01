@@ -1,9 +1,27 @@
 # v0.3 已知问题与历史记录
 
+## CURRENT CANONICAL STATE — SP-005A4-HLV0（2026-10-01）
+
+事实基线：`eedc32b719336ba063b99da95eac4e2b6a56c0c5`；[PR #34](https://github.com/y19870785/life-engine/pull/34) 已 Squash Merge，parent 为 `b78b849b1bfac1cbd28359cfb317fd1d4cb84402`；[exact main push CI #36847806554](https://github.com/y19870785/life-engine/actions/runs/36847806554) 为 push / main / exact SHA、completed / success，Ubuntu / Windows × Python 3.11 / 3.12 全部 SUCCESS，并经独立核验。
+
+SP-005A3 = DONE；SP-005A3-B0 = DONE；SP-005A3-B1 Architecture / Implementation = DONE。A3 已实现 Host-neutral Binding Authority、protected metadata、trusted routing、authority/plugin lifecycle、capability vault、recovery-only capability、HostIdentityEnvelope、LivingHostFacade、one-time execution permit、DeliveryEvidence、fake transport、legacy fence 与 crash recovery。B01-B34 = SIMULATED_PASS；B1-08_CORE_PASS / B1-09_CORE_PASS 原样保留，不升级历史证据。
+
+DATA_SCHEMA = 8；Schema Signature = SP-005A-living-runtime-v1；Prompt Template = SP-004K-prompt-v1；SP-005A2-P1 = NOT AUTHORIZED；PROMPT_TEMPLATE_UPGRADE_REQUIRED = YES；NO_REAL_SEND = true。Hermes real Host validation = PENDING_REAL_HOST_VALIDATION；OpenClaw real Host validation = PENDING_REAL_HOST_VALIDATION；Full Private RP = BLOCKED；H1 = BLOCKED；H2 = BLOCKED。
+
+SP-005A4-HLV0 = PENDING_INDEPENDENT_REVIEW，仅冻结架构、验证计划与治理文档。NO_REAL_HOST_OPERATION = true。本轮没有执行 Hermes、plugin load/reload、Gateway restart、Living mutation、permit consume、fake send、real send 或 cron。H-LV1～H-LV3 是未来分阶段授权的计划，均 NOT_EXECUTED / NOT_AUTHORIZED；H-LV4 = DEFINED_ONLY / NOT_AUTHORIZED。历史 2026-09-30 环境仅为 HISTORICAL_EVIDENCE，不能默认复用。
+
+架构与权限见 [HLV0 architecture](architecture/SP-005A4-HERMES-LIVING-VALIDATION.md)，逐项验证见 [HLV matrix](planning/SP-005A4-HERMES-LIVING-VALIDATION-MATRIX.md)。
+
+## HISTORICAL — GOV-DOC3 / B1 与既有 Host 指南快照
+
+以下原文保留历史状态、计数、finding 和步骤；其中“当前”“本轮”“尚未实现”均指当时，不覆盖顶部 CURRENT CANONICAL STATE，也不是本轮操作授权。原 legacy 入口的 gap 记录保留；A3 新 dispatcher 的受信 routing fence 已 SIMULATED_PASS，但旧 Hermes 插件未接入 A3，不能自动获得此保证。真实验证仍需逐阶段独立授权。
+
 本版本用于开发审阅和受控试用。2026-10-01 核对基线为 `f83d36c76fea6de1a31b449535d5df6cea3909b5`；B1 Core 已 DONE，A3 Host 层未完成。历史 Hermes 受控测试与完整真实 Host 验收分开，见 [2026-09-30 脱敏记录](validation/HERMES-COMPREHENSIVE-EVALUATION-2026-09-30.md)。下面 OPEN / BLOCKED / KNOWN LIMITATION / RESOLVED / HISTORICAL 是问题分类，不把阻止功能写成该功能 PASS。
 
 
 ## OPEN — 历史 finding 在 B1 后的代码复核
+
+> HISTORICAL：本节保留当时状态与证据；当前状态以顶部 CURRENT CANONICAL STATE 为准。
 
 | 问题 | 等级 / 当前证据 | 后续边界 |
 | --- | --- | --- |
@@ -14,6 +32,8 @@
 以上仅对当前源码作只读核对，没有运行真实 Host 或修改错误处理。
 
 ## BLOCKED — A3 完整 legacy routing fence
+
+> HISTORICAL：本节保留当时状态与证据；当前状态以顶部 CURRENT CANONICAL STATE 为准。
 
 B1 仅新增 Core recovery API，没有修复 Host 分发层的副作用前 gate。当前代码边界如下：
 
@@ -30,11 +50,15 @@ B1 仅新增 Core recovery API，没有修复 Host 分发层的副作用前 gate
 
 ## KNOWN LIMITATION — 历史 ACK / fresh-process probe
 
+> HISTORICAL：本节保留当时状态与证据；当前状态以顶部 CURRENT CANONICAL STATE 为准。
+
 - 无受信 ACK validator：MEDIUM — KNOWN BOUNDARY；一次真实发送保持 SENT / ACK UNKNOWN，message ID、API 回读、rc=0、模型文本和人工 ack 都不是 ACKNOWLEDGED。
 - fresh-process probe 缺 live hook 时仍 HOOK_REVALIDATION_REQUIRED，这是 H0 设计边界；B1 查询不会补齐它。
 - 独立真实 Gateway restart、当前 generation/revision/ticket 重验仍属 PENDING_REAL_HOST_VALIDATION；H0 plugin_epoch 已存在，但 A3 authority epoch / capability 尚未实现。
 
 ## KNOWN LIMITATION — Core 与 Host 边界
+
+> HISTORICAL：本节保留当时状态与证据；当前状态以顶部 CURRENT CANONICAL STATE 为准。
 
 A1 已 DONE，提供 Schema 8、显式 enrollment、持久计划/联系状态和独立 projection；B0 / B1 也已 DONE。详见 [Living 操作与迁移](LIVING-RUNTIME.md)。现有 Prompt Template 未接入 Living，原生 Host 工具未切换新 Core；enrolled 实例的 legacy wake/status、prepare、loop 写入受 single-writer gate 拒绝。不要在生产实例 enrollment 后期待旧 Host callback 自动兼容。
 
@@ -43,6 +67,8 @@ A1 已 DONE，提供 Schema 8、显式 enrollment、持久计划/联系状态和
 
 ## KNOWN LIMITATION — H0 报告、ACK 与 live probe
 
+> HISTORICAL：本节保留当时状态与证据；当前状态以顶部 CURRENT CANONICAL STATE 为准。
+
 新增原生插件诊断与文件化报告只验证本地调用、捕获证据一致性及 reload 代次。历史 Hermes 测试已验证限定 Profile 的 Owner/target 并完成一次真实发送；整体 Hermes/OpenClaw real Host validation 仍为 `PENDING_REAL_HOST_VALIDATION`，不能由单次发送或 Core CI 升级。OpenClaw 现有 agentId/workspace 绑定不能单独证明跨 Gateway/Profile 唯一性；缺少这些实机证据时不签发真实 Sandbox PASS。Host 版本、Session、Gateway 等无法取得的字段必须保留 UNKNOWN。
 
 当前没有受信渠道回执验证器，Hermes/OpenClaw 原生工具拒绝模型发起的 `ack outcome=delivered`。旧管理 CLI 的人工 ack 仍存在，但不属于机械渠道证明，报告不会把其文本转换为 ACKNOWLEDGED。照片 dry-run、文件生成与 media preparation 均不等于已发送。操作步骤与报告字段见[沙箱指南](HOST-SANDBOX-TESTING.md#sp-005h0机械报告与原生插件探测)。Full Private RP、H1/H2 继续 BLOCKED。
@@ -50,6 +76,8 @@ A1 已 DONE，提供 Schema 8、显式 enrollment、持久计划/联系状态和
 当前 canonical main 的 GitHub Actions 在 Ubuntu / Windows、Python 3.11 / 3.12 四矩阵通过。下述 2026-09-13 Windows 结果和缺库复现是历史记录，不代表当前测试状态。
 
 ## RESOLVED — 缺失数据库静默初始化
+
+> HISTORICAL：本节保留当时状态与证据；当前状态以顶部 CURRENT CANONICAL STATE 为准。
 
 2026-09-13 在 Windows / Python 3.12 临时安装中复现：写入记忆后移走
 `life.db`，`doctor` 仍返回 `ok: true`，`status` 返回成功并创建空数据库。
@@ -61,6 +89,8 @@ SP-004E 已修复此问题：当前 main 的 `state_check` 拒绝缺失活动数
 [SP-004E 质量门禁](planning/SP-004E-QUALITY-GATES.md)。
 
 ## OPEN — 出图期间实例锁阻塞其他调用
+
+> HISTORICAL：本节保留当时状态与证据；当前状态以顶部 CURRENT CANONICAL STATE 为准。
 
 代码检查发现 `durable.run` 在整个 photo 命令期间持有实例锁，包括网络等待；
 其他命令取得锁的等待上限为 5 秒。长耗时出图可能使上下文注入和入站记录失败。
@@ -87,6 +117,8 @@ SP-004E 已将上述 SQLite 测试改为显式 `contextlib.closing` 释放连接
 上传代码不代表已安装到本机 Agent，也不代表可宣称稳定发布。
 
 ## BLOCKED — Full Private RP / H1 / H2
+
+> HISTORICAL：本节保留当时状态与证据；当前状态以顶部 CURRENT CANONICAL STATE 为准。
 
 Hermes 官方 Host 尚缺满足 H0 合同的完整 final-output commit 授权与 session incarnation 围栏。历史审计所引用的上游 [PR #120170](https://github.com/NousResearch/hermes-agent/pull/120170) 曾将 final commit 能力纳入讨论范围；本轮不重审上游最新发布状态，讨论不能当作通过目标版本门禁的证据。实验性的 [compatibility fork PR #1](https://github.com/y19870785/hermes-agent/pull/1) 保持 Draft、未合并；隔离执行链验证曾发现 recovery 先持久化旧候选，以及 A→B→A session incarnation 后旧 writer 可恢复写入，因此 fork 路线已停止，不能生产使用。
 
