@@ -4,7 +4,7 @@
 
 Life Engine 是运行在已有 Hermes / OpenClaw Agent 旁边的持久状态与角色世界运行层。你继续使用原来的聊天渠道、模型和角色设定；它保存状态和待跟进话题，为主动联系提供依据，并为可恢复的 World 与隔离记忆提供底层 Runtime。
 
-> **v0.3 开发预览 · 当前状态（2026-10-01）**：SP-005A3 = **DONE**；Host-neutral Living Host Binding 已合并并通过 exact main push CI。B01–B34 证据仅为 SIMULATED_PASS，真实 Hermes/OpenClaw 验证仍 PENDING_REAL_HOST_VALIDATION。本轮 HLV0 只冻结未来验证协议，NO_REAL_HOST_OPERATION = true、NO_REAL_SEND = true。见 [A3 验证](docs/SP-005A3-VALIDATION.md)与 [HLV0 架构](docs/architecture/SP-005A4-HERMES-LIVING-VALIDATION.md)。
+> **v0.3 开发预览 · 当前状态（2026-10-01）**：SP-005A3 = **DONE**；Host-neutral Living Host Binding 已合并并通过 exact main push CI。B01–B34 证据仅为 SIMULATED_PASS，真实 Hermes/OpenClaw 验证仍 PENDING_REAL_HOST_VALIDATION。HLV0 已 DONE；当前为 Real Host Integration，下一任务 HLV1 尚未授权，NO_REAL_HOST_OPERATION = true、NO_REAL_SEND = true。见 [A3 验证](docs/SP-005A3-VALIDATION.md)与 [HLV0 架构](docs/architecture/SP-005A4-HERMES-LIVING-VALIDATION.md)。
 
 | 能力 | 当前状态 |
 | --- | --- |
@@ -19,15 +19,15 @@ Life Engine 是运行在已有 Hermes / OpenClaw Agent 旁边的持久状态与�
 
 当前没有受信 ACK validator；Hermes / OpenClaw real Host validation 均为 **PENDING_REAL_HOST_VALIDATION**；H1/H2 与 Full Private RP 均 **BLOCKED**。DATA_SCHEMA = 8，Schema Signature = SP-005A-living-runtime-v1，Prompt Template = SP-004K-prompt-v1；SP-005A2-P1 = NOT AUTHORIZED，PROMPT_TEMPLATE_UPGRADE_REQUIRED = YES。
 
-## 当前 canonical 状态
+## 当前阶段
 
-事实基线：`eedc32b719336ba063b99da95eac4e2b6a56c0c5`；[PR #34](https://github.com/y19870785/life-engine/pull/34) 已 Squash Merge，parent 为 `b78b849b1bfac1cbd28359cfb317fd1d4cb84402`；[exact main push CI #36847806554](https://github.com/y19870785/life-engine/actions/runs/36847806554) 为 push / main / exact SHA、completed / success，Ubuntu / Windows × Python 3.11 / 3.12 全部 SUCCESS，并经独立核验。
+- Current Phase: Real Host Integration
+- Current Completed Gate: SP-005A4-HLV0 = DONE；SP-005A3 = DONE
+- Canonical Base: `08bf82e89f7a4572f4931105cc5e6927ae1c5214`
+- Next: SP-005A4-HLV1（GOV-ROADMAP1 正式 DONE 后才发布，当前未授权执行）
+- Long-term Roadmap: [长期路线与阶段治理](docs/planning/LIFE-ENGINE-DEVELOPMENT-ROADMAP.md)
 
-SP-005A3 = DONE；SP-005A3-B0 = DONE；SP-005A3-B1 Architecture / Implementation = DONE。A3 已实现 Host-neutral Binding Authority、protected metadata、trusted routing、authority/plugin lifecycle、capability vault、recovery-only capability、HostIdentityEnvelope、LivingHostFacade、one-time execution permit、DeliveryEvidence、fake transport、legacy fence 与 crash recovery。B01-B34 = SIMULATED_PASS；B1-08_CORE_PASS / B1-09_CORE_PASS 原样保留，不升级历史证据。
-
-DATA_SCHEMA = 8；Schema Signature = SP-005A-living-runtime-v1；Prompt Template = SP-004K-prompt-v1；SP-005A2-P1 = NOT AUTHORIZED；PROMPT_TEMPLATE_UPGRADE_REQUIRED = YES；NO_REAL_SEND = true。Hermes real Host validation = PENDING_REAL_HOST_VALIDATION；OpenClaw real Host validation = PENDING_REAL_HOST_VALIDATION；Full Private RP = BLOCKED；H1 = BLOCKED；H2 = BLOCKED。
-
-SP-005A4-HLV0 = PENDING_INDEPENDENT_REVIEW，仅冻结架构、验证计划与治理文档。NO_REAL_HOST_OPERATION = true。本轮没有执行 Hermes、plugin load/reload、Gateway restart、Living mutation、permit consume、fake send、real send 或 cron。H-LV1～H-LV3 是未来分阶段授权的计划，均 NOT_EXECUTED / NOT_AUTHORIZED；H-LV4 = DEFINED_ONLY / NOT_AUTHORIZED。历史 2026-09-30 环境仅为 HISTORICAL_EVIDENCE，不能默认复用。
+本轮 GOV-ROADMAP1 仅整理路线，NO_REAL_HOST_OPERATION = true、NO_REAL_SEND = true；不启动 H-LV1。P1 未授权；B01–B34 仍为 SIMULATED_PASS。上述长期路线是后续任务的 Gate 依据，不自动授予未来功能资格。
 
 ## 用起来是什么感觉？
 
