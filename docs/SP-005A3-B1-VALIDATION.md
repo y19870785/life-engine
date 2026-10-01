@@ -1,5 +1,7 @@
 # SP-005A3-B1 Core implementation 验证映射
 
+**后续 A3 v3 状态**：本页保留 B1 合并时点与 GOV-DOC3 的历史证据。B1-08_CORE_PASS / B1-09_CORE_PASS 保留；A3 新增本地 authority epoch/capability/crash/reload 部分见 [A3 验证报告](SP-005A3-VALIDATION.md)，仅标 SIMULATED_PASS，不覆盖历史测试计数，不宣称真实 Host PASS。
+
 固定 Base：`a27caf372a263932346d5b193ca35c92fea6f5dd`。分支：`feat/sp-005a3-b1-operation-recovery`。
 
 SP-005A3-B0 = DONE；SP-005A3-B1 Architecture = DONE；SP-005A3-B1 Implementation = DONE；SP-005A3 = BLOCKED（Host 层未完成，恢复实施须另行授权）。本轮只实现 [冻结的 B1 Core recovery 合同](architecture/SP-005A3-B1-OPERATION-RECOVERY-PROJECTION.md)，不实现 A3 Host Binding。

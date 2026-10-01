@@ -1,5 +1,7 @@
 # SP-005A2 — Living Runtime Host Binding 架构
 
+**A3 v3 当前实施状态（2026-10-01）**：统一 Base `b78b849b1bfac1cbd28359cfb317fd1d4cb84402`，已保留 GOV-DOC3 文档校准。A3 Host-neutral implementation 与自动验收见 [A3 验证报告](../SP-005A3-VALIDATION.md)；SP-005A3 = PENDING_INDEPENDENT_REVIEW，B0 / B1 Architecture / B1 Implementation = DONE。下文未实现、BLOCKED 和 deferred 描述是 A2/B1 冻结及 GOV-DOC3 时点的历史状态，不覆盖本段当前状态；冻结技术合同仍有效。P1 未授权，真实 Host 验收 PENDING_REAL_HOST_VALIDATION，Full Private RP / H1 / H2 BLOCKED。历史 Hermes 证据不升级为 Living Host PASS、ACK 或 Organic Contact real-send PASS。
+
 **2026-10-01 当前状态校准**：B1 Architecture / Implementation = DONE；合并后 canonical main 为 `f83d36c76fea6de1a31b449535d5df6cea3909b5`。合并与 exact main push CI 证据见 [B1 验证映射](../SP-005A3-B1-VALIDATION.md)。下文历史 Base 与冻结合同保留；A3 Host 层仍 BLOCKED，恢复实施须另行授权。历史 Hermes legacy 测试不升级 Living R01–R12 或未执行的 Host 子集。
 
 状态：SP-005A2 = DONE；SP-005A2-R1 = DONE。R1 固定 Base / canonical main：`861734b0c4179e56a3251a775d831cd246278d7f`（A2 原审计基线为 `84493be98d7ed675de6b859cafdb014a900325ca`）。SP-005A0 / A0-R1 / A1 和 H0 implementation 已 DONE。R1 仅修订 Session World Revision Fence 合同，不修改 Runtime 或添加 Core tests；新 facade/token/adapter 尚未实现。
@@ -219,3 +221,19 @@ A3 范围仍为受信本地 authority/facade、稳定绑定与 token、tick cont
 Prompt 接入候选 SP-005A2-P1 未授权；真实 Host 接线、真实发送需独立任务书和准确版本/目标授权。A2 不依赖 H0-RV PASS。未来测试见 [A3 与 H0-RV Living 扩展矩阵](../planning/SP-005A3-HOST-BINDING-TEST-MATRIX.md)，未执行项不能记 PASS。
 
 Hermes real Host validation = PENDING_REAL_HOST_VALIDATION；OpenClaw real Host validation = PENDING_REAL_HOST_VALIDATION；Full Private RP = BLOCKED；H1 = BLOCKED；H2 = BLOCKED。A2 文档与 CI 通过不改变这些门禁。
+
+## A3 v3 implementation 映射
+
+Host 入口是 [LivingHostFacade](../../runtime/life_engine/living_host_facade.py)，由 [BindingAuthority](../../runtime/life_engine/living_host_binding.py) 签发封套与独立 capability。metadata 使用独立的 [BindingMetadata](../../runtime/life_engine/living_host_metadata.py)，不修改 Living Schema。per-install 进程锁与 authority mutex 串行化路由变更、签发/消费、claim、reload 和本地 fake side effect；Core 的管理/DB 锁在外部边界之前结束。
+
+公开 `recover_operation` 仅包装 B1 `query_operation_recovery`，由当前 authority 根据原调用前已持久化的 exact identity / Core fingerprint 构造 RecoveryDelegation / LivingRecoveryContext。当前 recovery grantee 与 original actor 分离；独立 recovery capability 无 prepare/claim/delivery/permit 权限。投影只在当前进程恢复关联，永不发 permit，也不存入 metadata 冒充 Attempt truth。
+
+capability 与 execution permit 由 [CredentialVault](../../runtime/life_engine/living_host_capability.py) 管理，为随机不透明 handle + HMAC，claims 仅在服务内存；一次消费、最多 60 秒 capability 与 10 秒 permit，绑定安装、实例、revision、authority/plugin epoch、generation、invocation、方法、target、payload/session identity，permit 另绑定 exact Attempt / SIMULATED_CONTACT。每个 authority start 和 plugin load/reload 都有新 epoch，旧权限不可恢复。Core generation 只由既有 durable lifecycle 决定。
+
+[DeliveryEvidence / deterministic fake transport](../../runtime/life_engine/living_host_evidence.py) 是 SIMULATED provider 边界，无网络与真实渠道参数。SENT/ACK 要有独立 provider HMAC evidence、message identity 和时间；ACK 是单独 provider event。CLAIMED 不代表 SENT 或 ACK。NO_REAL_SEND 恒为 true；本阶段 claim 与 fake transport 仅允许隔离测试 authority，生产入口可做结构化预览，不消费正式实例 reservation。
+
+可信管理面用 `authority.lifecycle_transition()` 串行 Core pause/target/restore 等 transition 与权限消费；它不定义业务 policy。消费前检查 Core paused/enabled 并撤销旧权限，resume 不恢复旧 permit。最后 registry generation 校验与内存消费还受既有 management barrier 保护；该锁在 transport 前释放，锁内不调用 Core，避免非重入 deadlock 与 DB/network 原子假象。
+
+可信部署是进程内/同 OS 用户信任边界：不能把任意 Python 执行权当作不可信模型沙箱。没有公开 JSON enrollment、identity attestation、凭据序列化或模型签发入口。真实 connector、受保护 IPC 与服务启动器必须另行授权；A3 提供可验证本地组件与 dispatch fence，未安装真实 Host plugin。现有 legacy adapter 不自动切换；未来部署必须让所有业务入口先经过 `authority.route`，LIVING_PENDING/ACTIVE 拒绝 legacy 回调，Living 异常没有 fallback。
+
+可信 Core runtime/session factory 的生命周期仍属安装服务：plugin reload 保持 Core incarnation；独立服务接管可经既有 Core factory 创建新 incarnation并走既有 UNKNOWN/reconciliation。authority epoch 本身不修改 Core generation、不隐藏 tick 或恢复 mutation。单独 authority 重新附着仍存活的 Core 时，同样撤销旧权限并保守冻结已有关联的 claim，直到可信协调；这不宣称 Core 已自动把 CLAIMED 改成 UNKNOWN。
