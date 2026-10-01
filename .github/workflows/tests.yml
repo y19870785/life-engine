@@ -12,7 +12,8 @@ jobs:
   unittest:
     name: ${{ matrix.os }} / Python ${{ matrix.python }}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 15
+    # A3 增加 fresh-process/crash/lifecycle 回归；Windows 基线已接近 15 分钟。
+    timeout-minutes: 25
     strategy:
       fail-fast: false
       matrix:

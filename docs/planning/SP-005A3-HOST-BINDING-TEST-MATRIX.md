@@ -1,5 +1,7 @@
 # SP-005A3 与 H0-RV Living 扩展测试设计
 
+**A3 v3 当前证据**：R1 Base `b78b849b1bfac1cbd28359cfb317fd1d4cb84402`。下文冻结设计与 GOV-DOC3 历史状态保持；实际可执行映射见本页末尾及 [A3 验证报告](../SP-005A3-VALIDATION.md)。SP-005A3 = PENDING_INDEPENDENT_REVIEW；全部新增证据为本地 SIMULATED / NO_REAL_SEND / NOT_REAL_HOST_VALIDATION。
+
 **2026-10-01 当前状态校准**：B1 Architecture / Implementation = DONE；合并后 canonical main 为 `f83d36c76fea6de1a31b449535d5df6cea3909b5`。合并与 exact main push CI 证据见 [B1 验证映射](../SP-005A3-B1-VALIDATION.md)。下文历史 Base 与冻结合同保留；A3 Host 层仍 BLOCKED，恢复实施须另行授权。历史 Hermes legacy 测试不升级 Living R01–R12 或未执行的 Host 子集。
 
 本表保留 [A2 架构](../architecture/SP-005A2-LIVING-HOST-BINDING.md)的验收设计；R1 Core 场景已有 [B0 实测映射](../SP-005A3-B0-VALIDATION.md)，其余 A3 Host 场景仍是未来设计。SP-005A2 = DONE；SP-005A2-R1 = DONE；R1 固定 Base：`861734b0c4179e56a3251a775d831cd246278d7f`。SP-005A3-B0 = DONE；B1 implementation 的历史固定 Base 为 `a27caf372a263932346d5b193ca35c92fea6f5dd`。SP-005A3-B1 Architecture = DONE；SP-005A3-B1 Implementation = DONE；SP-005A3 = BLOCKED（Host 层未完成，恢复实施须另行授权）。自动化只使用隔离 fixture/fake transport，不访问生产 Host；真实验证另行授权，默认 DRY_RUN / NO_REAL_SEND。
@@ -88,3 +90,50 @@ DATA_SCHEMA = 8；Schema Signature = SP-005A-living-runtime-v1；Prompt Template
 | R12 | 未来真实发送 | 另授权准确本人 target；分别保存 GENERATED/PREPARED/CLAIMED/SENT/ACK，缺 ACK 停 SENT |
 
 A2-R1 本轮 R01–R12 全部 NOT_EXECUTED。Hermes real Host validation = PENDING_REAL_HOST_VALIDATION；OpenClaw real Host validation = PENDING_REAL_HOST_VALIDATION；Full Private RP / H1 / H2 = BLOCKED。
+
+## A3 v3 可执行证据映射
+
+测试文件：[test_living_host_binding.py](../../tests/test_living_host_binding.py)。每一行的测试实际断言上述冻结矩阵结果，状态仅为本地 SIMULATED_PASS；Core 专项回归另见 A1/B0/B1 验证文件。B24 完整 C13–C16 与 B25 quiet/inbound 行为由冻结 A1 专项一并执行。
+
+| ID | executable test ID | expected result / evidence |
+| --- | --- | --- |
+| B01 | `test_b01_duplicate_tick_concurrent` | 重复 tick 不重复 reservation/Day |
+| B02 | `test_b02_generation_stale` | GENERATION_STALE，零 mutation |
+| B03 | `test_b03_install_instance_host_identity` | 安装/实例/Profile identity 不符拒绝 |
+| B04 | `test_b04_principal_provenance_forgery` | 伪造 principal/provenance 与 JSON identity 拒绝 |
+| B05 | `test_b05_wrong_closed_session` | wrong/closed session 拒绝，窄 tick 无 session |
+| B06 | `test_b06_world_fence_prepare_claim_replay` | prepare/claim/replay WORLD_STALE；fresh replay无重复 Attempt |
+| B07 | `test_b07_snapshot_revalidation` | snapshot 到期重验拒绝、8 KiB、seal不输出 |
+| B08 | `test_b08_reload_old_request` | plugin epoch 撤销旧 claim capability |
+| B09 | `test_b09_host_reload_preserves_business` | reload 不重置 Living tables/generation |
+| B10 | `test_b10_authority_restart_epochs` | authority 新 epoch；旧 capability 拒绝，真实 fresh process重启 |
+| B11 | `test_b11_restore_generation_all_credentials` | registry generation变化时 capability/recovery/permit全部拒绝，配合既有Core restore回归 |
+| B12 | `test_b12_prepare_replay_conflict_concurrent` | 并发prepare幂等、摘要冲突、512字节限制 |
+| B13 | `test_b13_claim_replay_concurrent` | 并发claim仅一次permit；replay/new invocation无第二Attempt |
+| B14 | `test_b14_process_commit_response_lost_recovery` | P1真实commit后os._exit；B1恢复关联，无execute/permit/send |
+| B15 | `test_b15_process_claimed_and_sent_crashes`；`test_b15_p4_fake_send_before_result_crash` | P3/P4真实退出；CLAIMED只协调，fake journal最多一次 |
+| B16 | `test_b16_sent_ack_are_distinct` | CLAIMED/SENT/ACK分开，restart不伪造ACK |
+| B17 | `test_b17_delivery_duplicate_submit_concurrent` | 并发delivery replay仅一条结果 |
+| B18 | `test_b18_untrusted_delivery_conflict` | 未验证evidence拒绝；可信冲突进入协调 |
+| B19 | `test_b19_all_legacy_paths_fenced` | 所有业务dispatch回调在副作用前拒绝，无fallback |
+| B20 | `test_b20_legacy_pending_explicit` | LEGACY显式路由继续；PENDING拒绝legacy |
+| B21 | `test_b21_rp_and_model_envelope_rejected` | RP目的/模型JSON/未知字段拒绝 |
+| B22 | `test_b22_no_real_send_preview` | NO_REAL_SEND=true，预览无claim，非隔离transport拒绝 |
+| B23 | `test_b23_inbound_stable_identity` | 稳定eventID/首次时间去重，摘要冲突与无ID拒绝 |
+| B24 | `test_b24_quota_no_self_cooldown` | 满额reservation可claim，自身cooldown不误阻，后续Intent受限 |
+| B25 | `test_b25_claim_target_change_concurrent` | target变更先行零Attempt；claim先行则permit撤销，零send |
+| B26 | `test_b26_metadata_corruption_missing_single_writer` | 双writer/损坏/丢失fail closed，不重建权限 |
+| B27 | `test_b27_capability_method_expiry_consume_bounds` | wrong method/expiry/duplicate consume/模型权限字段拒绝，repr脱敏 |
+| B28 | `test_b28_lifecycle_and_core_race_fence` | Core事务前World交错拒绝；reload/restart旧permit失效且generation不变 |
+| B29 | `test_b29_gateway_config_identity_bound` | 相同agent/workspace不同Gateway/config拒绝 |
+| B30 | `test_b30_status_bounds_cursor` | 默认20/上限100/游标CAS/120项脱敏分页 |
+| B31 | `test_b31_prompt_template_unchanged` | Schema8/Signature/Prompt v1，纯structured snapshot |
+| B32 | `test_b32_reload_claimed_requires_reconciliation` | reload后未完成CLAIMED冻结；Core state不冒充UNKNOWN |
+| B33 | `test_b33_result_only_after_session_closed` | session关闭后独立collector可record result，无claim权限 |
+| B34 | `test_b34_permit_duplicate_concurrent_and_revoked` | permit并发consume最多一次，失效权限不发消息 |
+
+B06_CORE_FENCE_PASS / B28_CORE_FENCE_PASS / B14_CORE_RECOVERY_PASS 继续保留。完整本地 Host 证据为 B06_SIMULATED_PASS / B14_SIMULATED_PASS / B28_SIMULATED_PASS；不代表真实 connector 或生产服务已验收。B28 同时覆盖冻结的 Core transaction race 与本次任务书追加的 Host lifecycle。
+
+B1-08 的 Host 子集由 B14/P1、B15/P3/P4 与 before-claim subprocess 映射；B1-09 的 Host 子集由 `test_b1_09_recovery_capability_never_execution`、`test_recovery_reload_barrier_and_no_privilege_upgrade` 映射。只有本地 Host 子集 SIMULATED_PASS，B1 原 Core 标签不修改，真实 Host R01–R12 仍 NOT_EXECUTED。
+
+并发补充：`test_capability_concurrent_consume_once`；`test_lifecycle_races_claim_reload_restart`；`test_claim_authority_restart_race`；`test_recovery_reload_barrier_and_no_privilege_upgrade`。permit 参数/expiry/authority restart：`test_permit_wrong_fields_expired_and_authority_restart`。metadata无业务真源：`test_metadata_contains_only_identity_and_missing_cannot_reinitialize`。JSON上限：`test_response_and_envelope_bounds`。
