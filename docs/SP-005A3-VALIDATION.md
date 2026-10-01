@@ -1,8 +1,18 @@
 # SP-005A3 v3 — Living Host Binding 验证报告
 
+## CURRENT CANONICAL STATE — A3 已合并
+
+SP-005A3 = DONE；canonical main `eedc32b719336ba063b99da95eac4e2b6a56c0c5`，PR #34 Squash Merge，exact main push CI #36847806554 四矩阵 SUCCESS，已独立核验。B01-B34 = SIMULATED_PASS；B1-08_CORE_PASS / B1-09_CORE_PASS 保留。真实 Hermes/OpenClaw 验证仍 PENDING_REAL_HOST_VALIDATION；P1 未授权，H1/H2/Full Private RP BLOCKED。未来分层计划见 [HLV0](architecture/SP-005A4-HERMES-LIVING-VALIDATION.md)；本轮 NO_REAL_HOST_OPERATION = true / NO_REAL_SEND = true。
+
+## HISTORICAL — 原冻结架构 / Draft 实施与验证记录
+
+以下旧状态、原 Base 和“当前”表述指当时；技术合同、测试计数与证据原样保留，不覆盖顶部状态。
+
 SP-005A3 = PENDING_INDEPENDENT_REVIEW；SP-005A3-B0 = DONE；SP-005A3-B1 Architecture = DONE；SP-005A3-B1 Implementation = DONE。审核前不转 Ready、不 Merge、不开始下一阶段。
 
 ## 基线与代码范围
+
+> HISTORICAL：本节保留当时状态与证据；当前状态以顶部 CURRENT CANONICAL STATE 为准。
 
 R1 唯一 Base：`b78b849b1bfac1cbd28359cfb317fd1d4cb84402`。分支：`feat/sp-005a3-living-host-binding-v3`。创建时 origin/main = HEAD = merge-base = Base，worktree clean。Base 直接 parent 是 `f83d36c76fea6de1a31b449535d5df6cea3909b5`，GOV-DOC3 仅文档变更已保留。[main push CI 36833987594](https://github.com/y19870785/life-engine/actions/runs/36833987594)：push/main/exact Base/completed/success，Ubuntu / Windows × Python 3.11 / 3.12 四矩阵 SUCCESS。
 
@@ -22,6 +32,8 @@ CI [tests.yml](../.github/workflows/tests.yml) 仅将 job timeout 从 15 调整�
 
 ## Authority、路由与 metadata
 
+> HISTORICAL：本节保留当时状态与证据；当前状态以顶部 CURRENT CANONICAL STATE 为准。
+
 Binding Authority 仅由可信本地部署调用，不提供模型 tool/JSON enrollment、身份签发、HMAC 或 raw capability 输出。Owner / Scope / install / instance /完整 Host identity 来自显式可信注册；安装位置摘要进一步防止复制目录后复用旧 metadata。身份字符串只是注册断言，真实 Hermes/OpenClaw 安装 attestation、IPC 与服务启动器不在本阶段。信任边界与既有 Principal 一样，为本地可信代码 / 同 OS 用户；任意 Python 或同用户恶意进程不属于模型隔离区。
 
 同安装 lease 跨进程锁定，metadata 目录另有生命周期单写者锁。Windows 用当前 SID 的受保护 DACL，POSIX 目录 0700 / 文件 0600。secret 单独文件、随机 32 bytes，不进入 Git、Prompt、transcript、普通日志、Living DB 或业务 fixture。自动化仅使用独立 deterministic test key。metadata 限 1 MiB，checksum/version/字段集合损坏或丢失立即拒绝；已有 enrollment marker/secret 时不重新初始化缺失 metadata。
@@ -31,6 +43,8 @@ metadata 只保存身份/Owner/Scope/target 的注册映射、routing revision/m
 routing mode 仅 LEGACY / LIVING_PENDING / LIVING_ACTIVE，从校验后的可信 metadata 读取。已 enrolled 的注册默认 PENDING；未 enrolled 注册可 LEGACY。ACTIVE 需要已存在的 Core enrollment 且 target 一致。`route(callback)` 在任何 legacy 回调前 fence；PENDING/ACTIVE 返回 LIVING_HANDOFF_REQUIRED，不能 fallback。LEGACY 另校验 Core 未 enrollment，防止路由 metadata 与 Core 注册不一致时产生副作用。尚未给真实插件接线；所有未来真实业务入口必须经过同一 dispatcher。
 
 ## Lifecycle 与 capability
+
+> HISTORICAL：本节保留当时状态与证据；当前状态以顶部 CURRENT CANONICAL STATE 为准。
 
 每次 authority start 新 `binding_runtime_epoch`，不持久化复用；每次 plugin load/reload 新 `plugin_epoch`。reload 清空旧 capability、permit 与 snapshot handle，不创建 Core generation，不改 Day/budget/cooldown/Intent/Attempt。存在未决 claim 时只冻结执行路径并要求 reconciliation，不声称 Core 已将 CLAIMED 自动改为 UNKNOWN。authority 重启不恢复旧 permit，旧 capability/epoch 拒绝，历史 claim correlation 要求 trusted continuation；独立服务接管 Core incarnation 使用既有可信 Core factory/恢复流程，不藏在只读 recovery 中。
 
@@ -43,6 +57,8 @@ recovery-only capability 独立角色与方法 allowlist，只用于 recover_ope
 HostIdentityEnvelope 为受信不可变类型，带 seal；session-bearing identity 包含 session_id / writer_epoch / world_revision / runtime_id / generation / purpose / viewer，以及 Principal / Scope / provenance。原始 JSON、自报 Owner、转发/UNKNOWN provenance 不能代替可信封套。序列化封套 <= 8 KiB；Facade 完整响应 <= 16 KiB，超限 fail closed。
 
 ## Facade 与外部副作用
+
+> HISTORICAL：本节保留当时状态与证据；当前状态以顶部 CURRENT CANONICAL STATE 为准。
 
 - `tick`：窄 scheduler context → Core tick，只返回结构化结果；不调模型/transport，不签 permit。
 - `query_context`：仅 SOUL_RESPONSE → bounded LivingContextSnapshot；seal 和 revalidation handle 留 authority。无 PromptSnapshot 拼装、RP 注入、Story/Memory/Lore 修改。
@@ -65,6 +81,8 @@ NO_REAL_SEND = true，本任务没有关闭。正式实例默认只作结构化�
 
 ## 自动验收与恢复证据
 
+> HISTORICAL：本节保留当时状态与证据；当前状态以顶部 CURRENT CANONICAL STATE 为准。
+
 [B01–B34 executable mapping / expected result](planning/SP-005A3-HOST-BINDING-TEST-MATRIX.md#a3-v3-可执行证据映射)全部有实际 unittest。Host 专项 46 tests，结果 SIMULATED_PASS。B06 / B14 / B28 的完整本地 Host 子集通过；原 B06_CORE_FENCE_PASS / B14_CORE_RECOVERY_PASS / B28_CORE_FENCE_PASS 与 B1-08_CORE_PASS / B1-09_CORE_PASS 原样保留。
 
 B14 两个合同分别成立：fresh valid session + 同 operation mutation replay 返回既有 receipt、execute=false、无第二 Attempt；authority 关联丢失时只使用原 exact identity/digest 经 B1 read-only projection 恢复。后者 COMMITTED / historical CLAIMED 不表示执行权，响应中没有 execute/permit，业务表前后不变，fake journal无新增。
@@ -86,6 +104,8 @@ B1-08/B1-09 Host authority/capability 子集为 SIMULATED_PASS，仅在本轮测
 本地实测：Windows / Python 3.12.10 第一轮完整 unittest 441 tests，440 passed、1 skipped、0 failures/errors，383.529s；skip 为既有 Unix-only symlink 测试。日志逐项确认 A1 48 IDs 对应 52 tests PASS、B0 10 tests PASS、B1 16 tests PASS。后续追加 generation barrier / Owner pause 的两个回归，Host 专项 46 tests 全部 PASS（63.698s）；最终完整套件计数为 443，结果及 exact Head 四矩阵记录于 PR 交付报告，不冒充上述第一轮计数。5 份变更文档的 58 个本地链接/锚点通过，B01–B34 executable ID 映射及 Host source boundary 检查通过。不用本地环境替代 exact Head CI。
 
 ## 验证门禁与后续状态
+
+> HISTORICAL：本节保留当时状态与证据；当前状态以顶部 CURRENT CANONICAL STATE 为准。
 
 提交前必须 git diff --check、文档本地链接/锚点及 executable test ID 映射校验通过；Draft 后 exact Head CI 为 Ubuntu / Python 3.11、Ubuntu / Python 3.12、Windows / Python 3.11、Windows / Python 3.12 全部 SUCCESS。PR 为新的 OPEN / Draft / NOT MERGED / Auto Merge OFF；Head/Base、changed files 与 clean worktree在交付时再次核验。
 

@@ -1,5 +1,13 @@
 # SP-005A2 — Living Runtime Host Binding 架构
 
+## CURRENT CANONICAL STATE — A3 已合并
+
+SP-005A3 = DONE；canonical main `eedc32b719336ba063b99da95eac4e2b6a56c0c5`，PR #34 Squash Merge，exact main push CI #36847806554 四矩阵 SUCCESS，已独立核验。B01-B34 = SIMULATED_PASS；B1-08_CORE_PASS / B1-09_CORE_PASS 保留。真实 Hermes/OpenClaw 验证仍 PENDING_REAL_HOST_VALIDATION；P1 未授权，H1/H2/Full Private RP BLOCKED。未来分层计划见 [HLV0](SP-005A4-HERMES-LIVING-VALIDATION.md)；本轮 NO_REAL_HOST_OPERATION = true / NO_REAL_SEND = true。
+
+## HISTORICAL — 原冻结架构 / Draft 实施与验证记录
+
+以下旧状态、原 Base 和“当前”表述指当时；技术合同、测试计数与证据原样保留，不覆盖顶部状态。
+
 **A3 v3 当前实施状态（2026-10-01）**：统一 Base `b78b849b1bfac1cbd28359cfb317fd1d4cb84402`，已保留 GOV-DOC3 文档校准。A3 Host-neutral implementation 与自动验收见 [A3 验证报告](../SP-005A3-VALIDATION.md)；SP-005A3 = PENDING_INDEPENDENT_REVIEW，B0 / B1 Architecture / B1 Implementation = DONE。下文未实现、BLOCKED 和 deferred 描述是 A2/B1 冻结及 GOV-DOC3 时点的历史状态，不覆盖本段当前状态；冻结技术合同仍有效。P1 未授权，真实 Host 验收 PENDING_REAL_HOST_VALIDATION，Full Private RP / H1 / H2 BLOCKED。历史 Hermes 证据不升级为 Living Host PASS、ACK 或 Organic Contact real-send PASS。
 
 **2026-10-01 当前状态校准**：B1 Architecture / Implementation = DONE；合并后 canonical main 为 `f83d36c76fea6de1a31b449535d5df6cea3909b5`。合并与 exact main push CI 证据见 [B1 验证映射](../SP-005A3-B1-VALIDATION.md)。下文历史 Base 与冻结合同保留；A3 Host 层仍 BLOCKED，恢复实施须另行授权。历史 Hermes legacy 测试不升级 Living R01–R12 或未执行的 Host 子集。
@@ -9,6 +17,8 @@
 DATA_SCHEMA = 8；Schema Signature = SP-005A-living-runtime-v1；Prompt Template = SP-004K-prompt-v1。A2 / R1 架构 PR 只修改文档，不改变 [A0 + R1](SP-005A-LIVING-RUNTIME.md) 的状态机、预算、迁移或恢复规则。现状依据 [CURRENT_HOST_BINDING_AUDIT](SP-005A2-CURRENT-HOST-BINDING-AUDIT.md)。
 
 ## 1. 真源与四层边界
+
+> HISTORICAL：本节保留当时状态与证据；当前状态以顶部 CURRENT CANONICAL STATE 为准。
 
 ```text
 Host Trigger Layer：tick / Owner action / inbound / context / execution / result
@@ -25,6 +35,8 @@ Host scheduler 只触发 tick，不持有 activity/contact schedule、预算、c
 只服务 SOUL continuity；拒绝 RP Living injection、RP private history、跨 World contact、Bridge bypass。A2 的局部联系执行合同不等于整个 Host 的 final-output transaction，不能约束所有原生模型回复、persistence/replay/delivery/stream。
 
 ## 2. Trusted binding 与身份封套
+
+> HISTORICAL：本节保留当时状态与证据；当前状态以顶部 CURRENT CANONICAL STATE 为准。
 
 绑定由操作员在受信本地管理面显式建立：安装标识、instance、官方 Host 来源、Profile/Agent、认证 Owner、既有 ACTIVE SOUL Scope、明确 target。不得自动创建 Soul World，不从 workspace 或 agent 名猜 Scope，不接受正文、模型 tool 参数或手工 probe JSON 作为凭据。
 
@@ -93,6 +105,8 @@ Operation receipt recovery 则须先重新取得当前 World revision 对应的 
 
 ## 3. LivingHostFacade 与权限表
 
+> HISTORICAL：本节保留当时状态与证据；当前状态以顶部 CURRENT CANONICAL STATE 为准。
+
 插件只能使用 facade 的公开有界合同，不调用 repository SQL、私有 `_root` 等方法。模型可传内容与由服务选择的对象引用；所有权限字段来自封套。Facade JSON 最大 16 KiB，context payload 继承 8 KiB；拒绝超限输入，status 默认 20 条、上限 100 条，用绑定 revision 的游标分页；不输出 secrets、全历史或 raw metadata。
 
 公共响应：`contract_version, invocation_id, command_executed, result, error_code, retry_disposition, binding_revision, generation, living_revision`，按方法附最少内容。`command_executed=true` 不是 validation PASS，也不等于可发送。ERROR 明确携带原因；只有 claim 首次成功返回 execute=true。未知字段/枚举拒绝，不降级 legacy。
@@ -111,6 +125,8 @@ enroll、pause/resume、reconcile、timezone/target/policy update、显式 follo
 
 ## 4. Tick 与 inbound
 
+> HISTORICAL：本节保留当时状态与证据；当前状态以顶部 CURRENT CANONICAL STATE 为准。
+
 tick 的 invocation ID 由 scheduler event 构造，producer namespace 隔离 Host/install/binding；同一触发 retry 沿用 ID。不同 ID 的重复 tick 仍靠 Core decision natural key、reservation 与单事务防重。RECOVERY_IN_PROGRESS 可按有界退避触发下一批新 tick，不能在恢复前生成内容或发送；RECONCILIATION_REQUIRED 必须进入 Owner 协调流程，不能映射 SILENT。
 
 RESERVED 仅返回 intent_id/reason reference/revision/expiry，由 authority 建立后续 preparation ticket。不接受 Host 自己的预算计数、时间表或随机选择。Core trusted clock 为受信 aware UTC clock；received_at 是来源证据，不用它替代当前执行时间。
@@ -119,6 +135,8 @@ inbound dedupe key 为 `(install_id, host_identity, channel/account, external_ev
 
 ## 5. Context 与 Prompt 模板决定
 
+> HISTORICAL：本节保留当时状态与证据；当前状态以顶部 CURRENT CANONICAL STATE 为准。
+
 Living snapshot 仅允许 SOUL_RESPONSE；必须核 principal、Soul viewer、ACTIVE Scope、OPEN Session、writer epoch、world revision、generation、Core runtime_id、Living/policy revision 与 valid_until。不能用于 Roleplay，也不是 permanent memory，不自动写 Story/Memory/Lore。Host reload 撤销旧 handle；重新 query 并在使用前 revalidate，不接受 Host 缓存对象自我验证。当前进程 seal 不可跨服务进程搬运，序列化副本不成为凭据。
 
 正式加入 PromptSnapshot 需要新 section 的顺序、预算/裁剪、authority 和版本失效规则。结论：**PROMPT_TEMPLATE_UPGRADE_REQUIRED**。提出独立候选 SP-005A2-P1，模板候选 `SP-005A-living-prompt-v1`，尚未授权。A2 不升级 `SP-004K-prompt-v1`；A3 的 context adapter 仅结构化 query/validate 与 dry-run 展示，不实际拼入模型 prompt。不能通过 legacy prependContext、普通 tool 输出自动注入或伪装 Memory 字段绕过此门禁。
@@ -126,6 +144,8 @@ Living snapshot 仅允许 SOUL_RESPONSE；必须核 principal、Soul viewer、AC
 未来经单独审核的拼装需在模型提交前重新 query/revalidate 失效 snapshot；模型返回后的晚到输出约束仍是 Host 的独立 capability 缺口，不由 snapshot 解决。
 
 ## 6. Preparation、Claim 与外部边界
+
+> HISTORICAL：本节保留当时状态与证据；当前状态以顶部 CURRENT CANONICAL STATE 为准。
 
 prepare_contact 仅存内容，不改 reason/target/quota、不新建 Intent、不登记 SENT/ACK。authority 在准备前检查 ticket 的 session/epoch/expiry/target/current binding；旧 material retry 用相同 operation+digest，变更 payload 报 IDEMPOTENCY_CONFLICT。Core 的单事务 revision CAS 继续有效；不能因 CAS 冲突静默重写内容。
 
@@ -145,6 +165,8 @@ claim 响应只能送受信执行器，不能返回模型。重放 execute=false
 A3 默认 DRY_RUN / NO_REAL_SEND：默认不注册真实 transport。普通 dry-run 只预览，不 claim 正式实例；需要验证 CLAIMED/crash 时使用独立测试 instance + fake transport，可消耗测试 reservation，输出 SIMULATED，不产生真实 SENT/ACK 证据。没有真实发送授权时不能为了 UI 好看先 claim 正式 Intent 再无限悬置。
 
 ## 7. DeliveryEvidence 与崩溃
+
+> HISTORICAL：本节保留当时状态与证据；当前状态以顶部 CURRENT CANONICAL STATE 为准。
 
 DeliveryEvidence v1：必填 attempt_id、绑定的 target、state、source、external event ID、observed_at（受信 UTC）、provider evidence reference/digest、validator identity/version。SENT/ACK 另必填 message ID、sent_at；ACK 需独立受信渠道确认及其 observed_at。received_at 可记录 collector 收到证据的时间；不能伪装为渠道发送时间。非发送失败可无 message ID/sent_at。scope/generation 从 authority 的 Attempt 关联取，不由证据正文授权。
 
@@ -167,6 +189,8 @@ validator 必须由受信部署注册，模型字符串、手工 JSON、工具�
 
 ## 8. Legacy 共存与显式切换
 
+> HISTORICAL：本节保留当时状态与证据；当前状态以顶部 CURRENT CANONICAL STATE 为准。
+
 | 实例状态 | 唯一 Host 路由 |
 | --- | --- |
 | 未 enrollment | 保持 legacy context/wake；Schema 8 本身不切路 |
@@ -179,6 +203,8 @@ A3 分发必须在任何 legacy 副作用前检查 enrollment，阻断 enrolled 
 
 ## 9. Reload、restart、restore 与错误
 
+> HISTORICAL：本节保留当时状态与证据；当前状态以顶部 CURRENT CANONICAL STATE 为准。
+
 | 事件 | Host/authority 行为 | Core 真源 |
 | --- | --- | --- |
 | plugin/Gateway reload | plugin/binding epoch 更新，撤销 token、取消旧 context handles、处理未决 claim、重做身份/capability probe | 不自动改变 generation；Day/预算/choice/follow-up 不重建 |
@@ -188,6 +214,8 @@ A3 分发必须在任何 legacy 副作用前检查 enrollment，阻断 enrolled 
 wrong instance、agent/profile、Scope、principal、Session、writer epoch、generation、target、Attempt、receipt、clock/corruption 均显式 ERROR；不转 SILENT、不 fallback、不无限重试。RECONCILIATION_REQUIRED 是可识别阻塞结果（有 error_code），不是正常静默。普通 quiet/budget 抑制才是 SILENT。Owner 暂停与撤销阻止尚未开始的副作用，但不能追回已经在网络中的请求；该限制必须如实记录。
 
 ## 10. Host Capability Matrix
+
+> HISTORICAL：本节保留当时状态与证据；当前状态以顶部 CURRENT CANONICAL STATE 为准。
 
 AVAILABLE 表示在固定 Base 有该层代码/模拟契约；PARTIAL 表示只覆盖部分条件；MISSING 表示当前接入没有受信实现；BLOCKED 表示禁止使用；NOT_REQUIRED 表示该操作不需要。Host 两列不是实时上游版本认证，真实版本仍须 H0-RV 验证。
 
@@ -214,6 +242,8 @@ OpenClaw：Gateway/config/profile + agentId/workspace 一并绑定，不能选�
 
 ## 11. 后续授权和验收
 
+> HISTORICAL：本节保留当时状态与证据；当前状态以顶部 CURRENT CANONICAL STATE 为准。
+
 SP-005A2-R1 = DONE；SP-005A3-B0 = DONE，二者已完成合并与 exact main push CI。B1 implementation 的历史固定 Base 为 `a27caf372a263932346d5b193ca35c92fea6f5dd`。A3 发现 durable operation recovery 缺少公开只读查询，已停止实施；[B1 架构修订](SP-005A3-B1-OPERATION-RECOVERY-PROJECTION.md)冻结独立 authority-bound recovery 权限、exact identity / fingerprint 校验与无执行资格的投影。SP-005A3-B1 Architecture = DONE；SP-005A3-B1 Implementation = DONE；SP-005A3 = BLOCKED（Host 层未完成，恢复实施须另行授权）。架构与 implementation 已均为 DONE，恢复 A3 仍须重新授权，默认从新 canonical main 建立 v3；A3 v2 保持 clean，不继续实现。
 
 A3 范围仍为受信本地 authority/facade、稳定绑定与 token、tick contract、结构化 context adapter、prepare/claim、delivery evidence adapter interface、enrolled legacy-path fence、fake transport / NO_REAL_SEND sandbox。A3 不默认改 Prompt，不实现真实渠道 validator、真实发送、媒体/语音、H1/H2；若需要 Schema 或其它冻结 Core 合同变化，仍须停止申请独立架构修订。R1 不需要 Schema 9，也不需要 Prompt Template 升级；DATA_SCHEMA = 8、Schema Signature = SP-005A-living-runtime-v1、Prompt Template = SP-004K-prompt-v1 保持不变。正式 Living Prompt 接入仍为 PROMPT_TEMPLATE_UPGRADE_REQUIRED = YES；SP-005A2-P1 = NOT AUTHORIZED。
@@ -223,6 +253,8 @@ Prompt 接入候选 SP-005A2-P1 未授权；真实 Host 接线、真实发送需
 Hermes real Host validation = PENDING_REAL_HOST_VALIDATION；OpenClaw real Host validation = PENDING_REAL_HOST_VALIDATION；Full Private RP = BLOCKED；H1 = BLOCKED；H2 = BLOCKED。A2 文档与 CI 通过不改变这些门禁。
 
 ## A3 v3 implementation 映射
+
+> HISTORICAL：本节保留当时状态与证据；当前状态以顶部 CURRENT CANONICAL STATE 为准。
 
 Host 入口是 [LivingHostFacade](../../runtime/life_engine/living_host_facade.py)，由 [BindingAuthority](../../runtime/life_engine/living_host_binding.py) 签发封套与独立 capability。metadata 使用独立的 [BindingMetadata](../../runtime/life_engine/living_host_metadata.py)，不修改 Living Schema。per-install 进程锁与 authority mutex 串行化路由变更、签发/消费、claim、reload 和本地 fake side effect；Core 的管理/DB 锁在外部边界之前结束。
 

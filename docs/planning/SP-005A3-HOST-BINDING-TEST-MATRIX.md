@@ -1,5 +1,21 @@
 # SP-005A3 与 H0-RV Living 扩展测试设计
 
+## CURRENT CANONICAL STATE — SP-005A4-HLV0（2026-10-01）
+
+事实基线：`eedc32b719336ba063b99da95eac4e2b6a56c0c5`；[PR #34](https://github.com/y19870785/life-engine/pull/34) 已 Squash Merge，parent 为 `b78b849b1bfac1cbd28359cfb317fd1d4cb84402`；[exact main push CI #36847806554](https://github.com/y19870785/life-engine/actions/runs/36847806554) 为 push / main / exact SHA、completed / success，Ubuntu / Windows × Python 3.11 / 3.12 全部 SUCCESS，并经独立核验。
+
+SP-005A3 = DONE；SP-005A3-B0 = DONE；SP-005A3-B1 Architecture / Implementation = DONE。A3 已实现 Host-neutral Binding Authority、protected metadata、trusted routing、authority/plugin lifecycle、capability vault、recovery-only capability、HostIdentityEnvelope、LivingHostFacade、one-time execution permit、DeliveryEvidence、fake transport、legacy fence 与 crash recovery。B01-B34 = SIMULATED_PASS；B1-08_CORE_PASS / B1-09_CORE_PASS 原样保留，不升级历史证据。
+
+DATA_SCHEMA = 8；Schema Signature = SP-005A-living-runtime-v1；Prompt Template = SP-004K-prompt-v1；SP-005A2-P1 = NOT AUTHORIZED；PROMPT_TEMPLATE_UPGRADE_REQUIRED = YES；NO_REAL_SEND = true。Hermes real Host validation = PENDING_REAL_HOST_VALIDATION；OpenClaw real Host validation = PENDING_REAL_HOST_VALIDATION；Full Private RP = BLOCKED；H1 = BLOCKED；H2 = BLOCKED。
+
+SP-005A4-HLV0 = PENDING_INDEPENDENT_REVIEW，仅冻结架构、验证计划与治理文档。NO_REAL_HOST_OPERATION = true。本轮没有执行 Hermes、plugin load/reload、Gateway restart、Living mutation、permit consume、fake send、real send 或 cron。H-LV1～H-LV3 是未来分阶段授权的计划，均 NOT_EXECUTED / NOT_AUTHORIZED；H-LV4 = DEFINED_ONLY / NOT_AUTHORIZED。历史 2026-09-30 环境仅为 HISTORICAL_EVIDENCE，不能默认复用。
+
+未来真实验证见 [HLV matrix](SP-005A4-HERMES-LIVING-VALIDATION-MATRIX.md)。
+
+## HISTORICAL — A2 / B0 / B1 / A3 Draft 阶段设计与状态
+
+以下旧状态仅指对应历史阶段；冻结合同和测试预期保留，不作为当前缺失实现声明。
+
 **A3 v3 当前证据**：R1 Base `b78b849b1bfac1cbd28359cfb317fd1d4cb84402`。下文冻结设计与 GOV-DOC3 历史状态保持；实际可执行映射见本页末尾及 [A3 验证报告](../SP-005A3-VALIDATION.md)。SP-005A3 = PENDING_INDEPENDENT_REVIEW；全部新增证据为本地 SIMULATED / NO_REAL_SEND / NOT_REAL_HOST_VALIDATION。
 
 **2026-10-01 当前状态校准**：B1 Architecture / Implementation = DONE；合并后 canonical main 为 `f83d36c76fea6de1a31b449535d5df6cea3909b5`。合并与 exact main push CI 证据见 [B1 验证映射](../SP-005A3-B1-VALIDATION.md)。下文历史 Base 与冻结合同保留；A3 Host 层仍 BLOCKED，恢复实施须另行授权。历史 Hermes legacy 测试不升级 Living R01–R12 或未执行的 Host 子集。
@@ -7,6 +23,8 @@
 本表保留 [A2 架构](../architecture/SP-005A2-LIVING-HOST-BINDING.md)的验收设计；R1 Core 场景已有 [B0 实测映射](../SP-005A3-B0-VALIDATION.md)，其余 A3 Host 场景仍是未来设计。SP-005A2 = DONE；SP-005A2-R1 = DONE；R1 固定 Base：`861734b0c4179e56a3251a775d831cd246278d7f`。SP-005A3-B0 = DONE；B1 implementation 的历史固定 Base 为 `a27caf372a263932346d5b193ca35c92fea6f5dd`。SP-005A3-B1 Architecture = DONE；SP-005A3-B1 Implementation = DONE；SP-005A3 = BLOCKED（Host 层未完成，恢复实施须另行授权）。自动化只使用隔离 fixture/fake transport，不访问生产 Host；真实验证另行授权，默认 DRY_RUN / NO_REAL_SEND。
 
 ## A3 自动化合同矩阵
+
+> HISTORICAL：本节保留当时状态与证据；当前状态以顶部 CURRENT CANONICAL STATE 为准。
 
 | 编号 | 输入 / 故障 | 必须断言 |
 | --- | --- | --- |
@@ -49,11 +67,15 @@ A3 必须逐项映射具体测试，保留 A1 的 48 项回归。A2 不添加空
 
 ## B1 Durable Operation Recovery 未来测试设计
 
+> HISTORICAL：本节保留当时状态与证据；当前状态以顶部 CURRENT CANONICAL STATE 为准。
+
 [B1 架构与 B1-01～B1-10 计划](../architecture/SP-005A3-B1-OPERATION-RECOVERY-PROJECTION.md)冻结 exact identity、原 Core fingerprint、授权先于 lookup、有界 typed receipt 和零 mutation。Core 实测名称见 [B1 验证映射](../SP-005A3-B1-VALIDATION.md)。B1-01～B1-07 / B1-10 已完成 Core 自动测试；B1-08_CORE_PASS（真实子进程 commit 后退出再只读恢复），B1-09_CORE_PASS（权限类型与委托隔离）。Host epoch/token、revoke/reload、transport 部分 DEFERRED_TO_A3 / NOT_EXECUTED，不能标完整 B1-08/B1-09 PASS。
 
 B14 的 B0 子集是 fresh trusted mutation context + 原 operation replay → execute=false；B1 增加 authority crash + lost association → 独立只读查询 → 无执行资格。两者不是同一个接口。B06_CORE_FENCE_PASS、B28_CORE_FENCE_PASS、B14_CORE_RECOVERY_PASS 保持；不得升级成完整 B06/B28/B14 PASS。A3 必须等待 B1 architecture 与 implementation 均 DONE 后重新授权。
 
 ## R1 Core fence 未来测试设计
+
+> HISTORICAL：本节保留当时状态与证据；当前状态以顶部 CURRENT CANONICAL STATE 为准。
 
 以下保留 R1-01～R1-06 冻结设计，现已在单独授权的 B0 中映射到真实测试并通过，见 [具体测试与证据边界](../SP-005A3-B0-VALIDATION.md)。仅 B06/B28/B14 的 Core 子集通过，不宣称完整 A3 PASS。所有带 session 的 LivingContext（包括 session-bound Owner action）均须先授权，再允许 receipt recovery 或 mutation；LivingTickContext 无 chat session，不受此 fence 影响。下列 fresh session 指重新取得当前受信授权上下文，保持原 operation 的 producer/principal/Scope/generation 关联；不得把 freshness 当成新 operation identity。
 
@@ -71,6 +93,8 @@ R1-03 应使用独立事务与明确同步点控制竞态顺序；R1-04/R1-05 �
 DATA_SCHEMA = 8；Schema Signature = SP-005A-living-runtime-v1；Prompt Template = SP-004K-prompt-v1。PROMPT_TEMPLATE_UPGRADE_REQUIRED = YES；SP-005A2-P1 = NOT AUTHORIZED。
 
 ## H0-RV Living 未来真实隔离矩阵
+
+> HISTORICAL：本节保留当时状态与证据；当前状态以顶部 CURRENT CANONICAL STATE 为准。
 
 各 Host 独立出报告；原始证据存仓库外并脱敏。先提供官方版本/checkout/package、Profile/Agent、Gateway（适用时）、测试 instance/Session、明确本人 target 和隔离证明。无安全环境记 NOT_EXECUTED，不重启生产服务。
 

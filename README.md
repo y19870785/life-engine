@@ -4,20 +4,30 @@
 
 Life Engine 是运行在已有 Hermes / OpenClaw Agent 旁边的持久状态与角色世界运行层。你继续使用原来的聊天渠道、模型和角色设定；它保存状态和待跟进话题，为主动联系提供依据，并为可恢复的 World 与隔离记忆提供底层 Runtime。
 
-> **v0.3 开发预览 · 当前状态（2026-10-01）**：SP-005A3-B1 Architecture / Implementation = **DONE**，新增受信、只读的 Core durable operation recovery 查询。完整 A3 Living Host Binding 仍 **BLOCKED**，等待剩余 Host 实施的新授权；B1 DONE 不代表 A3 DONE 或可生产使用。当前事实基线为 `f83d36c76fea6de1a31b449535d5df6cea3909b5`，见 [B1 验证与合并证据](docs/SP-005A3-B1-VALIDATION.md)、[Host 沙箱指南](docs/HOST-SANDBOX-TESTING.md)与[已知问题](docs/KNOWN-ISSUES.md)。
+> **v0.3 开发预览 · 当前状态（2026-10-01）**：SP-005A3 = **DONE**；Host-neutral Living Host Binding 已合并并通过 exact main push CI。B01–B34 证据仅为 SIMULATED_PASS，真实 Hermes/OpenClaw 验证仍 PENDING_REAL_HOST_VALIDATION。本轮 HLV0 只冻结未来验证协议，NO_REAL_HOST_OPERATION = true、NO_REAL_SEND = true。见 [A3 验证](docs/SP-005A3-VALIDATION.md)与 [HLV0 架构](docs/architecture/SP-005A4-HERMES-LIVING-VALIDATION.md)。
 
 | 能力 | 当前状态 |
 | --- | --- |
 | World Runtime、World Memory、Lore、Story、Prompt Runtime、Controlled Bridge、Character Card Import | **DONE**（Core Runtime） |
 | Soul Continuity Host Sandbox | **TESTABLE**（已有历史 Hermes 受控实测；整体真实 Host 验收仍 PENDING_REAL_HOST_VALIDATION） |
 | Living Core、Session World revision fence、只读 operation recovery | **DONE**（A1、B0、B1；Core 自动验证） |
-| A3 Living Host Binding | **BLOCKED**（authority、capability、facade、permit、完整 routing fence 尚未实现） |
+| A3 Living Host Binding | **DONE**（Host-neutral；B01-B34 = SIMULATED_PASS；真实 adapter 未实施） |
 | Full Private RP on Hermes | **BLOCKED**（官方 Host capability） |
 | Full Private RP on OpenClaw | **BLOCKED**（统一 final-output commit boundary） |
 
-2026-09-30，Life Engine 在 Hermes 0.21.3 的独立测试 Profile 中完成一次 canonical sandbox 综合评测。历史证据包括插件加载与实例绑定、Owner 识别与错误身份拒绝、Soul Continuity context、上一轮一次受控真实 Discord 文字发送的证据、综合评测本轮 Organic Contact 静默判定、持久性及备份/恢复；详见[脱敏历史记录](docs/validation/HERMES-COMPREHENSIVE-EVALUATION-2026-09-30.md)。一次发送不是自然 eligible organic contact 链路通过，边界仍为 **SENT / ACK UNKNOWN**。
+**HISTORICAL_EVIDENCE — 2026-09-30**：Life Engine 在 Hermes 0.21.3 的独立测试 Profile 中完成一次 canonical sandbox 综合评测。历史证据包括插件加载与实例绑定、Owner 识别与错误身份拒绝、Soul Continuity context、上一轮一次受控真实 Discord 文字发送的证据、综合评测本轮 Organic Contact 静默判定、持久性及备份/恢复；详见[脱敏历史记录](docs/validation/HERMES-COMPREHENSIVE-EVALUATION-2026-09-30.md)。一次发送不是自然 eligible organic contact 链路通过，边界仍为 **SENT / ACK UNKNOWN**。
 
 当前没有受信 ACK validator；Hermes / OpenClaw real Host validation 均为 **PENDING_REAL_HOST_VALIDATION**；H1/H2 与 Full Private RP 均 **BLOCKED**。DATA_SCHEMA = 8，Schema Signature = SP-005A-living-runtime-v1，Prompt Template = SP-004K-prompt-v1；SP-005A2-P1 = NOT AUTHORIZED，PROMPT_TEMPLATE_UPGRADE_REQUIRED = YES。
+
+## 当前 canonical 状态
+
+事实基线：`eedc32b719336ba063b99da95eac4e2b6a56c0c5`；[PR #34](https://github.com/y19870785/life-engine/pull/34) 已 Squash Merge，parent 为 `b78b849b1bfac1cbd28359cfb317fd1d4cb84402`；[exact main push CI #36847806554](https://github.com/y19870785/life-engine/actions/runs/36847806554) 为 push / main / exact SHA、completed / success，Ubuntu / Windows × Python 3.11 / 3.12 全部 SUCCESS，并经独立核验。
+
+SP-005A3 = DONE；SP-005A3-B0 = DONE；SP-005A3-B1 Architecture / Implementation = DONE。A3 已实现 Host-neutral Binding Authority、protected metadata、trusted routing、authority/plugin lifecycle、capability vault、recovery-only capability、HostIdentityEnvelope、LivingHostFacade、one-time execution permit、DeliveryEvidence、fake transport、legacy fence 与 crash recovery。B01-B34 = SIMULATED_PASS；B1-08_CORE_PASS / B1-09_CORE_PASS 原样保留，不升级历史证据。
+
+DATA_SCHEMA = 8；Schema Signature = SP-005A-living-runtime-v1；Prompt Template = SP-004K-prompt-v1；SP-005A2-P1 = NOT AUTHORIZED；PROMPT_TEMPLATE_UPGRADE_REQUIRED = YES；NO_REAL_SEND = true。Hermes real Host validation = PENDING_REAL_HOST_VALIDATION；OpenClaw real Host validation = PENDING_REAL_HOST_VALIDATION；Full Private RP = BLOCKED；H1 = BLOCKED；H2 = BLOCKED。
+
+SP-005A4-HLV0 = PENDING_INDEPENDENT_REVIEW，仅冻结架构、验证计划与治理文档。NO_REAL_HOST_OPERATION = true。本轮没有执行 Hermes、plugin load/reload、Gateway restart、Living mutation、permit consume、fake send、real send 或 cron。H-LV1～H-LV3 是未来分阶段授权的计划，均 NOT_EXECUTED / NOT_AUTHORIZED；H-LV4 = DEFINED_ONLY / NOT_AUTHORIZED。历史 2026-09-30 环境仅为 HISTORICAL_EVIDENCE，不能默认复用。
 
 ## 用起来是什么感觉？
 
@@ -79,11 +89,11 @@ Life Engine 检查状态、联系窗口和最近聊天
 
 ## 现在还没有什么？
 
-World Memory、Lore、Story、Prompt、受控 Bridge 和 Living 的 **Core Runtime 已完成**，但不会自动提取所有聊天、自动接入真实 Host 每轮对话，也没有语义向量检索。Hermes / OpenClaw 的 Full Private RP Host Adapter 和所需的 final-output commit 能力尚未完成；原始 Soul/RP 历史隔离、晚到回复阻断、首次持久化／重放／发送／授权前流式输出的统一授权均未通过完整 Host 验收。A3 剩余 Host Binding、P1 正式 Prompt 接入、语音生命周期、完整真实 Host 验收、ComfyUI 与真实渠道闭环，以及资产仓库／Definition 升级仍属后续工作。B1 查询只恢复提交事实，不重试、不协调、不授权发送。
+World Memory、Lore、Story、Prompt、受控 Bridge 和 Living 的 **Core Runtime 已完成**，但不会自动提取所有聊天、自动接入真实 Host 每轮对话，也没有语义向量检索。Hermes / OpenClaw 的 Full Private RP Host Adapter 和所需的 final-output commit 能力尚未完成；原始 Soul/RP 历史隔离、晚到回复阻断、首次持久化／重放／发送／授权前流式输出的统一授权均未通过完整 Host 验收。真实 Hermes/OpenClaw Living Adapter 与验证、P1 正式 Prompt 接入、语音生命周期、完整真实 Host 验收、ComfyUI 与真实渠道闭环，以及资产仓库／Definition 升级仍属后续工作。B1 查询只恢复提交事实，不重试、不协调、不授权发送。
 
 ## 开始使用
 
-先选择测试模式：**模式 A：Host Sandbox / Soul Continuity，当前允许受控测试；模式 B：Full Private RP，当前不得在生产启用。** 具体隔离、停止门和验收清单见 [Hermes / OpenClaw Host 沙箱测试指南](docs/HOST-SANDBOX-TESTING.md)。你需要一个能正常使用的 Hermes 或 OpenClaw Agent，以及 **Python 3.11 或更新版本**。Python 运行部分没有第三方依赖。照片功能另需可用的 ComfyUI API 身份工作流，缺少时可以先关闭照片。
+下列 legacy 安装指南保留为另行授权的通用说明；不构成 HLV1～HLV4 权限。本轮不得安装、调用或重启 Host。先选择测试模式：**模式 A：Host Sandbox / Soul Continuity，当前允许受控测试；模式 B：Full Private RP，当前不得在生产启用。** 具体隔离、停止门和验收清单见 [Hermes / OpenClaw Host 沙箱测试指南](docs/HOST-SANDBOX-TESTING.md)。你需要一个能正常使用的 Hermes 或 OpenClaw Agent，以及 **Python 3.11 或更新版本**。Python 运行部分没有第三方依赖。照片功能另需可用的 ComfyUI API 身份工作流，缺少时可以先关闭照片。
 
 ### 1. 让本机 Agent 阅读接入说明
 

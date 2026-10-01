@@ -1,6 +1,32 @@
 # v0.3 验证记录
 
+## CURRENT CANONICAL STATE — SP-005A4-HLV0（2026-10-01）
+
+事实基线：`eedc32b719336ba063b99da95eac4e2b6a56c0c5`；[PR #34](https://github.com/y19870785/life-engine/pull/34) 已 Squash Merge，parent 为 `b78b849b1bfac1cbd28359cfb317fd1d4cb84402`；[exact main push CI #36847806554](https://github.com/y19870785/life-engine/actions/runs/36847806554) 为 push / main / exact SHA、completed / success，Ubuntu / Windows × Python 3.11 / 3.12 全部 SUCCESS，并经独立核验。
+
+SP-005A3 = DONE；SP-005A3-B0 = DONE；SP-005A3-B1 Architecture / Implementation = DONE。A3 已实现 Host-neutral Binding Authority、protected metadata、trusted routing、authority/plugin lifecycle、capability vault、recovery-only capability、HostIdentityEnvelope、LivingHostFacade、one-time execution permit、DeliveryEvidence、fake transport、legacy fence 与 crash recovery。B01-B34 = SIMULATED_PASS；B1-08_CORE_PASS / B1-09_CORE_PASS 原样保留，不升级历史证据。
+
+DATA_SCHEMA = 8；Schema Signature = SP-005A-living-runtime-v1；Prompt Template = SP-004K-prompt-v1；SP-005A2-P1 = NOT AUTHORIZED；PROMPT_TEMPLATE_UPGRADE_REQUIRED = YES；NO_REAL_SEND = true。Hermes real Host validation = PENDING_REAL_HOST_VALIDATION；OpenClaw real Host validation = PENDING_REAL_HOST_VALIDATION；Full Private RP = BLOCKED；H1 = BLOCKED；H2 = BLOCKED。
+
+SP-005A4-HLV0 = PENDING_INDEPENDENT_REVIEW，仅冻结架构、验证计划与治理文档。NO_REAL_HOST_OPERATION = true。本轮没有执行 Hermes、plugin load/reload、Gateway restart、Living mutation、permit consume、fake send、real send 或 cron。H-LV1～H-LV3 是未来分阶段授权的计划，均 NOT_EXECUTED / NOT_AUTHORIZED；H-LV4 = DEFINED_ONLY / NOT_AUTHORIZED。历史 2026-09-30 环境仅为 HISTORICAL_EVIDENCE，不能默认复用。
+
+架构与权限见 [HLV0 architecture](architecture/SP-005A4-HERMES-LIVING-VALIDATION.md)，逐项验证见 [HLV matrix](planning/SP-005A4-HERMES-LIVING-VALIDATION-MATRIX.md)。
+
+## HLV0 文档校准与验证范围
+
+本地完整回归：Windows / Python 3.12.10 / Node 22.23.2，`py -3.12 -X utf8 -m unittest discover -s tests -q`，443 total / 442 passed / 1 existing platform skip / 0 failed / 0 errors，366.740秒。Runtime/tests未改；沿用canonical完整套件。Draft exact Head四矩阵需另行核验，不能用Base main CI替代。
+
+本轮仅修改10份Markdown：6份指定现有文档、2份新增HLV0架构/矩阵，另校准A2架构与A3验证页顶部状态，原因是它们作为主入口链接目标仍显示A3 Draft旧状态；旧正文与技术合同保留为HISTORICAL。Runtime/tests/Schema/Prompt/workflow diff均为空，NO_REAL_HOST_OPERATION = true、NO_REAL_SEND = true。
+
+本轮校验覆盖8份current-state文档的14个关键状态；RV-01～RV-12、CR-01～CR-10共22场景各12字段；本地链接/锚点与git diff --check；原Hermes历史报告zero diff，VALIDATION/HOST-SANDBOX/KNOWN-ISSUES原记录非空行逐行按原顺序保留。没有升级A3模拟证据、B1 Core标签或历史真实发送。
+
+## HISTORICAL — GOV-DOC3 / B1 与既有 Host 指南快照
+
+以下原文保留历史状态、计数、finding 和步骤；其中“当前”“本轮”“尚未实现”均指当时，不覆盖顶部 CURRENT CANONICAL STATE，也不是本轮操作授权。原 legacy 入口的 gap 记录保留；A3 新 dispatcher 的受信 routing fence 已 SIMULATED_PASS，但旧 Hermes 插件未接入 A3，不能自动获得此保证。真实验证仍需逐阶段独立授权。
+
 ## GOV-DOC3 文档校准验证（2026-10-01）
+
+> HISTORICAL：本节保留当时状态与证据；当前状态以顶部 CURRENT CANONICAL STATE 为准。
 
 本次只修改 Markdown 文档，重新读取 B1 后 canonical 文档并只读核对 legacy 分发、实例标识、state_check、H0 probe 与 receipt 边界，没有修改 Runtime、tests、Schema、Prompt 或执行真实 Host 操作。
 
@@ -9,6 +35,8 @@ Windows / Python 3.12.10 / Node 22.23.2：执行 `py -3.12 -X utf8 -m unittest d
 本轮 14 份 Markdown 变更的 106 个相对链接/锚点检查通过，`git diff --check` 通过；历史 JSON 的 59 个 rows 与统计一致，两份源报告的 SHA-256 与 Owner 提供的清单一致。检查未把私人 sender/channel/message ID、实际 Host 路径或实例/代次标识写入变更文档；原始证据清单中的其他文件没有冒充已复核。Runtime / tests / workflow diff 均为空。
 
 ## B1 后 canonical 当前状态（2026-10-01）
+
+> HISTORICAL：本节保留当时状态与证据；当前状态以顶部 CURRENT CANONICAL STATE 为准。
 
 事实基线：`f83d36c76fea6de1a31b449535d5df6cea3909b5`。[PR #32](https://github.com/y19870785/life-engine/pull/32) 经独立审核、Ready 后轻量终审与 Squash Merge，唯一 parent 为 `a27caf372a263932346d5b193ca35c92fea6f5dd`。GOV-DOC3 开工复核远端 main exact 指向该 SHA，工作树 clean；[main push CI #36795009694](https://github.com/y19870785/life-engine/actions/runs/36795009694) 为 push / main / exact SHA，completed / success，Ubuntu / Windows × Python 3.11 / 3.12 四矩阵均 PASS，无待处理的 B1 范围 blocker。
 
@@ -19,6 +47,8 @@ B1-08_CORE_PASS、B1-09_CORE_PASS 仅证明 Core 子集。Host authority/epoch/t
 DATA_SCHEMA = 8；Schema Signature = SP-005A-living-runtime-v1；Prompt Template = SP-004K-prompt-v1。SP-005A2-P1 = NOT AUTHORIZED；PROMPT_TEMPLATE_UPGRADE_REQUIRED = YES。Hermes / OpenClaw real Host validation = PENDING_REAL_HOST_VALIDATION；Living R01–R12 = NOT_EXECUTED；Full Private RP / H1 / H2 = BLOCKED。任何 blocker enforcement verified 都不等于对应功能 PASS。
 
 ## Hermes canonical comprehensive evaluation — 2026-09-30
+
+> HISTORICAL：本节保留当时状态与证据；当前状态以顶部 CURRENT CANONICAL STATE 为准。
 
 本节只保存当日 canonical snapshot 的历史结果，不是 B1 后最新自动测试或 Host 验收状态。脱敏环境、证据来源与 finding 见[完整历史摘要](validation/HERMES-COMPREHENSIVE-EVALUATION-2026-09-30.md)。
 
@@ -39,6 +69,8 @@ DATA_SCHEMA = 8；Schema Signature = SP-005A-living-runtime-v1；Prompt Template
 
 ## SP-005A3-B0 实施验证（历史测试记录；阶段 DONE）
 
+> HISTORICAL：本节保留当时状态与证据；当前状态以顶部 CURRENT CANONICAL STATE 为准。
+
 固定 Base：`3367a8906060af129d7ee29ef4da7959926b5d0b`。Runtime 仅增加 session World revision 的事务内 fence；R1-01～R1-06 与补充回归的具体测试见 [B0 实施映射](SP-005A3-B0-VALIDATION.md)。新增 10 项测试，包含独立进程 World 更新、提交后 os._exit 响应丢失及原 operation receipt recovery。原 A1 的 [48 项合同映射](SP-005A1-VALIDATION.md)继续保留。
 
 本地完整测试：Windows、Python 3.12.10、Node 22.23.2；`py -3.12 -m unittest discover -s tests -v`，381 项，380 passed、1 skipped（既有 Unix symlink 平台跳过）、0 failed、0 errors，282.666 秒。新增 10 项 B0 测试全部通过；按日志核验 A1 48 个合同编号映射的 52 个具体测试全部通过。32 个相对链接及锚点检查、`git diff --check` 通过。exact Head 四矩阵 CI 结果在 Draft PR 和交付报告中关联。B06/B28/B14 仅 Core 子集验收，不代表 A3 Host 层 PASS。
@@ -46,6 +78,8 @@ DATA_SCHEMA = 8；Schema Signature = SP-005A-living-runtime-v1；Prompt Template
 DATA_SCHEMA = 8；Schema Signature = SP-005A-living-runtime-v1；Prompt Template = SP-004K-prompt-v1。SP-005A3-B0 = DONE；SP-005A3 = BLOCKED（Host 层未完成，恢复实施须另行授权）；SP-005A2-P1 = NOT AUTHORIZED；PROMPT_TEMPLATE_UPGRADE_REQUIRED = YES。没有真实 Host 操作或发送，H1/H2、Full Private RP 保持 BLOCKED。
 
 ## SP-005A1 实施验证（历史测试记录；阶段 DONE）
+
+> HISTORICAL：本节保留当时状态与证据；当前状态以顶部 CURRENT CANONICAL STATE 为准。
 
 固定 Base：`9159c493ad435cf947ed8c0fef278e1f5fb9dc83`。本次实现 `DATA_SCHEMA = 8`、`SP-005A-living-runtime-v1`；Prompt Template 仍为 `SP-004K-prompt-v1`。原始 A0/R1 判据与具体测试的 48 项对应关系见 [实施映射](SP-005A1-VALIDATION.md)，部署边界与 copy migration/rollback 见 [操作说明](LIVING-RUNTIME.md)。
 
@@ -55,6 +89,8 @@ DATA_SCHEMA = 8；Schema Signature = SP-005A-living-runtime-v1；Prompt Template
 
 
 ## SP-005H0 实施验证（2026-09-27 历史记录；实现 DONE）
+
+> HISTORICAL：本节保留当时状态与证据；当前状态以顶部 CURRENT CANONICAL STATE 为准。
 
 固定 Base：`694b45a6f1cd10e28bef96a7e98261c1f85d66f6`。本阶段新增原生插件 `doctor`/`sandbox-probe`、durable 调用身份封套、文件化沙箱报告与交付证据链校验。报告不会签发真实 Host PASS，也不改变 Full Private RP 能力门禁。
 
@@ -80,6 +116,8 @@ H0 当时数据版本为 `DATA_SCHEMA = 7`，Schema Signature 为 `SP-004F-bridg
 
 ## 历史 canonical validation（2026-09-26）
 
+> HISTORICAL：本节保留当时状态与证据；当前状态以顶部 CURRENT CANONICAL STATE 为准。
+
 固定 canonical main：`8e2db9ae50b1ac3c46bb1953851d14442c58f085`。合并 H0 后的 [main push CI #36088249987](https://github.com/y19870785/life-engine/actions/runs/36088249987) 在 Ubuntu / Windows × Python 3.11 / 3.12 四矩阵全绿。此处不推断本次 CI 的测试数量；下方 217 项是 SP-004B1 时点的**历史**记录。
 
 该历史基线 `DATA_SCHEMA = 7`，World Schema Signature 为 `SP-004F-bridge-runtime-v1`，Prompt template 为 `SP-004K-prompt-v1`。World、Memory、Lore、Story、Bridge、Prompt Core Runtime 与 H0 Host Integration Contract 已进入 main；真实 Host Private RP 尚未通过能力门禁。自动 CI 和模拟宿主测试不等于真实渠道送达。
@@ -94,11 +132,15 @@ H0 当时数据版本为 `DATA_SCHEMA = 7`，Schema Signature 为 `SP-004F-bridg
 
 ## SP-004B1 时点自动验证（历史）
 
+> HISTORICAL：本节保留当时状态与证据；当前状态以顶部 CURRENT CANONICAL STATE 为准。
+
 基线：`d89b362701e614415354c38302a102f593a0a0a7`（SP-004B1 合并提交）。[GitHub Actions 运行记录](https://github.com/y19870785/life-engine/actions/runs/35748952847) 已完成且通过：Ubuntu / Python 3.11、Ubuntu / Python 3.12、Windows / Python 3.11、Windows / Python 3.12。当时完整 `unittest` 共 217 项；Windows 为 216 项通过、1 项既有平台跳过。
 
 这些自动测试覆盖代码合同与模拟宿主，不等于真实 Hermes / OpenClaw Gateway、聊天渠道、GPU 出图或发送回执闭环验收；也不表示新的 World Memory 已自动接入宿主每轮聊天。
 
 ## 2026-09-13 历史验证
+
+> HISTORICAL：本节保留当时状态与证据；当前状态以顶部 CURRENT CANONICAL STATE 为准。
 
 测试环境：Linux，Python 3.12.14，Node.js 24.19.0。验证日期：2026-09-13。
 
