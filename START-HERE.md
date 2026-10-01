@@ -2,7 +2,7 @@
 
 ## 当前模式门禁（先读）
 
-**A. Soul Continuity / Living Agent Host Sandbox：可以继续受控测试。** 使用独立测试 Profile/Agent、Life Engine 实例和 Host Session，只向本人测试聊天目标发送；照片可关闭。先按 [Host 沙箱测试指南](docs/HOST-SANDBOX-TESTING.md)记录版本、绑定与停止门，再执行下面的安装和接入步骤。
+**A. Soul Continuity Host Sandbox：TESTABLE，执行须有本次测试授权。** 以下安装、调度与发送步骤用于未 enrollment 的 legacy 隔离实例。B1 Core recovery 已 DONE，但 A3 Host Binding 仍 BLOCKED；enrolled 实例不得沿用旧工具或绕过 LIVING_HANDOFF_REQUIRED。使用独立测试 Profile/Agent、数据 root、Session 与本人目标，先按 [Host 沙箱指南](docs/HOST-SANDBOX-TESTING.md)记录版本、绑定与停止门。GOV-DOC3 文档校准本身不授权执行下列步骤。
 
 **B. Full Private RP：当前停止，不得生产启用。** Core Roleplay Runtime 已完成，不等于真实 Host 已通过最终输出、历史隔离、晚到响应和流式发送安全门。Hermes experimental compatibility fork PR #1 只是实验审计证据，不能作为生产安全依据；OpenClaw 即使有 `before_message_write`、`before_agent_finalize`、`message_sending`，也没有已证明的统一 fail-closed final-output commit 授权。不得凭插件加载成功或 prompt 指令绕过此门禁。
 
@@ -22,9 +22,9 @@
 
 根据本机版本在**已选测试 Host**中重载插件；不得为首次沙箱测试擅自重启生产 Gateway。实际调用测试实例的 status 工具，发一条普通主人消息，核对 manage.py doctor 是否记录了 last_prompt_hook_at。只有主人渠道/sender ID 有明确匹配依据时启用自动入站时间记录；缺少时如实说明，不要声称所有消息均已捕获。
 
-仅在测试绑定和静默行为验证通过后，才按 INSTALL.md 用宿主原生接口建立/复用一个稳定名称的每 23 分钟**测试任务**，绑定实际测试 Agent、账号、渠道和用户明确指定的本人聊天目标。不要使用全渠道或默认 last 路由来猜目标，也不要直接修改宿主的任务数据库。先做隔离 simulate 和静默验证；真实文字/图片测试仅发送到用户已经指定的本人对话。验证后启用这一套测试任务并记录任务 ID。
+仅在已获得独立调度/发送授权且测试绑定和静默行为验证通过后，才按 INSTALL.md 用宿主原生接口建立/复用稳定名称的测试任务，绑定实际测试 Agent、账号、渠道与本人目标。未授权时只记录计划，不启用 cron。不得使用全渠道或默认 last 路由猜目标，也不得直接修改宿主任务数据库；长期 Living 测试还须先完成 A3 与对应 Host/receipt 门禁，见[路线](docs/planning/ROADMAP-2026-09.md)。
 
-照片读取用户现有 ComfyUI 身份工作流；缺失时保持照片关闭并完成其余步骤。发图必须是 photo 返回的真实文件，使用宿主原生媒体。直接发送与自动投递避免重复；只根据真实回执记录 ack，不能把工具生成文本当成已送达。
+照片读取用户现有 ComfyUI 身份工作流；缺失时保持照片关闭。真实媒体操作另行授权，不能把 dry-run 当成生成或投递。当前原生工具没有受信渠道 ACK validator，拒绝 ack outcome=delivered；人工管理 CLI ack、message ID、API 回读和工具文本均不构成 ACKNOWLEDGED，未知结果不自动重发。
 
 检查宿主已有的开机服务和持久化任务，在相同运行用户/配置下设置必要的自动启动，避免重复服务。Life Engine 无需独立守护进程。已有服务被外部 supervisor 管理时沿用它。升级宿主后用真实工具调用和静默运行验证加载；不能仅凭插件列表判断在线进程可用。
 

@@ -4,19 +4,24 @@
 
 Life Engine 是运行在已有 Hermes / OpenClaw Agent 旁边的持久状态与角色世界运行层。你继续使用原来的聊天渠道、模型和角色设定；它保存状态和待跟进话题，为主动联系提供依据，并为可恢复的 World 与隔离记忆提供底层 Runtime。
 
-> **v0.3 开发预览 · 当前状态（2026-09-26）**：SP-004 Core Runtime 已形成 `World → Memory → Lore → Story → Bridge → Prompt` 链路；当前主要工程边界是接入真实 Host。Hermes / OpenClaw 可开始受控的 Soul Continuity / Living Agent 沙箱测试，**Full Private RP 尚未通过 Host capability 门禁**。这不是稳定版或真实渠道验收声明。先看 [Host 沙箱测试指南](docs/HOST-SANDBOX-TESTING.md)与[已知问题](docs/KNOWN-ISSUES.md)。
+> **v0.3 开发预览 · 当前状态（2026-10-01）**：SP-005A3-B1 Architecture / Implementation = **DONE**，新增受信、只读的 Core durable operation recovery 查询。完整 A3 Living Host Binding 仍 **BLOCKED**，等待剩余 Host 实施的新授权；B1 DONE 不代表 A3 DONE 或可生产使用。当前事实基线为 `f83d36c76fea6de1a31b449535d5df6cea3909b5`，见 [B1 验证与合并证据](docs/SP-005A3-B1-VALIDATION.md)、[Host 沙箱指南](docs/HOST-SANDBOX-TESTING.md)与[已知问题](docs/KNOWN-ISSUES.md)。
 
 | 能力 | 当前状态 |
 | --- | --- |
 | World Runtime、World Memory、Lore、Story、Prompt Runtime、Controlled Bridge、Character Card Import | **DONE**（Core Runtime） |
-| Soul Continuity Host Sandbox | **TESTABLE**（受控实机验证待完成） |
-| Living Agent / proactive layer 正式化 | **NEXT** |
+| Soul Continuity Host Sandbox | **TESTABLE**（已有历史 Hermes 受控实测；整体真实 Host 验收仍 PENDING_REAL_HOST_VALIDATION） |
+| Living Core、Session World revision fence、只读 operation recovery | **DONE**（A1、B0、B1；Core 自动验证） |
+| A3 Living Host Binding | **BLOCKED**（authority、capability、facade、permit、完整 routing fence 尚未实现） |
 | Full Private RP on Hermes | **BLOCKED**（官方 Host capability） |
 | Full Private RP on OpenClaw | **BLOCKED**（统一 final-output commit boundary） |
 
+2026-09-30，Life Engine 在 Hermes 0.21.3 的独立测试 Profile 中完成一次 canonical sandbox 综合评测。历史证据包括插件加载与实例绑定、Owner 识别与错误身份拒绝、Soul Continuity context、上一轮一次受控真实 Discord 文字发送的证据、综合评测本轮 Organic Contact 静默判定、持久性及备份/恢复；详见[脱敏历史记录](docs/validation/HERMES-COMPREHENSIVE-EVALUATION-2026-09-30.md)。一次发送不是自然 eligible organic contact 链路通过，边界仍为 **SENT / ACK UNKNOWN**。
+
+当前没有受信 ACK validator；Hermes / OpenClaw real Host validation 均为 **PENDING_REAL_HOST_VALIDATION**；H1/H2 与 Full Private RP 均 **BLOCKED**。DATA_SCHEMA = 8，Schema Signature = SP-005A-living-runtime-v1，Prompt Template = SP-004K-prompt-v1；SP-005A2-P1 = NOT AUTHORIZED，PROMPT_TEMPLATE_UPGRADE_REQUIRED = YES。
+
 ## 用起来是什么感觉？
 
-下面是完成接入后的一种使用场景，**不是已经实测的聊天记录**：
+下面是完成接入后的一种使用场景，**不是已经实测的聊天记录**。现有 Host 插件仍走未 enrollment 的 legacy 路径，不能作为新 Living Core 的正式 Host 接入；ComfyUI 既有可选路径也不代表新的 Media Runtime 或真实媒体闭环已验收：
 
 > 上午，你说：“下午有个面试，有点紧张。”
 >
@@ -74,7 +79,7 @@ Life Engine 检查状态、联系窗口和最近聊天
 
 ## 现在还没有什么？
 
-World Memory、Lore、Story、Prompt 和受控 Bridge 的 **Core Runtime 已完成**，但不会自动提取所有聊天、自动接入真实 Host 每轮对话，也没有语义向量检索。Hermes / OpenClaw 的 Full Private RP Host Adapter 和所需的 fail-closed final-output commit 能力尚未完成；宿主原始 Soul/RP 历史隔离、晚到模型回复阻断、首次持久化／重放／发送／流式泄漏的统一授权都不能宣称已通过。Living Agent 主动生活 Runtime、语音生命周期、真实 Host 沙箱验收、ComfyUI 与真实渠道的完整闭环，以及资产仓库／Definition 升级仍属后续工作。
+World Memory、Lore、Story、Prompt、受控 Bridge 和 Living 的 **Core Runtime 已完成**，但不会自动提取所有聊天、自动接入真实 Host 每轮对话，也没有语义向量检索。Hermes / OpenClaw 的 Full Private RP Host Adapter 和所需的 final-output commit 能力尚未完成；原始 Soul/RP 历史隔离、晚到回复阻断、首次持久化／重放／发送／授权前流式输出的统一授权均未通过完整 Host 验收。A3 剩余 Host Binding、P1 正式 Prompt 接入、语音生命周期、完整真实 Host 验收、ComfyUI 与真实渠道闭环，以及资产仓库／Definition 升级仍属后续工作。B1 查询只恢复提交事实，不重试、不协调、不授权发送。
 
 ## 开始使用
 

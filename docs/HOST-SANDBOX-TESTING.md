@@ -2,7 +2,27 @@
 
 ## Living Core 合并后的适用边界
 
-canonical main `84493be98d7ed675de6b859cafdb014a900325ca` 已包含 A1 Core / Schema 8。下文既有原生插件探测流程仍针对 legacy 路由；enrolled 实例的 legacy status/wake/context 会遇到 LIVING_HANDOFF_REQUIRED，不能移除 gate 来完成清单。A2 的 [Host Binding 架构](architecture/SP-005A2-LIVING-HOST-BINDING.md)和 [Living 扩展矩阵](planning/SP-005A3-HOST-BINDING-TEST-MATRIX.md)属于后续设计，A3 未授权。默认 DRY_RUN / NO_REAL_SEND；真实接线、生产操作及真实发送不由 A2 授权。Hermes/OpenClaw 真实验证仍 PENDING_REAL_HOST_VALIDATION。
+当前事实基线 `f83d36c76fea6de1a31b449535d5df6cea3909b5` 已包含 A1、B0、B1 Core，DATA_SCHEMA = 8、Schema Signature = SP-005A-living-runtime-v1、Prompt Template = SP-004K-prompt-v1。[B1](SP-005A3-B1-VALIDATION.md)只新增只读 durable recovery，不提供 Host binding 或发送资格；A3 剩余实现仍 BLOCKED，需新任务授权。下文旧插件流程只适用于未 enrollment 的 legacy 隔离测试；enrolled 实例不得沿用此流程或绕过 LIVING_HANDOFF_REQUIRED。现有 gate 尚未覆盖所有副作用之前的入口，详见 [已知问题](KNOWN-ISSUES.md)。[A3 矩阵](planning/SP-005A3-HOST-BINDING-TEST-MATRIX.md)的 Host 部分仍未完成。
+
+默认 DRY_RUN / NO_REAL_SEND。本次 GOV-DOC3 不安装插件、不调用 Host、不 restart、不启用 cron、不发送。任何新的真实测试需独立授权。Hermes / OpenClaw real Host validation 均保持 PENDING_REAL_HOST_VALIDATION，Living H0-RV R01–R12 = NOT_EXECUTED。
+
+## 2026-09-30 canonical Hermes 综合评测（历史）
+
+Hermes 0.21.3 在独立 HERMES_HOME / Profile、独立 canonical permanent root 与 Discord 专用测试渠道上完成历史综合评测；干净源码为 `861734b0c4179e56a3251a775d831cd246278d7f`，release 为 `0.3.0-eefb56b42b6eb8f4`。插件加载、Owner binding 与错误身份拒绝、Soul Continuity context、上一轮一次真实文字发送的证据、当轮静默 gate、持久性及备份/恢复均写入历史报告，生产环境未被污染。完整统计、证据来源与限制见[脱敏历史记录](validation/HERMES-COMPREHENSIVE-EVALUATION-2026-09-30.md)。
+
+报告引用的上一轮发送 external send count = 1，无自动重试；综合评测本轮新发 0 条；边界仍是 SENT / ACK UNKNOWN。真实 wake --preview 返回 silent / recent_conversation，即 ORGANIC_CONTACT_NOT_DUE、send count = 0；未证明自然 eligible 的 organic real-send 闭环。World/Lore/Story/Bridge grant mutation 与 grant revoke 均 NOT_EXECUTED — NO SAFE TEST PATH。B1 没有新增这些 Host mutation 入口，不升级其状态。
+
+## B1 后探测、绑定与回执的含义
+
+| 项目 | 当前含义与限制 |
+| --- | --- |
+| sandbox-probe / live hook | H0 捕获本次插件加载中的 hook 证据；fresh-process probe 无 live hook 仍 HOOK_REVALIDATION_REQUIRED。B1 recovery 查询不生成 hook evidence。 |
+| plugin_epoch | 已有 H0 探测代次；尚无 A3 token/ticket/permit 的撤销系统，不能冒充完整 capability 生命周期。 |
+| Gateway restart | 两个 Python 进程或模拟 reload 不是真实 Gateway restart；新的隔离 Gateway 与当前 binding 重验仍需独立验证。 |
+| binding authority | H0 registry/Host home 绑定与 B1 Core trusted local assertion 均不等于 A3 per-install Host authority。 |
+| receipt | B1 durable operation receipt 证明 Core 提交；真实 Discord message ID / API 回读不构成受信 ACK。当前没有渠道 ACK validator。 |
+
+历史受控实测不升级机械报告的 validation_passed，也不完成 A3 Living R01–R12。下文的操作流程保留为另行授权后的测试指南，不表示本轮已执行。
 
 > **当前允许：Soul Continuity / Living Agent / Host Sandbox 受控测试。当前不允许：Full Private RP 生产部署。** 已完成的 World、Memory、Lore、Story、Prompt 和 Bridge Core Runtime 不等于宿主已提供私密 RP 所需的最终输出授权、原始历史隔离和晚到回复围栏。不要通过 prompt 约束来替代 Host 能力。
 
@@ -10,7 +30,7 @@ canonical main `84493be98d7ed675de6b859cafdb014a900325ca` 已包含 A1 Core / Sc
 
 ## SP-005H0：机械报告与原生插件探测
 
-实现基线为 `694b45a6f1cd10e28bef96a7e98261c1f85d66f6`。本层复用 durable registry、instance ID、generation 与现有 Profile/Agent 绑定，不新增数据库表，不改变 `DATA_SCHEMA = 7`、`SP-004F-bridge-runtime-v1` 或 `SP-004K-prompt-v1`。它不实现 H1/H2 或 Host final-output transaction。
+H0 实施时的历史基线为 `694b45a6f1cd10e28bef96a7e98261c1f85d66f6`。本层复用 durable registry、instance ID、generation 与现有 Profile/Agent 绑定，当时未新增数据库表，保持当时的 `DATA_SCHEMA = 7`、`SP-004F-bridge-runtime-v1` 和 `SP-004K-prompt-v1`。当前 Schema 8 见本文开头；此段不是当前版本声明。H0 不实现 H1/H2 或 Host final-output transaction。
 
 永久 `life.py` 的工具结果新增 `runtime` 身份封套：instance ID、generation、install/data root、release、内部 agent ID、Host kind/home/agent ID 和三项版本常量。封套在实例锁内从 registry 与活动数据目录取得；正常 status 等字段继续保留。它证明所调用的 Life Engine 实例，不证明调用者是可信 Host，也不是远程认证令牌。
 
