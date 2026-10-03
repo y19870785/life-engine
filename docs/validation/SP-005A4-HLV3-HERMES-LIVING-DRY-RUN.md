@@ -2,7 +2,7 @@
 
 ## 当前结果与治理边界
 
-2026-10-03，在 canonical Base `4c9c5aaf9e9ed2995086781e32241abf23436dcb` 上执行；本报告结果为 `PASS`，证据等级 `REAL_HOST_DRY_RUN_PASS`，等待独立 Draft Review。HLV3 尚未 canonical DONE。H-LV4 未授权；后续 Architecture Review Gate 的顺序由 ChatGPT / 小雪独立判断。Full Private RP 仍 `BLOCKED_BY_OFFICIAL_HERMES_HOST_CAPABILITY`。
+2026-10-03，在开工 Base `4c9c5aaf9e9ed2995086781e32241abf23436dcb` 上执行；验证结果 `PASS`。当前 `SP-005A4-HLV3 = DONE`、`REAL_HOST_DRY_RUN_PASS = CONFIRMED`：PR #39 已 Squash Merge 至 canonical main `9d064d0a90d8d02a5dab04a6baee18bbbf6dcdc2`，exact main push CI #37122681930 四矩阵 SUCCESS，并由 ChatGPT / 小雪独立确认。后续 Architecture Review Gate = PASS，顺序与独立授权边界见 [GOV-ARCHGATE1](../architecture/GOV-ARCHGATE1-POST-HLV3-REVIEW.md)。H-LV4 = NEXT / NOT AUTHORIZED；REAL_HOST_SENT / ACKNOWLEDGED = NOT ACQUIRED；Full Private RP 仍 BLOCKED_BY_OFFICIAL_HOST_CAPABILITY。下文case结果、计数、manifest及执行declaration保留原验证事实，不重跑、不修改。
 
 本次真实执行 Life Engine Core mutation、durable CLAIMED、现有 A3 one-time permit issue/consume、local fake side effect、fresh-process crash 与 recovery query。没有真实 inbound，没有 provider message creation；`REAL_HOST_SENT / ACKNOWLEDGED` 均未取得，ACK validator 仍 `HOST_GAP`。
 
@@ -93,7 +93,7 @@ CR-10 的 transition 是 validation binding barrier 与现有 A3 close，不是 
 
 完整 suite 使用项目支持的 Python 3.12，Linux 本轮结果 `Ran 475 tests in 495.948s` / `OK`；本机默认3.10的初次执行因既有 `hashlib.file_digest` 不可用出现环境错误，未用于 PASS 证据，未修改生产代码。exact Head 四矩阵 CI 的结果由 Draft PR 的最终报告单独提供，不把旧 main/PR workflow 当本次 CI。
 
-## Mandatory declaration
+## Mandatory declaration（原验证执行快照；当前治理状态为 DONE）
 
 ```text
 SP-005A4-HLV3 = PASS
@@ -159,4 +159,4 @@ FINAL_TEST_GATEWAY_STATE = STOPPED
 H_LV4_STARTED = NO
 ```
 
-Recovery restores knowledge, never permission. durable CLAIMED 是历史 truth，不是第二次 side effect 的执行授权。完成 Draft/CI 后停止，等待独立审核。
+Recovery restores knowledge, never permission. durable CLAIMED 是历史 truth，不是第二次 side effect 的执行授权。原 Draft 交付时在 Draft/CI 后停止等待审核；当前 DONE 与后续 Gate 见顶部，不构成新执行授权。

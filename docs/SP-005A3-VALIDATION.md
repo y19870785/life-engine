@@ -1,6 +1,8 @@
 # SP-005A3 v3 — Living Host Binding 验证报告
 
-## CURRENT CANONICAL STATE — A3 已合并
+当前治理状态见 [Post-HLV3 Gate](architecture/GOV-ARCHGATE1-POST-HLV3-REVIEW.md)：HLV0～HLV3 DONE；HLV4 NEXT / NOT AUTHORIZED；REAL_HOST_SENT / ACKNOWLEDGED NOT ACQUIRED，ACK_VALIDATOR HOST_GAP。下列原状态、技术合同与计数保留为历史。
+
+## HISTORICAL — 原 canonical state — A3 已合并
 
 SP-005A3 = DONE；canonical main `eedc32b719336ba063b99da95eac4e2b6a56c0c5`，PR #34 Squash Merge，exact main push CI #36847806554 四矩阵 SUCCESS，已独立核验。B01-B34 = SIMULATED_PASS；B1-08_CORE_PASS / B1-09_CORE_PASS 保留。真实 Hermes/OpenClaw 验证仍 PENDING_REAL_HOST_VALIDATION；P1 未授权，H1/H2/Full Private RP BLOCKED。未来分层计划见 [HLV0](architecture/SP-005A4-HERMES-LIVING-VALIDATION.md)；本轮 NO_REAL_HOST_OPERATION = true / NO_REAL_SEND = true。
 

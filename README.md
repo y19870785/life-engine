@@ -4,7 +4,7 @@
 
 Life Engine 是运行在已有 Hermes / OpenClaw Agent 旁边的持久状态与角色世界运行层。你继续使用原来的聊天渠道、模型和角色设定；它保存状态和待跟进话题，为主动联系提供依据，并为可恢复的 World 与隔离记忆提供底层 Runtime。
 
-> **v0.3 开发预览 · 当前状态（2026-10-01）**：SP-005A3 = **DONE**；Host-neutral Living Host Binding 已合并并通过 exact main push CI。B01–B34 证据仅为 SIMULATED_PASS，真实 Hermes/OpenClaw 验证仍 PENDING_REAL_HOST_VALIDATION。HLV0 已 DONE；当前为 Real Host Integration，下一任务 HLV1 尚未授权，NO_REAL_HOST_OPERATION = true、NO_REAL_SEND = true。见 [A3 验证](docs/SP-005A3-VALIDATION.md)与 [HLV0 架构](docs/architecture/SP-005A4-HERMES-LIVING-VALIDATION.md)。
+> **v0.3 开发预览 · 当前状态（2026-10-03）**：SP-005A3 与 SP-005A4-HLV0～HLV3 = **DONE**；Hermes REAL_HOST_READONLY_PASS / REAL_HOST_LIFECYCLE_PASS / REAL_HOST_LIFECYCLE_AUTHORITY_PASS / REAL_HOST_DRY_RUN_PASS = CONFIRMED。Architecture Review Gate = PASS，本轮 GOV-ARCHGATE1 只记录局部顺序，仍 DRAFT_REVIEW_PENDING。HLV4 = NEXT / NOT AUTHORIZED，REAL_HOST_SENT / ACKNOWLEDGED = NOT ACQUIRED；真实发送仍禁止。见 [Gate 记录](docs/architecture/GOV-ARCHGATE1-POST-HLV3-REVIEW.md)。
 
 | 能力 | 当前状态 |
 | --- | --- |
@@ -17,17 +17,18 @@ Life Engine 是运行在已有 Hermes / OpenClaw Agent 旁边的持久状态与�
 
 **HISTORICAL_EVIDENCE — 2026-09-30**：Life Engine 在 Hermes 0.21.3 的独立测试 Profile 中完成一次 canonical sandbox 综合评测。历史证据包括插件加载与实例绑定、Owner 识别与错误身份拒绝、Soul Continuity context、上一轮一次受控真实 Discord 文字发送的证据、综合评测本轮 Organic Contact 静默判定、持久性及备份/恢复；详见[脱敏历史记录](docs/validation/HERMES-COMPREHENSIVE-EVALUATION-2026-09-30.md)。一次发送不是自然 eligible organic contact 链路通过，边界仍为 **SENT / ACK UNKNOWN**。
 
-当前没有受信 ACK validator；Hermes / OpenClaw real Host validation 均为 **PENDING_REAL_HOST_VALIDATION**；H1/H2 与 Full Private RP 均 **BLOCKED**。DATA_SCHEMA = 8，Schema Signature = SP-005A-living-runtime-v1，Prompt Template = SP-004K-prompt-v1；SP-005A2-P1 = NOT AUTHORIZED，PROMPT_TEMPLATE_UPGRADE_REQUIRED = YES。
+ACK_VALIDATOR = HOST_GAP；Hermes Living只读/生命周期/fake dry-run已确认，真实Living发送尚未取得；OpenClaw real Host validation仍PENDING_REAL_HOST_VALIDATION；Full Private RP = BLOCKED_BY_OFFICIAL_HOST_CAPABILITY，H1/H2 blocker保留。DATA_SCHEMA = 8，Schema Signature = SP-005A-living-runtime-v1，Prompt Template = SP-004K-prompt-v1；SP-005A2-P1 = NOT AUTHORIZED，PROMPT_TEMPLATE_UPGRADE_REQUIRED = YES。
 
 ## 当前阶段
 
-- Current Phase: Real Host Integration
-- Current Completed Gate: SP-005A4-HLV0 = DONE；SP-005A3 = DONE
-- Canonical Base: `08bf82e89f7a4572f4931105cc5e6927ae1c5214`
-- Next: SP-005A4-HLV1（GOV-ROADMAP1 正式 DONE 后才发布，当前未授权执行）
+- Current Phase: Post-HLV3 Architecture Review Gate / GOV-ARCHGATE1 文档记录
+- Current Completed Gate: SP-005A4-HLV0 / HLV1 / HLV2 / HLV3 = DONE；SP-005A3 = DONE
+- Canonical Base: `9d064d0a90d8d02a5dab04a6baee18bbbf6dcdc2`
+- Local Order: HLV4 → Hermes Living Adapter Stabilization → SP-005A2-P1 → Memory Evolution V1
+- Next: SP-005A4-HLV4 = NEXT / NOT AUTHORIZED，必须另发独立任务书与明确授权
 - Long-term Roadmap: [长期路线与阶段治理](docs/planning/LIFE-ENGINE-DEVELOPMENT-ROADMAP.md)
 
-本轮 GOV-ROADMAP1 仅整理路线，NO_REAL_HOST_OPERATION = true、NO_REAL_SEND = true；不启动 H-LV1。P1 未授权；B01–B34 仍为 SIMULATED_PASS。上述长期路线是后续任务的 Gate 依据，不自动授予未来功能资格。
+Roadmap state != execution authorization。本轮只修改文档，NO_REAL_HOST_OPERATION = true、NO_REAL_SEND = true。P1 = AFTER_HERMES_ADAPTER_STABILIZATION / NOT AUTHORIZED；Memory Evolution V1 = AFTER_SP-005A2-P1 / PLANNED。DATA_SCHEMA=8、Schema Signature=SP-005A-living-runtime-v1、Prompt Template=SP-004K-prompt-v1、PROMPT_TEMPLATE_UPGRADE_REQUIRED=YES保持不变。GOV-ARCHGATE1 Draft/CI后停止，等待独立审核。
 
 ## 用起来是什么感觉？
 
@@ -89,7 +90,7 @@ Life Engine 检查状态、联系窗口和最近聊天
 
 ## 现在还没有什么？
 
-World Memory、Lore、Story、Prompt、受控 Bridge 和 Living 的 **Core Runtime 已完成**，但不会自动提取所有聊天、自动接入真实 Host 每轮对话，也没有语义向量检索。Hermes / OpenClaw 的 Full Private RP Host Adapter 和所需的 final-output commit 能力尚未完成；原始 Soul/RP 历史隔离、晚到回复阻断、首次持久化／重放／发送／授权前流式输出的统一授权均未通过完整 Host 验收。真实 Hermes/OpenClaw Living Adapter 与验证、P1 正式 Prompt 接入、语音生命周期、完整真实 Host 验收、ComfyUI 与真实渠道闭环，以及资产仓库／Definition 升级仍属后续工作。B1 查询只恢复提交事实，不重试、不协调、不授权发送。
+World Memory、Lore、Story、Prompt、受控 Bridge 和 Living 的 **Core Runtime 已完成**，但不会自动提取所有聊天、自动接入真实 Host 每轮对话，也没有语义向量检索。Hermes / OpenClaw 的 Full Private RP Host Adapter 和所需的 final-output commit 能力尚未完成；原始 Soul/RP 历史隔离、晚到回复阻断、首次持久化／重放／发送／授权前流式输出的统一授权均未通过完整 Host 验收。Hermes单次真实Living交付与Adapter Stabilization、后续OpenClaw Living Adapter与真实验证、P1正式Prompt接入、语音生命周期、完整真实 Host 验收、ComfyUI 与真实渠道闭环，以及资产仓库／Definition 升级仍属后续工作。B1 查询只恢复提交事实，不重试、不协调、不授权发送。
 
 ## 开始使用
 

@@ -1,6 +1,8 @@
 # SP-005A3 与 H0-RV Living 扩展测试设计
 
-## CURRENT CANONICAL STATE — SP-005A4-HLV0（2026-10-01）
+当前治理状态见 [Post-HLV3 Gate](../architecture/GOV-ARCHGATE1-POST-HLV3-REVIEW.md)：HLV0～HLV3 DONE；HLV4 NEXT / NOT AUTHORIZED；REAL_HOST_SENT / ACKNOWLEDGED NOT ACQUIRED，ACK_VALIDATOR HOST_GAP。下列原状态、技术合同与计数保留为历史。
+
+## HISTORICAL — 原 canonical state — SP-005A4-HLV0（2026-10-01）
 
 事实基线：`eedc32b719336ba063b99da95eac4e2b6a56c0c5`；[PR #34](https://github.com/y19870785/life-engine/pull/34) 已 Squash Merge，parent 为 `b78b849b1bfac1cbd28359cfb317fd1d4cb84402`；[exact main push CI #36847806554](https://github.com/y19870785/life-engine/actions/runs/36847806554) 为 push / main / exact SHA、completed / success，Ubuntu / Windows × Python 3.11 / 3.12 全部 SUCCESS，并经独立核验。
 
