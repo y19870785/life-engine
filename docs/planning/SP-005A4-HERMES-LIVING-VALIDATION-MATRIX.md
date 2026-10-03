@@ -1,5 +1,11 @@
 # SP-005A4-HLV0 — Hermes Living Validation 测试矩阵
 
+## HLV2 当前执行结果（独立 Draft，待独立审核）
+
+在 canonical Base `991a988c9f8c2a80eda834697af81957fbe8688d` 上独立执行 HLV2，结果 `PASS`；证据见 [Hermes Host Lifecycle / Authority](../validation/SP-005A4-HLV2-HERMES-HOST-LIFECYCLE-AUTHORITY.md)。两轮真实 Test Gateway start/planned stop、Test profile load、Discord connection/disconnection、persistent identity 与不同 process-start identity 已验证；Default Gateway 未变、config fingerprint 一致、command sync off 且无新 attempt，最终 Test stopped。旧 authority/capability 的 REJECT 来自实际 lifecycle facts + synthetic local inert comparison；没有真实 capability/permit/执行管线验证，不将冻结 RV/CR 预期整体改成 PASS。
+
+`EVIDENCE_LEVEL = REAL_HOST_LIFECYCLE_AUTHORITY_PASS`。完整 SessionSource hook、native authority/plugin epoch、native permit consumer 与 ACK validator 的 HOST_GAP 保留；named Test profile 无既有 session，session persistence 仅观察历史 default metadata，配合源码/local comparison 分类。`REAL_INBOUND / REAL_SEND / LIVING_OPERATION / PERMIT_CONSUMED = NO`；普通 Hermes recovery 仍 MAY_RESEND，Living recovery 未连接。REAL_HOST_DRY_RUN_PASS 尚未取得，SENT / ACKNOWLEDGED 未测试。H-LV3 = NOT_AUTHORIZED；H-LV4 = DEFINED_ONLY / NOT_AUTHORIZED；Full Private RP = BLOCKED_BY_OFFICIAL_HERMES_HOST_CAPABILITY。下文 HLV0/HLV1 为保留的阶段历史，当前有限 HLV2 结果以上述独立证据为准。
+
 ## CURRENT CANONICAL STATE
 
 Phase = SP-005A4-HLV0；RESULT = DONE（canonical main `08bf82e89f7a4572f4931105cc5e6927ae1c5214` 已由 ChatGPT / 小雪独立核验；原 Base 为历史开工基线）；Base = `eedc32b719336ba063b99da95eac4e2b6a56c0c5`。SP-005A3 = DONE；B01-B34 = SIMULATED_PASS；B1-08_CORE_PASS / B1-09_CORE_PASS 保留。DATA_SCHEMA = 8；Schema Signature = SP-005A-living-runtime-v1；Prompt Template = SP-004K-prompt-v1；SP-005A2-P1 = NOT AUTHORIZED；PROMPT_TEMPLATE_UPGRADE_REQUIRED = YES。Hermes real Host validation = PENDING_REAL_HOST_VALIDATION；OpenClaw real Host validation = PENDING_REAL_HOST_VALIDATION；Full Private RP = BLOCKED；H1 = BLOCKED；H2 = BLOCKED。NO_REAL_HOST_OPERATION = true；NO_REAL_SEND = true。
