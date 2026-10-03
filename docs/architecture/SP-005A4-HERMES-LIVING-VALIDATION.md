@@ -1,6 +1,16 @@
 # SP-005A4-HLV0 — Hermes Living Sandbox Validation 架构冻结
 
-## CURRENT CANONICAL STATE 与本轮范围
+## CURRENT CANONICAL STATE — Post-HLV3 / GOV-ARCHGATE1（2026-10-03）
+
+canonical Base：`9d064d0a90d8d02a5dab04a6baee18bbbf6dcdc2`；PR #39 Squash Merge 与 exact main push CI #37122681930 四矩阵已独立核验。SP-005A4-HLV0 = DONE；SP-005A4-HLV1 = DONE；SP-005A4-HLV2 = DONE；SP-005A4-HLV3 = DONE。REAL_HOST_READONLY_PASS / REAL_HOST_LIFECYCLE_PASS / REAL_HOST_LIFECYCLE_AUTHORITY_PASS / REAL_HOST_DRY_RUN_PASS = CONFIRMED；REAL_HOST_SENT / ACKNOWLEDGED = NOT ACQUIRED；ACK_VALIDATOR = HOST_GAP。
+
+ARCHITECTURE_REVIEW_GATE = PASS；LOCAL_ORDER = HLV4 → Hermes Living Adapter Stabilization → SP-005A2-P1 → Memory Evolution V1。ARCHITECTURE_CHANGE_REQUIRED = NO；ROADMAP_DIRECTION_CHANGE = NO。完整证据、依赖与授权边界见 [GOV-ARCHGATE1 Gate 记录](GOV-ARCHGATE1-POST-HLV3-REVIEW.md)。GOV-ARCHGATE1 = DRAFT_REVIEW_PENDING；SP-005A4-HLV4 = NEXT / NOT AUTHORIZED，独立任务与明确授权前 REAL_SEND = FORBIDDEN。Roadmap state != execution authorization。
+
+DATA_SCHEMA = 8；Schema Signature = SP-005A-living-runtime-v1；Prompt Template = SP-004K-prompt-v1；PROMPT_TEMPLATE_UPGRADE_REQUIRED = YES；SP-005A2-P1 = AFTER_HERMES_ADAPTER_STABILIZATION / NOT AUTHORIZED；Memory Evolution V1 = AFTER_SP-005A2-P1 / PLANNED。OpenClaw real Host validation = PENDING_REAL_HOST_VALIDATION；Full Private RP = BLOCKED_BY_OFFICIAL_HOST_CAPABILITY（H1/H2 blocker 保留）。本轮 NO_REAL_HOST_OPERATION = true、NO_REAL_SEND = true；历史证据只引用，不重跑。
+
+## HISTORICAL — HLV0 冻结时范围
+
+下文阶段计划与权限表保留冻结合同；其中未执行/未授权及“本轮”均指HLV0时点，实际HLV1～3的独立DONE与当前HLV4 NEXT以顶部和Gate记录为准，不扩张原执行授权。
 
 Phase：SP-005A4-HLV0；RESULT = DONE（canonical main `08bf82e89f7a4572f4931105cc5e6927ae1c5214` 已由 ChatGPT / 小雪独立核验；原 Base 为历史开工基线）。唯一 Base：`eedc32b719336ba063b99da95eac4e2b6a56c0c5`，PR #34 已 Squash Merge，parent `b78b849b1bfac1cbd28359cfb317fd1d4cb84402`；[main push #36847806554](https://github.com/y19870785/life-engine/actions/runs/36847806554) exact SHA / push / main 四矩阵 SUCCESS，已独立核验。
 

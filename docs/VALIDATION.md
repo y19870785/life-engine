@@ -1,6 +1,22 @@
 # v0.3 验证记录
 
-## CURRENT CANONICAL STATE — SP-005A4-HLV0（2026-10-01）
+## CURRENT CANONICAL STATE — Post-HLV3 / GOV-ARCHGATE1（2026-10-03）
+
+canonical Base：`9d064d0a90d8d02a5dab04a6baee18bbbf6dcdc2`；PR #39 Squash Merge 与 exact main push CI #37122681930 四矩阵已独立核验。SP-005A4-HLV0 = DONE；SP-005A4-HLV1 = DONE；SP-005A4-HLV2 = DONE；SP-005A4-HLV3 = DONE。REAL_HOST_READONLY_PASS / REAL_HOST_LIFECYCLE_PASS / REAL_HOST_LIFECYCLE_AUTHORITY_PASS / REAL_HOST_DRY_RUN_PASS = CONFIRMED；REAL_HOST_SENT / ACKNOWLEDGED = NOT ACQUIRED；ACK_VALIDATOR = HOST_GAP。
+
+ARCHITECTURE_REVIEW_GATE = PASS；LOCAL_ORDER = HLV4 → Hermes Living Adapter Stabilization → SP-005A2-P1 → Memory Evolution V1。ARCHITECTURE_CHANGE_REQUIRED = NO；ROADMAP_DIRECTION_CHANGE = NO。完整证据、依赖与授权边界见 [GOV-ARCHGATE1 Gate 记录](architecture/GOV-ARCHGATE1-POST-HLV3-REVIEW.md)。GOV-ARCHGATE1 = DRAFT_REVIEW_PENDING；SP-005A4-HLV4 = NEXT / NOT AUTHORIZED，独立任务与明确授权前 REAL_SEND = FORBIDDEN。Roadmap state != execution authorization。
+
+DATA_SCHEMA = 8；Schema Signature = SP-005A-living-runtime-v1；Prompt Template = SP-004K-prompt-v1；PROMPT_TEMPLATE_UPGRADE_REQUIRED = YES；SP-005A2-P1 = AFTER_HERMES_ADAPTER_STABILIZATION / NOT AUTHORIZED；Memory Evolution V1 = AFTER_SP-005A2-P1 / PLANNED。OpenClaw real Host validation = PENDING_REAL_HOST_VALIDATION；Full Private RP = BLOCKED_BY_OFFICIAL_HOST_CAPABILITY（H1/H2 blocker 保留）。本轮 NO_REAL_HOST_OPERATION = true、NO_REAL_SEND = true；历史证据只引用，不重跑。
+
+## GOV-ARCHGATE1 文档校准检查
+
+本轮仅修改13份Markdown：Gate记录、两份Roadmap、README/VALIDATION/KNOWN-ISSUES、Host指南与HLV0架构，以及主入口所引用的A2/A3状态页、HLV matrix和HLV3报告治理状态。额外页面只更新顶部引用/历史标签，避免仍把HLV1～3写成未来任务；执行代码、case语义、Schema、Prompt、workflow均zero diff。
+
+146个相关本地链接/锚点（含20个入站引用）检查PASS；状态、canonical SHA、局部顺序与git diff --check均PASS。HLV1/HLV2报告和E0未改，既有GOV-DOC3/B1历史正文逐项保持不变；HLV3只校准DONE治理状态，不更改执行结果、计数或manifest。不重跑Host、Living、permit、fake/real transport；Draft exact Head四矩阵由既有CI workflow执行并在交付报告独立核验，不使用旧main/PR CI替代。
+
+## HISTORICAL — HLV0 治理快照（2026-10-01）
+
+以下原状态与SHA仅指HLV0时点，不覆盖顶部当前状态。
 
 事实基线：`eedc32b719336ba063b99da95eac4e2b6a56c0c5`；[PR #34](https://github.com/y19870785/life-engine/pull/34) 已 Squash Merge，parent 为 `b78b849b1bfac1cbd28359cfb317fd1d4cb84402`；[exact main push CI #36847806554](https://github.com/y19870785/life-engine/actions/runs/36847806554) 为 push / main / exact SHA、completed / success，Ubuntu / Windows × Python 3.11 / 3.12 全部 SUCCESS，并经独立核验。
 
@@ -12,7 +28,7 @@ SP-005A4-HLV0 = DONE；当前 canonical main 为 `08bf82e89f7a4572f4931105cc5e69
 
 架构与权限见 [HLV0 architecture](architecture/SP-005A4-HERMES-LIVING-VALIDATION.md)，逐项验证见 [HLV matrix](planning/SP-005A4-HERMES-LIVING-VALIDATION-MATRIX.md)。
 
-## HLV0 文档校准与验证范围
+## HISTORICAL — HLV0 文档校准与验证范围
 
 本地完整回归：Windows / Python 3.12.10 / Node 22.23.2，`py -3.12 -X utf8 -m unittest discover -s tests -q`，443 total / 442 passed / 1 existing platform skip / 0 failed / 0 errors，366.740秒。Runtime/tests未改；沿用canonical完整套件。Draft exact Head四矩阵需另行核验，不能用Base main CI替代。
 

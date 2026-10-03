@@ -4,16 +4,18 @@
 
 本路线由 GOV-ROADMAP1 冻结，作为后续 SP / RFC / ADR / Implementation Task / Validation Task 的阶段顺序与 Gate 依据。Roadmap 不是愿望清单；值得做不等于现在授权做。Roadmap Stage 与 Why Now 无法明确回答时，默认 NOT AUTHORIZED。
 
-Roadmap Stage: Real Host Integration / 路线治理冻结。
-Why Now: Core 与 Host-neutral Binding 已完成，HLV0 已 DONE；进入真实 Host 验证前需固定长期方向、证据门禁与防跑偏规则。
+Roadmap Stage: Post-HLV3 Architecture Review Gate / GOV-ARCHGATE1。
+Why Now: HLV0～HLV3 已独立 DONE；GOV-ROADMAP1 预留的 Architecture Review Gate 已完成独立评审，本轮记录结论，不实施下一阶段。
 
-本任务 Base / canonical main：`08bf82e89f7a4572f4931105cc5e6927ae1c5214`，对应 [PR #35](https://github.com/y19870785/life-engine/pull/35) Squash Merge；SP-005A4-HLV0 = DONE，由 ChatGPT / 小雪独立确认。SP-005A3 = DONE；当前阶段 = REAL HOST INTEGRATION PHASE。阶段具备开展验证的基础，不构成执行授权。GOV-ROADMAP1 = PENDING_INDEPENDENT_REVIEW；必须正式 DONE 后才能发布 SP-005A4-HLV1 任务。
+本任务 canonical Base：`9d064d0a90d8d02a5dab04a6baee18bbbf6dcdc2`；PR #39 Squash Merge、唯一 parent `4c9c5aaf9e9ed2995086781e32241abf23436dcb`、exact main push CI #37122681930 四矩阵成功，已经独立核验。SP-005A3 = DONE；SP-005A4-HLV0 / HLV1 / HLV2 / HLV3 = DONE。GOV-ROADMAP1 的原长期方向保留，本轮只解析原预留局部顺序；[Gate证据与决定](../architecture/GOV-ARCHGATE1-POST-HLV3-REVIEW.md)是当前治理记录。
 
-DATA_SCHEMA = 8；Schema Signature = SP-005A-living-runtime-v1；Prompt Template = SP-004K-prompt-v1；PROMPT_TEMPLATE_UPGRADE_REQUIRED = YES；SP-005A2-P1 = NOT AUTHORIZED。Memory Evolution V1 = PLANNED。B01–B34 = SIMULATED_PASS；Hermes / OpenClaw real Host validation = PENDING_REAL_HOST_VALIDATION。Full Private RP = BLOCKED；H1 = BLOCKED_BY_OFFICIAL_HERMES_HOST_CAPABILITY；H2 = BLOCKED。
+ARCHITECTURE_REVIEW_GATE = PASS；LOCAL_ORDER = HLV4 → Hermes Living Adapter Stabilization → SP-005A2-P1 → Memory Evolution V1；ARCHITECTURE_CHANGE_REQUIRED = NO；ROADMAP_DIRECTION_CHANGE = NO。GOV-ARCHGATE1 = DRAFT_REVIEW_PENDING；HLV4 = NEXT / NOT AUTHORIZED，独立任务书与明确授权前 REAL_SEND = FORBIDDEN。Roadmap state != execution authorization。
 
-本次仅 Docs / Governance：不改 Runtime、Python、tests语义、Schema、数据库、Prompt或workflow，不操作 Hermes/OpenClaw/WSL、配置、Bot、cron或Gateway；不执行 discovery、Living Attempt、permit、真实验证/发送。NO_REAL_HOST_OPERATION = true；NO_REAL_SEND = true；H_LV1_STARTED = NO。历史 Host 测试不升级为当前能力或授权。
+REAL_HOST_READONLY_PASS / REAL_HOST_LIFECYCLE_PASS / REAL_HOST_LIFECYCLE_AUTHORITY_PASS / REAL_HOST_DRY_RUN_PASS = CONFIRMED；REAL_HOST_SENT / ACKNOWLEDGED = NOT ACQUIRED；ACK_VALIDATOR = HOST_GAP。B01–B34 = SIMULATED_PASS，历史 Core 标签不升级。OpenClaw real Host validation = PENDING_REAL_HOST_VALIDATION；Full Private RP = BLOCKED_BY_OFFICIAL_HOST_CAPABILITY；H1 / H2 blocker 保留。
 
-当前执行状态见 [ROADMAP-2026-09](ROADMAP-2026-09.md)；Hermes验证的细项安全合同与逐case计划见 [HLV0架构](../architecture/SP-005A4-HERMES-LIVING-VALIDATION.md)及 [HLV矩阵](SP-005A4-HERMES-LIVING-VALIDATION-MATRIX.md)。本路线不修改这些冻结语义。
+DATA_SCHEMA = 8；Schema Signature = SP-005A-living-runtime-v1；Prompt Template = SP-004K-prompt-v1；PROMPT_TEMPLATE_UPGRADE_REQUIRED = YES；SP-005A2-P1 = AFTER_HERMES_ADAPTER_STABILIZATION / NOT AUTHORIZED；Memory Evolution V1 = AFTER_SP-005A2-P1 / PLANNED。
+
+本轮仅 Docs / Governance：不改 Runtime、Python、tests语义、Schema、数据库、Prompt或workflow，不操作 Hermes/OpenClaw、Bot、cron或Gateway，不重跑历史验证，不执行 Living/permit/fake或real transport。NO_REAL_HOST_OPERATION = true；NO_REAL_SEND = true。当前执行状态见 [ROADMAP-2026-09](ROADMAP-2026-09.md)，冻结技术边界见 [HLV0架构](../architecture/SP-005A4-HERMES-LIVING-VALIDATION.md)及 [HLV矩阵](SP-005A4-HERMES-LIVING-VALIDATION-MATRIX.md)。
 
 ## 2. 长期目标
 
@@ -43,15 +45,15 @@ Core Runtime已达到进入真实Host验证的阶段。当前首要工作是证�
 | 顺序 | 阶段 | 当前状态 / 进入与退出边界 |
 | --- | --- | --- |
 | 0 | SP-005A4-HLV0 架构与验证计划冻结 | DONE；只完成文档，不授权Host操作 |
-| 1 | GOV-ROADMAP1 长期路线治理 | PENDING_INDEPENDENT_REVIEW；正式DONE后才发布HLV1任务 |
-| 2 | SP-005A4-HLV1 Hermes Read-only Discovery | NEXT；尚未授权，当前证据逐项确认后独立PASS |
-| 3 | H-LV2 Hermes Lifecycle Validation | PLANNED；HLV1独立PASS后才设计/发布执行任务，单独授权 |
-| 4 | H-LV3 Living Dry Run | PLANNED；HLV2独立PASS后单独授权，零网络发送 |
-| Gate | ARCHITECTURE REVIEW GATE | HLV1～3分别独立PASS后重新评估P1、Memory Evolution V1与H-LV4局部顺序 |
-| 5 | H-LV4 Isolated Real Text Delivery | DEFINED_ONLY / NOT_AUTHORIZED；HLV1～3 PASS + 独立审核 + 用户明确授权 |
+| 1 | GOV-ROADMAP1 长期路线治理 | 长期路线基线；原预留Gate现由GOV-ARCHGATE1记录，方向不变 |
+| 2 | SP-005A4-HLV1 Hermes Read-only Discovery | DONE；REAL_HOST_READONLY_PASS CONFIRMED |
+| 3 | H-LV2 Hermes Lifecycle Validation | DONE；REAL_HOST_LIFECYCLE_AUTHORITY_PASS CONFIRMED |
+| 4 | H-LV3 Living Dry Run | DONE；REAL_HOST_DRY_RUN_PASS CONFIRMED，零真实send |
+| Gate | ARCHITECTURE REVIEW GATE / GOV-ARCHGATE1 | Gate PASS；结论记录DRAFT_REVIEW_PENDING，非执行授权 |
+| 5 | H-LV4 Isolated Real Text Delivery | NEXT / NOT AUTHORIZED；必须另发独立任务书与real-send授权 |
 | 6 | Hermes Living Adapter Stabilization | PLANNED；收敛验证发现的adapter/identity/lifecycle/evidence/recovery/diagnostics gap |
-| 7 | P1 / Memory Evolution V1 | 按Review Gate决策；当前P1 NOT AUTHORIZED，Memory Evolution V1 PLANNED |
-| 8 | Memory Evolution | PLANNED；保持Memory/Story/Lore/Prompt边界，逐步扩展 |
+| 7 | SP-005A2-P1 Living Prompt Integration | AFTER_HERMES_ADAPTER_STABILIZATION / NOT AUTHORIZED |
+| 8 | Memory Evolution V1 | AFTER_SP-005A2-P1 / PLANNED；先冻结Prompt Projection contract |
 | 9 | Proactive Life / Routine Runtime | PLANNED；由可信状态产生Intent，Living仍决定可否执行 |
 | 10 | Media Runtime | PLANNED；一致视觉表达、artifact与delivery语义 |
 | 11 | Voice Runtime | PLANNED；Media稳定后，统一World/Memory/Relationship/Living来源 |
@@ -59,43 +61,43 @@ Core Runtime已达到进入真实Host验证的阶段。当前首要工作是证�
 | 13 | OpenClaw Living Adapter | PLANNED；Hermes成熟模式验证Host-neutral后映射，不同时大规模推进 |
 | 14 | Full Private RP | BLOCKED；独立等待官方Host capability解锁，不因其它阶段PASS自动进入 |
 
-Architecture Review Gate可依据真实证据提出P1、Memory Evolution、H-LV4具体局部顺序调整；Codex不能自行决定。即使Gate推荐了某项，仍须按本文件变更规则完成Roadmap审核、用户确认和单独实施授权。所有NEXT/PLANNED/DEFINED_ONLY均不是执行许可。
+Architecture Review Gate已由ChatGPT / 小雪独立评审并正式确定上述局部顺序；GOV-ARCHGATE1只记录已下达结论，Codex不自行改顺序。每阶段仍须separate task与explicit authorization；NEXT/PLANNED/DEFINED不是执行许可。
 
 ## 5. 第一阶段：Hermes Living Real Host Validation
 
 ### H-LV1：只读发现与 Binding Validation
 
-下一正式任务应为 SP-005A4-HLV1。REAL HOST / READ ONLY / NO HOST MUTATION / NO LIVING MUTATION / NO REAL SEND。目标是用当前真实环境证据逐项确认HLV0的DISCOVERABLE / UNKNOWN / HOST_GAP：实际安装版本/官方来源、Home/Profile/Agent/process、已有plugin发现与加载证据、可信Owner/sender/channel/target/session来源、Life Engine root/instance/generation及binding唯一性，wrong Host/Profile/Agent拒绝。
+SP-005A4-HLV1已DONE；以下保留该阶段验证边界，不重新授权执行。REAL HOST / READ ONLY / NO HOST MUTATION / NO LIVING MUTATION / NO REAL SEND。目标是用当前真实环境证据逐项确认HLV0的DISCOVERABLE / UNKNOWN / HOST_GAP：实际安装版本/官方来源、Home/Profile/Agent/process、已有plugin发现与加载证据、可信Owner/sender/channel/target/session来源、Life Engine root/instance/generation及binding唯一性，wrong Host/Profile/Agent拒绝。
 
 只读发现不能触发plugin load/reload、Gateway restart、enrollment、tick/inbound mutation、prepare、claim、permit或send；没有已加载证据就保留UNKNOWN。历史2026-09-30仅参考，不能假定环境仍相同。来源不能满足稳定可信身份则相应case BLOCKED_BY_HOST_CAPABILITY，不猜API。全部证据经独立审核才可REAL_HOST_READONLY_PASS；这也不自动授权HLV2。
 
 ### H-LV2：生命周期、身份与 Session
 
-HLV1 PASS后才允许设计/执行HLV2任务；HLV0既有冻结计划保留，新的执行方案不能提前落地。重点Host startup、Binding load、plugin/authority/session lifecycle、Gateway restart、plugin reload、authority restart、generation/epoch transition、stale capability拒绝。核心问题是旧authority/permit/session/generation能否错误获得执行资格。
+HLV2已DONE；以下保留其独立授权与证据边界，不重跑或扩大范围。重点Host startup、Binding load、plugin/authority/session lifecycle、Gateway restart、plugin reload、authority restart、generation/epoch transition、stale capability拒绝。核心问题是旧authority/permit/session/generation能否错误获得执行资格。
 
 默认NO EXTERNAL DELIVERY。只操作专用测试Host，真实Gateway restart与fresh Python process证据分开。restart/reload不重置Core generation/day/budget/cooldown或durable Intent/Attempt；restore改变generation、旧能力全部stale。有效permit撤销的完整正例按HLV0留HLV3，HLV2不得为验证方便claim或发送真实消息。独立真实生命周期证据通过后才能REAL_HOST_LIFECYCLE_PASS。
 
 ### H-LV3：Living Dry Run
 
-HLV2 PASS后，单独授权真实Hermes生命周期驱动 tick → prepare_contact → claim_attempt → execution permit → fake/local side effect → delivery/recovery simulation。NETWORK SEND = NO；fake只写isolated local journal。所需adapter/harness若尚不存在，必须在当前阶段范围单独任务与架构审核后实施，不能把验证任务隐含变成adapter开发。
+HLV3已DONE，REAL_HOST_DRY_RUN_PASS CONFIRMED；原阶段需单独授权真实Hermes生命周期驱动 tick → prepare_contact → claim_attempt → execution permit → fake/local side effect → delivery/recovery simulation。NETWORK SEND = NO；fake只写isolated local journal。所需adapter/harness若尚不存在，必须在当前阶段范围单独任务与架构审核后实施，不能把验证任务隐含变成adapter开发。
 
 至少覆盖quiet hours、cooldown、daily cap、rolling cap、recent inbound、trusted identity、stale session/world、generation/authority mismatch、duplicate claim、permit replay、crash/restart recovery与target mismatch。继续执行HLV0 RV/CR矩阵、最终generation barrier、legacy副作用前fence，真实subprocess/os._exit故障注入不能冒充真实Gateway事件。
 
-HLV3 PASS接近“Living Runtime已真实接入Hermes生命周期，但真实网络Side Effect尚未授权”；证据等级REAL_HOST_DRY_RUN_PASS，fake不是REAL_HOST_SENT。之后进入Architecture Review Gate，不顺手真实发送。
+HLV3 DONE确认真实Host lifecycle下的fake执行安全；REAL_HOST_DRY_RUN_PASS已CONFIRMED，fake不是REAL_HOST_SENT。后续Architecture Review Gate已PASS，当前只记录结论，真实网络Side Effect仍未授权。
 
 ### H-LV4：隔离单次真实文本交付
 
-当前DEFINED_ONLY / NOT_AUTHORIZED。只有HLV1、HLV2、HLV3分别独立PASS，经ChatGPT/小雪独立审核及用户明确授权，才允许执行。专用Host/bot/channel、Owner本人、exact验证target、明确单次预算、可信provider SENT contract及必要实现均需先过独立Gate。当前SIMULATED_CONTACT permit不能改用途直接用于网络发送；NO_REAL_SEND不能自动关闭。
+当前NEXT / NOT AUTHORIZED，且SP-005A4-HLV4 != AUTHORIZED_FOR_EXECUTION。HLV0～3 DONE和Gate PASS不是发送许可，必须另发独立任务书与明确授权。专用Host/bot/channel、Owner本人、exact验证target、明确单次预算、可信provider SENT contract及必要实现均需先过独立Gate。当前SIMULATED_CONTACT permit不能改用途直接用于网络发送；NO_REAL_SEND不能自动关闭。
 
-第一次严格限定one Intent、one Attempt、one execution permit、one explicitly verified test target、one text message、one transport side effect。禁止auto retry、bulk send、fallback/default-last-route target、production target、multi-channel fanout。cron/scheduled wake属于之后另立阶段，不由HLV4授权。
+第一次严格限定one Intent、one Attempt、one execution permit、one explicitly verified isolated test target、one text message、one transport side effect。禁止auto retry、bulk send、fallback/default-last-route target、production target、multi-channel fanout、message splitting、reply fallback、thread override、forum auto-thread。cron/scheduled wake属于之后另立阶段，不由HLV4授权。
 
 ## 6. 本机环境背景与重新验证原则
 
-以下只属于 USER-PROVIDED ENVIRONMENT CONTEXT，尚非 CURRENT VERIFIED HOST FACT；本任务没有读取WSL或Host配置。
+以下环境背景保留GOV-ROADMAP1时点；HLV1～3的当前已确认范围以各阶段证据及Gate记录为准，不能由背景推导新的授权。本轮没有读取WSL或Host配置。
 
 用户说明Windows下的WSL已存在Hermes与OpenClaw，并配置过微信、Telegram、Discord；此前有Life Engine/Hermes专用Discord Server/Test Bot。历史工作流为Hermes Telegram channel → 用户引导/控制 → Hermes → Discord isolated test channel执行测试。
 
-HLV1必须重新核验这套结构：Discord bot当前有效性、server/channel identity、Owner allowlist、Telegram routing、Hermes Profile/Agent/Gateway、Life Engine permanent root/instance/generation、OpenClaw与微信channel的存在及scope，均不能只凭历史聊天或本段说明签PASS。只读证据不能通过发送probe获得；不足就UNKNOWN/BLOCKED。
+原HLV1任务的只读核验要求是：Discord bot当前有效性、server/channel identity、Owner allowlist、Telegram routing、Hermes Profile/Agent/Gateway、Life Engine permanent root/instance/generation、OpenClaw与微信channel的存在及scope，均不能只凭历史聊天或本段说明签PASS。只读证据不能通过发送probe获得；不足就UNKNOWN/BLOCKED。
 
 优先Dedicated Test Host Context、Dedicated Test Agent/Bot/Channel、Explicit Owner Allowlist、Explicit Target、Separate Life Engine Root，并保持生产Gateway/config/cron untouched。Control / Guidance Channel与Test Delivery Channel分开：历史Telegram是控制来源之一，Discord是隔离delivery环境；未来验证仍成立才优先沿用。控制来源不会自动变成可信Owner、发送资格或fallback destination。生产微信/Telegram、个人正常使用频道、生产Agent/Gateway不得直接成为实验side-effect目标。
 
@@ -109,13 +111,13 @@ Recovery != Authorization。query_operation_recovery可恢复durable operation a
 
 ## 8. 第二阶段：Hermes Integration Stabilization
 
-HLV4后先收敛真实验证暴露的adapter gap、identity/lifecycle/delivery evidence mapping、recovery integration与operational diagnostics，不立即无限扩功能。Host差异优先封装Adapter / Binding Layer，不污染World/Memory/Story/Living Core；需要改共享权威或安全语义则先Architecture Review，不能把Host便利条件转成Core policy。
+HLV4后先收敛adapter gap、identity mapping、lifecycle mapping、target validation、delivery evidence mapping、recovery integration与operational diagnostics。Host differences belong in Adapter / Binding Layer，不污染World/Memory/Story/Living Core；需要改变共享authority、安全语义、Attempt生命周期、permit、recovery或delivery semantics时STOP / ARCHITECTURE_CHANGE_REQUIRED，不能把Host便利条件转成Core policy。
 
 ## 9. Architecture Review Gate：P1 与 Memory Evolution V1
 
-HLV1～3独立完成后正式复审：真实身份与session保证、同步lifecycle fence、dry-run与recovery证据、adapter gap、运维风险；据此比较SP-005A2-P1 Prompt Integration和Memory Evolution V1优先级，并评估H-LV4所需条件。当前不提前决定。
+该Gate已完成独立评审，ARCHITECTURE_REVIEW_GATE = PASS，决定HLV4 → Hermes Living Adapter Stabilization → SP-005A2-P1 → Memory Evolution V1。选项、依赖分析、理由与剩余Host gaps见GOV-ARCHGATE1记录；这解析原预留局部顺序，不改变长期方向。
 
-输出应包含exact证据、选项与理由、阶段依赖、是否需要Schema/Prompt/authority语义变化及Roadmap修改提案；经独立架构审核、用户确认后才发布实施任务。P1当前NOT AUTHORIZED，Prompt模板/HMAC/fingerprint/预算裁剪不因整理路线改变；Memory Evolution V1仅PLANNED。
+P1 = AFTER_HERMES_ADAPTER_STABILIZATION / NOT AUTHORIZED。未来至少冻结PromptSnapshot section ordering、budget/trimming、authority、version invalidation、fingerprint/integrity semantics；不得用legacy prependContext、ordinary tool output、fake Memory field或ad-hoc prompt injection绕过。Memory Evolution V1 = AFTER_SP-005A2-P1 / PLANNED：它会增加长期状态投影类型，先明确Prompt Projection contract，避免随后倒逼Memory authority、预算与裁剪。Prompt模板/HMAC/fingerprint/预算裁剪不因本轮文档治理改变。
 
 ## 10. 第三阶段：Memory Evolution
 
@@ -149,7 +151,7 @@ OpenClaw仍是正式目标Host。Hermes Living Integration未稳定前，不同�
 
 ## 16. Full Private RP 独立 blocker
 
-Full Private RP = BLOCKED；H1 = BLOCKED_BY_OFFICIAL_HERMES_HOST_CAPABILITY；H2 = BLOCKED。这是已审核能力门禁，非本任务重新调查官方upstream后的结论。Hermes尚缺已验证满足要求的统一final-output commit boundary，理想合同如llm_final_output_commit(candidate, context) → ALLOW | DROP，DROP terminal、callback failure fail closed；OpenClaw同样缺已验证统一final-output transaction boundary。
+Full Private RP = BLOCKED_BY_OFFICIAL_HOST_CAPABILITY；H1 = BLOCKED_BY_OFFICIAL_HERMES_HOST_CAPABILITY；H2 = BLOCKED。这是已审核能力门禁，非本任务重新调查官方upstream后的结论。Hermes尚缺已验证满足要求的统一final-output commit boundary，理想合同如llm_final_output_commit(candidate, context) → ALLOW | DROP，DROP terminal、callback failure fail closed；OpenClaw同样缺已验证统一final-output transaction boundary。
 
 等待upstream能力成熟后单独版本/执行链验证，不侵入式魔改Hermes/OpenClaw，不绕authority或伪造安全边界。Living permit不能替代final-output commit；H1 blocker不阻止Living只读/lifecycle/fake验证。Living真实集成PASS也不自动解锁原始历史隔离、晚到结果、授权前streaming或Full Private RP。
 
@@ -172,7 +174,7 @@ Why Now: <为何属于当前阶段、依赖证据和单独授权>
 
 继续Codex实现/文档 → Draft PR → ChatGPT/小雪独立审核 → 明确授权Ready → Codex仅Mark Ready → 轻量终审 → 明确授权Squash Merge → Codex Squash Merge → exact main push CI → ChatGPT/小雪独立核canonical main及四矩阵 → DONE。禁止Merge Commit/Rebase Merge/Auto Merge。merge本身不等于DONE，PR Head CI不能代替canonical main push CI。
 
-GOV-ROADMAP1 Draft与CI交付后立即STOP，不Ready/Merge，不操作Host。只有GOV-ROADMAP1正式DONE后才发布HLV1；之后HLV1仍须明确授权并只读重新发现WSL中的Hermes/OpenClaw/Telegram/Discord测试bot/server/微信channel/Life Engine root。
+GOV-ARCHGATE1 Draft与exact Head CI交付后立即STOP，不Ready/Merge、不操作Host、不启动HLV4/Adapter Stabilization/P1/Memory Evolution。HLV1～3历史证据只引用；每个未来实施/验证阶段重新另立任务与授权。
 
 ## 19. STOP / ARCHITECTURE_CHANGE_REQUIRED
 
