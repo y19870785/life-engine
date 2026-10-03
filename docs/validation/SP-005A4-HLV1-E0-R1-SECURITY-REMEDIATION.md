@@ -4,7 +4,9 @@
 
 Roadmap Stage：Real Host Integration → SP-005A4-HLV1 → Environment Gate Remediation。固定 Base：`f52042188fa960b0d66b99644334454d08995420`。本轮仅处理 Dedicated Test Home 的 `.env` 权限并静态审计 cron。未启动、停止或重启任何 Gateway；未访问 Discord、Telegram、微信 API；未发送消息；未启动 HLV1 retry。
 
-**SP-005A4-HLV1-E0-R1 = BLOCKED。** `.env` 权限修复已完成，cron 原始五文件的静态审计表明当前快照没有可调度 job 或待投递队列；但审计使用 SQLite `mode=ro` 查询执行账本时，在 Test Home 的 cron 目录意外生成两个 SQLite 辅助文件（`-shm` 与空的 `-wal`）。这违反本任务的 cron 零修改约束。保留现场，未删除、重命名或修复辅助文件；后续清理和复核需单独授权。`ARCHITECTURE_CHANGE_REQUIRED = NO`。HLV1、HLV1-E0 继续 BLOCKED；Test Gateway 不得启动。
+**当前状态：SP-005A4-HLV1-E0-R1 = PASS。** `.env` 权限修复已完成，cron 原始五文件的静态审计表明当前快照没有可调度 job 或待投递队列；单独授权的 R1-R1 清理已精确删除审计产生的两个 SQLite sidecar，并以 metadata 确认恢复到原始五文件。`TEST_CRON_REMEDIATION_REQUIRED = NO`，`CRON_STARTUP_GATE = PASS_STATIC_SNAPSHOT`，`ARCHITECTURE_CHANGE_REQUIRED = NO`。这不是 Gateway lifecycle validation，也不授权启动 Gateway。HLV1-E0 仍 BLOCKED / IN_PROGRESS；HLV1 仍 BLOCKED。
+
+**历史审计状态：R1 初次提交 = BLOCKED。** 初次审计使用 SQLite `mode=ro` 查询执行账本时，在 Test Home 的 cron 目录意外生成两个 SQLite 辅助文件（`-shm` 与空的 `-wal`），违反当时的 cron 零修改约束。该偏差及初次 BLOCKED 结论保留在本文件和 PR 历史中，不因后续清理而抹除。
 
 ## 隔离与 Secret 权限
 
@@ -50,9 +52,21 @@ Test Home 的 cron job registry `jobs.json` 不存在；`deliveries.db`、`bot_c
 
 ## 审计偏差与后续 Gate
 
-原计划要求 cron 文件保持零修改。审计期间 SQLite 只读连接仍创建了 `executions.db-shm` 和零字节 `executions.db-wal`；原始五文件没有被显式编辑，但 cron 目录由五个普通文件变为七个。两个辅助文件现由 Test 用户持有。未尝试删除它们，因为本轮明确禁止对 cron 文件删除、重命名、移动或编辑。
+原计划要求 cron 文件保持零修改。审计期间 SQLite 只读连接仍创建了 `executions.db-shm` 和零字节 `executions.db-wal`；原始五文件没有被显式编辑，但 cron 目录曾由五个普通文件变为七个。初次 R1 未尝试删除它们，因为当时明确禁止对 cron 文件删除、重命名、移动或编辑。
 
-因此：`CRON_STARTUP_GATE = PASS_STATIC_SNAPSHOT` 仅指原始五文件与当前无 job/queue 的静态结论；`R1 = BLOCKED`，`TEST_CRON_REMEDIATION_REQUIRED = YES`（先授权处理审计辅助文件并重新核验零修改约束）。`TEST_GATEWAY_START = BLOCKED`。即使将来 R1 通过，HLV1-E0 仍需完成其余环境 Gate，HLV1 Phase 0 仍须重新执行。
+初次结果：`CRON_STARTUP_GATE = PASS_STATIC_SNAPSHOT` 仅指原始五文件与无 job/queue 的静态结论；`R1 = BLOCKED`，`TEST_CRON_REMEDIATION_REQUIRED = YES`。后续受控清理的证据见下节。
+
+## Controlled Sidecar Cleanup（SP-005A4-HLV1-E0-R1-R1）
+
+ChatGPT / 小雪独立 Draft Review 确认初次审计偏差后，用户仅授权删除 Test Home cron 目录下精确命名的 `executions.db-shm` 与 `executions.db-wal`。没有通配清理权限，也没有修改原始五文件、job、queue、配置或 Gateway 的权限。
+
+删除前重新验证：固定 `origin/main` 仍为 `f52042188fa960b0d66b99644334454d08995420`，工作分支和 PR #37 Head 为初次提交 `ee7230db0236471eb89f1552d55b2c4d796da0e9`；Test Home 与 Default Home 的真实路径不同、install ID 不同。Test Gateway 在进程表中未运行。两个 sidecar 均在 Test Home cron 目录内，是非 symlink 普通文件，owner 是预期 Test 用户；大小与初次审计后的 metadata 一致。原始五文件存在。对 `executions.db` 和两个 sidecar 的 `lsof` 精确路径占用检查均无 active holder。
+
+在上述 Gate 通过后，只按精确名称删除 `executions.db-shm` 和 `executions.db-wal`。删除后的**独立 metadata-only 复核**确认：两个 sidecar 均不存在，cron 文件集合恰为原始五文件；Test `.env` 仍是非 symlink 普通文件、owner 正确、mode `0600`。没有重新打开 SQLite，也没有重新查询账本内容；“账本 0 行”仍只来自初次审计证据。
+
+本次清理没有 Gateway start/stop/restart、Default Gateway 操作、Discord/Telegram/微信 API 访问或任何网络发送。`SP-005A4-HLV1-E0-R1 = PASS`，`TEST_CRON_REMEDIATION_REQUIRED = NO`，`CRON_STARTUP_GATE = PASS_STATIC_SNAPSHOT`。HLV1-E0 仍需 Dedicated Test Agent、显式 Discord Test Channel/Target、Test Bot identity、Owner binding、Life Engine root 和安全 Test Gateway startup；本轮未继续 E0 或 HLV1 retry。
+
+验证纪律：SQLite `mode=ro` 不能证明 filesystem side-effect free。后续若同时要求 `READ_ONLY` 与 `ZERO FILESYSTEM MUTATION`，须先选定不会创建 journal/WAL/SHM 的方法，或明确授权这些辅助文件副作用。
 
 ## 执行与保密声明
 
