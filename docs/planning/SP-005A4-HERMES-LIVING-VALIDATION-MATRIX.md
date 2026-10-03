@@ -6,6 +6,30 @@ Phase = SP-005A4-HLV0；RESULT = DONE（canonical main `08bf82e89f7a4572f4931105
 
 本矩阵为 DESIGN_ONLY；全部case NOT_EXECUTED，不能把预期写成实际PASS。H-LV1/2/3均待独立执行授权；H-LV4 = DEFINED_ONLY / NOT_AUTHORIZED。权威权限、能力来源与STOP见 [HLV0架构](../architecture/SP-005A4-HERMES-LIVING-VALIDATION.md)；现有 [A3 B01–B34 executable mapping](SP-005A3-HOST-BINDING-TEST-MATRIX.md)只是 SIMULATED_PASS。历史2026-09-30仅 HISTORICAL_EVIDENCE，重新取得当前证据。
 
+上述 `DESIGN_ONLY / NOT_EXECUTED` 是 **HLV0 冻结时的历史状态**，不是本 Draft 的 HLV1 当前结果。E0 已另行取得隔离环境的 `REAL_HOST_LIFECYCLE_PASS`；[HLV1-R1 当前只读证据](../validation/SP-005A4-HLV1-HERMES-READONLY-DISCOVERY.md)在同一 Draft PR #37 中记录 `ENVIRONMENT_GATE = PASS`、`SP-005A4-HLV1-R1 = PASS`（待独立审核），最高仅 `REAL_HOST_READONLY_PASS`。H-LV2/3/4 的 mutation、fake side effect、真实发送场景仍 `NOT_EXECUTED / NOT_AUTHORIZED`，不能由 E0/HLV1 自动升级。
+
+## HLV1-R1 当前 Hermes 能力映射（Draft，待独立审核）
+
+固定 Test Home 的当前身份、配置与受保护 registry 已重新比对；Discord Bot/Server/Channel 只通过当前认证 GET 核对。源码与本轮 venv 解析到同一 Hermes checkout `01382698fc32ec7740b6a204d9b7a6abeac74d33`、package metadata `0.21.3`。标签表示只读来源/缺口，**不是集成测试 PASS**；完整路径、限制与脱敏证据见 HLV1-R1 报告。
+
+| A3 / HLV0 item | Current Hermes read-only finding | Status | Evidence level / next gate |
+| --- | --- | --- | --- |
+| Host identity / Binding Authority | Test Home install ID、持久 named profile、E0 process identity、Life Engine registry | KNOWN | REAL_HOST_READONLY_PASS；Authority wiring 未实现 |
+| authority epoch / plugin epoch | plugin manager force reload 与 Gateway/adapter lifecycle 可定位；A3 epoch 非 Hermes 原生字段 | DISCOVERABLE | H-LV2 验证撤销排序 |
+| Core generation | Life Engine protected registry/Core，不能由 Hermes session 推断 | KNOWN | REAL_HOST_READONLY_PASS（来源） |
+| Owner / trusted inbound | Discord provider author/message/guild/channel ID 与 adapter admission | KNOWN | 未制造 inbound；pairing 等路径需独立 Owner fence |
+| HostIdentityEnvelope / session identity | SessionSource、profile namespaced key、SessionEntry.session_id | DISCOVERABLE | plugin platform-event hook 不传完整 source；H-LV2 处理 |
+| Explicit trusted outbound target | DeliveryTarget 显式 chat_id 与 Discord adapter send(chat_id) | KNOWN | origin/home/thread override 不可用于 Living |
+| Plugin / Gateway lifecycle | PluginManager、GatewayRunner、adapter connect/disconnect | KNOWN | E0 lifecycle PASS 独立保留；H-LV2 验证旧能力拒绝 |
+| Execution permit consumer | DeliveryTransport → DiscordAdapter.send → channel.send | DISCOVERABLE | 无现成 permit hook；H-LV3 前必须专用执行 fence |
+| DeliveryEvidence | provider message ID / SendResult 为 SENT 候选 | DISCOVERABLE | 独立 validator 未实现；不得称 SENT |
+| ACK validator | 无可信最终交付 ACK 合同 | HOST_GAP | ACKNOWLEDGED 不得由 API success 推出 |
+| Recovery association | Session origin 与 Hermes 普通 delivery ledger；A3 B1 只读 recovery | DISCOVERABLE | 通用 ledger 可重送，Living 必须隔离 |
+| Auto retry | boot ledger sweep、reconnect/flood、base retry、Discord reference fallback | KNOWN | CLASSIFIED；H-LV3 前确认 Living 路径不自动 resend |
+| Capability Vault | A3 内存 Vault 与 Hermes profile-scoped Test Home credential | DISCOVERABLE | 不暴露 raw capability/token |
+
+RV-01 的 **Test Gateway lifecycle** 由 E0 独立记录，不将本矩阵全部 RV-01 预期升级；RV-10/11/12 在 HLV1 只完成身份来源发现，错误身份的实时拒绝测试仍留 H-LV2。其余 RV/CR 场景仍按下文冻结预期，未执行。Exact route 无直接只读 runtime projection，保持 `HOST_GAP_ACCEPTED` 的间接一致性边界；Living real send、ACK、Full Private RP 均未授权。
+
 ## 场景统一前置与证据规则
 
 以下每项 Preconditions 都包含：该phase单独授权；架构所列11项隔离门禁全部已核验；exact测试Host/Agent/Profile/bot/channel/Owner/target、separate root/instance/generation；当前可信session与Core writer_epoch/world_revision（需要时）；网络send被禁用；生产Gateway/config/cron untouched。缺任一则 BLOCKED，不能执行。测试管理动作通过可信lifecycle_transition排序，不跨transport持锁，不修改冻结business policy。
