@@ -18,7 +18,7 @@ R2 身份 fixture、Test Agent 持久 profile marker、Bot / Server / Channel fi
 
 启动前经 Hermes profile-scoped secret/config 路径与 `DiscordAdapter._get_discord_command_sync_policy` 确认 Test Home effective `DISCORD_COMMAND_SYNC_POLICY = off`。对 Test Home 路由配置和 Test Agent profile 配置计算本地 SHA-256，仅比较启动前、观察期间及停止后的值；credential 文件不进入 fingerprint material，摘要值也不写入仓库。三次比较一致：`CONFIG_FINGERPRINT_MATCH = YES`。
 
-第一次 R3 的 `discord_command_sync_state.json` 作为历史证据保留。本次启动前、观察期间和停止后对其文件摘要作本地比较，均未变化；结合本次新增日志中的 `Skipping Discord slash command sync (policy=off)`，判定 `NEW_COMMAND_SYNC_ATTEMPT = NO`。第一次 attempt 是否改变过远端命令仍为 `UNKNOWN`，本轮没有调用远端 command API。
+第一次 R3 的 `gateway/discord_command_sync_state.json` 作为历史证据保留。本次新增日志中的 `Skipping Discord slash command sync (policy=off)` 表明启动路径在同步尝试前返回。HLV1-R1 后续只读复核发现：真实状态文件位于 Test Home 的 `gateway/` 子目录，文件修改时间与其中 `last_attempt_at` 均早于第二次启动、对应第一次 R3。故本次仍可判定 `NEW_COMMAND_SYNC_ATTEMPT = NO`，但这是日志与事后文件时间的联合证据，**不是**真实状态文件启动前后的摘要比较。第一次 attempt 是否改变过远端命令仍为 `UNKNOWN`，本轮没有调用远端 command API。
 
 ## Gateway Start / Process Identity / Agent / Discord
 
@@ -40,7 +40,7 @@ R2 身份 fixture、Test Agent 持久 profile marker、Bot / Server / Channel fi
 
 停止前重新核对 exact Test PID、`/proc` process-start identity 与 `HERMES_HOME`。在 Test Home scope 调用 Hermes 官方 `gateway.status.write_planned_stop_marker(exact_test_pid)`；立即核对 marker 位于 Test Home，记录的 target PID 和 target process-start identity 均与本次 Test 进程一致。随后仅向该 exact PID 发 SIGTERM，没有调用泛用 Gateway stop、`pkill` 或进程组信号。
 
-Hermes 接受 planned stop，Discord adapter 与 session store 完成关闭，Test 进程以退出码 `0` 消失；Test Home 持久 `gateway_state = stopped`。Default Gateway 的 PID 与 process-start identity 前后相同。停止后再次确认 Test Gateway 无进程，路由配置 fingerprint 未变，command-sync state 未变。保留全部 Gateway runtime artifact、日志、state、SOUL、cron 与 SQLite sidecar；未清理或直接改写 Host 状态文件。
+Hermes 接受 planned stop，Discord adapter 与 session store 完成关闭，Test 进程以退出码 `0` 消失；Test Home 持久 `gateway_state = stopped`。Default Gateway 的 PID 与 process-start identity 前后相同。停止后再次确认 Test Gateway 无进程、路由配置 fingerprint 未变。真实 command-sync state 的时间证据见上节；保留全部 Gateway runtime artifact、日志、state、SOUL、cron 与 SQLite sidecar，未清理或直接改写 Host 状态文件。
 
 ## Evidence Level / Final Result
 
