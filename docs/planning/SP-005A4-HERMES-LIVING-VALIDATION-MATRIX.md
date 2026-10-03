@@ -1,5 +1,11 @@
 # SP-005A4-HLV0 — Hermes Living Validation 测试矩阵
 
+## HLV3 当前执行结果（独立 Draft，待独立审核）
+
+在 canonical Base `4c9c5aaf9e9ed2995086781e32241abf23436dcb` 上执行 HLV3，结果 `PASS`，最高证据 `REAL_HOST_DRY_RUN_PASS`；见 [HLV3 Living Dry-Run / Crash Recovery](../validation/SP-005A4-HLV3-HERMES-LIVING-DRY-RUN.md)。真实隔离 Gateway lifecycle 下执行32个 validation-only case，并持有 native A3 permit/capability 跨真实 planned stop/restart，LIFE-01～03 拒绝旧权限；Core mutation、CLAIMED、permit issue/consume、append/flush/fsync local fake journal 与 CR-01/02/06/07 fresh-process crash 均真实执行。NORMAL、DUP、PERMIT-01～09、CR-01～10、identity/world/writer/generation/privacy fences 的实际结果均 PASS，逐项边界与证据类型见报告；没有把下文 HLV0 全部冻结 RV 预期整体升级。
+
+Living validation execution path 的 real transport invocation/network send 均0，fake-only DI + import/socket hard-deny；Gateway 自身新增日志为 NO_SEND_OBSERVED。protected validation session 明确 NOT_REAL_INBOUND。Default 未变、config match、command sync off，最终 Test stopped；没有生产 Runtime/Core/Hermes patch。Fake Core SENT 不代表真实 provider SENT，SENT/ACKNOWLEDGED 仍 NOT_TESTED，ACK/complete SessionSource/native permit consumer gaps 保留。H-LV4 仍 NOT_AUTHORIZED，Full Private RP 仍 BLOCKED_BY_OFFICIAL_HERMES_HOST_CAPABILITY；HLV3 canonical DONE 与后续 Architecture Review Gate 等待独立治理。本节是当前 HLV3 实测；以下 HLV1/HLV2及HLV0历史原文保留。
+
 ## HLV2 当前执行结果（独立 Draft，待独立审核）
 
 在 canonical Base `991a988c9f8c2a80eda834697af81957fbe8688d` 上独立执行 HLV2，结果 `PASS`；证据见 [Hermes Host Lifecycle / Authority](../validation/SP-005A4-HLV2-HERMES-HOST-LIFECYCLE-AUTHORITY.md)。两轮真实 Test Gateway start/planned stop、Test profile load、Discord connection/disconnection、persistent identity 与不同 process-start identity 已验证；Default Gateway 未变、config fingerprint 一致、command sync off 且无新 attempt，最终 Test stopped。旧 authority/capability 的 REJECT 来自实际 lifecycle facts + synthetic local inert comparison；没有真实 capability/permit/执行管线验证，不将冻结 RV/CR 预期整体改成 PASS。
