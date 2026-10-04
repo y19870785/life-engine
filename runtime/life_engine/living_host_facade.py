@@ -6,6 +6,7 @@ from uuid import uuid4
 
 from .living_domain import canonical, fail, fingerprint, instant, text, LivingTickContext
 from .living_host_evidence import DeliveryEvidence
+from .living_real_delivery import BindingMode
 from .living_projection import query, revalidate
 
 
@@ -110,7 +111,8 @@ class LivingHostFacade:
         payload(data, ('intent_id', 'expected_revision'))
         text(data['intent_id'])
         with self.authority.authorized(envelope, capability, 'claim_attempt', data):
-            if not self.authority._isolated_test:
+            if (self.authority.execution_mode is BindingMode.SIMULATION
+                    and not self.authority._isolated_test):
                 fail('NO_REAL_SEND')
             # 先走 Core session authorization；replay 不绕过 World fence。
             if self.authority._reconcile:
@@ -125,7 +127,10 @@ class LivingHostFacade:
             permit = None
             if result.get('execute') is True and result.get('state') == 'CLAIMED':
                 # Core transaction 已结束；只在本次首次成功响应签发。
-                permit = self.authority._issue_permit(envelope, result)
+                if self.authority.execution_mode is BindingMode.REAL_DELIVERY:
+                    permit = self.authority._issue_real_permit(envelope, result, data['intent_id'])
+                else:
+                    permit = self.authority._issue_permit(envelope, result)
             return ClaimOutcome(self._response(envelope, result), permit)
 
     def recover_operation(self, envelope, capability, data):
@@ -144,6 +149,9 @@ class LivingHostFacade:
 
     def submit_delivery_result(self, envelope, capability, data, evidence):
         payload(data, ('attempt_id', 'expected_revision', 'evidence_digest'))
+        # R1 has no real-provider validator. A local intercept is never SENT.
+        if self.authority.execution_mode is BindingMode.REAL_DELIVERY:
+            fail('RECEIPT_UNVERIFIED')
         if type(evidence) is not DeliveryEvidence or fingerprint(evidence.identity()) != data['evidence_digest']:
             fail('RECEIPT_UNVERIFIED')
         if evidence.generation != self.authority._generation():

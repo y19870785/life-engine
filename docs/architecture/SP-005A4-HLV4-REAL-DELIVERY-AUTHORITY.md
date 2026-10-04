@@ -1,5 +1,11 @@
 # SP-005A4-HLV4-R0 — Real Living Delivery Authority 合同
 
+## CURRENT — R1 实施状态（2026-10-04）
+
+R0 = DONE / FROZEN；canonical main `88e699ca34cab463cd65be61edfdf61522b8952a`，PR #41 Squash Merge，exact main push CI #37175172979 四矩阵 SUCCESS，已经独立核验。R1 = IMPLEMENTED / DRAFT_REVIEW_PENDING；[R1本地验证报告](../validation/SP-005A4-HLV4-R1-REAL-DELIVERY-AUTHORITY.md)记录typed authority、one-shot grant、双consumer、本地intercept及crash/recovery证据。HLV4-A仍BLOCKED，待R1 canonical DONE和重新授权；HLV4-B NOT AUTHORIZED。Runtime目前无真实Host transport mapping；REAL_SEND=NO。下文R0原文是冻结目标合同和当时状态快照，R1实施不改变原设计史。
+
+## HISTORICAL — R0 原始冻结合同
+
 ## 问题与冻结基线
 
 任务 Base：`71063c189ba2de501acdadca61e212e1cfc722a4`。GOV-ARCHGATE1 已 canonical DONE；HLV0～HLV3 DONE，REAL_HOST_DRY_RUN_PASS CONFIRMED。R0 = DRAFT_REVIEW_PENDING；本文为待独立审核的合同冻结，不是已经部署的能力。Implementation / Runtime / Schema / Prompt / Hermes Patch / Host Operation / Real Inbound / Real Send = NO。

@@ -22,6 +22,9 @@ class ExecutionPermit:
     def __repr__(self):
         return '<ExecutionPermit redacted>'
 
+    def __reduce__(self):
+        raise TypeError('ExecutionPermit is memory-only')
+
 
 class CredentialVault:
     """调用者须持 authority mutex；消费与 lifecycle transition 在同一锁下。"""
