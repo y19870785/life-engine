@@ -1,5 +1,15 @@
 # SP-005A4-HLV0 — Hermes Living Validation 测试矩阵
 
+## CURRENT — HLV4-R0 authority 修订（2026-10-04）
+
+当前任务 Base：`71063c189ba2de501acdadca61e212e1cfc722a4`；GOV-ARCHGATE1 已 canonical DONE。HLV0～HLV3 DONE；REAL_HOST_DRY_RUN_PASS CONFIRMED。HLV4-A = BLOCKED_BY_FROZEN_AUTHORITY_CONTRACT；ARCHITECTURE_CHANGE_REQUIRED = YES，已路由到 HLV4-R0；HOST_PATCH_REQUIRED = NO。原因是 A3仅授权SIMULATED_CONTACT；不是Hermes capability blocker。
+
+[Real Delivery Authority合同](../architecture/SP-005A4-HLV4-REAL-DELIVERY-AUTHORITY.md)冻结目标typed mode/purpose、default-deny RealDeliveryPolicy、内存one-shot validation grant与独立real/simulation consumer；R0 = DRAFT_REVIEW_PENDING，现有Runtime仍不具备现实用途。LOCAL_ORDER = HLV4-R0 → HLV4-R1 → HLV4-A → HLV4-B → Hermes Living Adapter Stabilization → SP-005A2-P1 → Memory Evolution V1；ROADMAP_DIRECTION_CHANGE = NO。HLV4-R1 / HLV4-A retry / HLV4-B / P1 = NOT AUTHORIZED，Memory Evolution V1 = PLANNED。
+
+DATA_SCHEMA = 8；Schema Signature = SP-005A-living-runtime-v1；Prompt Template = SP-004K-prompt-v1。REAL_HOST_SENT / ACKNOWLEDGED = NOT ACQUIRED；ACK_VALIDATOR = HOST_GAP；REAL_SEND = NO。本轮仅文档，无Host/Runtime/schema/Prompt修改；Full Private RP仍 BLOCKED_BY_OFFICIAL_HOST_CAPABILITY。下列旧治理状态为对应阶段历史，技术合同仅由R0目标显式修订部分补充；实现须另行授权，不自动改现有行为。
+
+## HISTORICAL — R0 前治理记录
+
 ## CURRENT CANONICAL STATE — Post-HLV3 / GOV-ARCHGATE1（2026-10-03）
 
 canonical Base：`9d064d0a90d8d02a5dab04a6baee18bbbf6dcdc2`；PR #39 Squash Merge 与 exact main push CI #37122681930 四矩阵已独立核验。SP-005A4-HLV0 = DONE；SP-005A4-HLV1 = DONE；SP-005A4-HLV2 = DONE；SP-005A4-HLV3 = DONE。REAL_HOST_READONLY_PASS / REAL_HOST_LIFECYCLE_PASS / REAL_HOST_LIFECYCLE_AUTHORITY_PASS / REAL_HOST_DRY_RUN_PASS = CONFIRMED；REAL_HOST_SENT / ACKNOWLEDGED = NOT ACQUIRED；ACK_VALIDATOR = HOST_GAP。
