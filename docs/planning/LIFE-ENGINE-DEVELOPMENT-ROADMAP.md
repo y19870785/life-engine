@@ -1,6 +1,10 @@
 # Life Engine 长期开发路线与阶段治理
 
-## CURRENT — HLV4-A0 Dedicated Hermes Delivery Adapter（2026-10-04）
+## CURRENT — HLV4-A1 Dedicated Adapter 本地实施（2026-10-04）
+
+R0 / R1 / A0 = DONE；canonical main `337f5f95d47929c0a63c86cf9e2f70a14b9f6ddb`。A1 = IMPLEMENTED / DRAFT_REVIEW_PENDING，见 [A1 验证报告](../validation/SP-005A4-HLV4-A1-DEDICATED-ADAPTER.md)；本地代码/测试最高为 `DEDICATED_ADAPTER_IMPLEMENTATION_PASS`，不等于真实 Host 证据。A2 real Host validation 和 HLV4-B one-shot send 均 NOT AUTHORIZED；REAL_SEND = NO，REAL_HOST_SENT / ACKNOWLEDGED = NOT ACQUIRED，ACK_VALIDATOR = HOST_GAP。路线方向不变：A1 → A2 → HLV4-B → Hermes Living Adapter Stabilization → SP-005A2-P1 → Memory Evolution V1；NEXT 不等于执行授权。以下 A0 CURRENT 为历史快照。
+
+## HISTORICAL — HLV4-A0 Dedicated Hermes Delivery Adapter（2026-10-04）
 
 R0 / R1 = DONE；canonical main `0b733908ffdef059a43428af42f3b3cb83a9850e`。HLV4-A built-in Discord path = REJECTED；dedicated `life_engine_discord` plugin route = ARCHITECTURE_FREEZE_PENDING。见 [A0 边界合同](../architecture/SP-005A4-HLV4-DEDICATED-HERMES-DELIVERY-ADAPTER.md)：官方 Hermes plugin registry 创建独立平台，generic `send()` 必须硬拒绝，专用入口须受 REAL_CONTACT authority 与最终 guard 约束。built-in 路径需要 Host patch；dedicated plugin 路线条件性无需 Host patch。下一步须先独立审定 A0，再另行授权 HLV4-A runtime 验证；HLV4-B = NOT AUTHORIZED，REAL_SEND = NO。`ARCHITECTURE_CHANGE_REQUIRED = NO`、`ROADMAP_DIRECTION_CHANGE = NO`；REAL_HOST_SENT / ACKNOWLEDGED = NOT ACQUIRED；ACK_VALIDATOR = HOST_GAP。Full Private RP blocker 不变。下文 CURRENT 为当时历史快照。
 

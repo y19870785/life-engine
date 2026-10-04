@@ -1,0 +1,5 @@
+name: life-engine-discord-platform
+label: Life Engine Discord
+kind: platform
+version: 0.1.0
+description: Dedicated fail-closed Living REAL_CONTACT platform. No generic send.
