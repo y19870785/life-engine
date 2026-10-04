@@ -1,6 +1,10 @@
 # Life Engine 长期开发路线与阶段治理
 
-## CURRENT — HLV4-R0 authority 修订（2026-10-04）
+## CURRENT — HLV4-A0 Dedicated Hermes Delivery Adapter（2026-10-04）
+
+R0 / R1 = DONE；canonical main `0b733908ffdef059a43428af42f3b3cb83a9850e`。HLV4-A built-in Discord path = REJECTED；dedicated `life_engine_discord` plugin route = ARCHITECTURE_FREEZE_PENDING。见 [A0 边界合同](../architecture/SP-005A4-HLV4-DEDICATED-HERMES-DELIVERY-ADAPTER.md)：官方 Hermes plugin registry 创建独立平台，generic `send()` 必须硬拒绝，专用入口须受 REAL_CONTACT authority 与最终 guard 约束。built-in 路径需要 Host patch；dedicated plugin 路线条件性无需 Host patch。下一步须先独立审定 A0，再另行授权 HLV4-A runtime 验证；HLV4-B = NOT AUTHORIZED，REAL_SEND = NO。`ARCHITECTURE_CHANGE_REQUIRED = NO`、`ROADMAP_DIRECTION_CHANGE = NO`；REAL_HOST_SENT / ACKNOWLEDGED = NOT ACQUIRED；ACK_VALIDATOR = HOST_GAP。Full Private RP blocker 不变。下文 CURRENT 为当时历史快照。
+
+## HISTORICAL — HLV4-R0 authority 修订（2026-10-04）
 
 当前任务 Base：`71063c189ba2de501acdadca61e212e1cfc722a4`；GOV-ARCHGATE1 已 canonical DONE。HLV0～HLV3 DONE；REAL_HOST_DRY_RUN_PASS CONFIRMED。HLV4-A = BLOCKED_BY_FROZEN_AUTHORITY_CONTRACT；ARCHITECTURE_CHANGE_REQUIRED = YES，已路由到 HLV4-R0；HOST_PATCH_REQUIRED = NO。原因是 A3仅授权SIMULATED_CONTACT；不是Hermes capability blocker。
 
