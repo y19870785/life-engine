@@ -1,6 +1,10 @@
 # SP-005A4-HLV4-A0 — Hermes 专用 Living Delivery Adapter 边界合同
 
-## 状态与证据边界
+## CURRENT — HLV4-A1 本地实施（2026-10-04）
+
+A0 = DONE（canonical main `337f5f95d47929c0a63c86cf9e2f70a14b9f6ddb`）；A1 = IMPLEMENTED / DRAFT_REVIEW_PENDING，见 [A1 本地验证报告](../validation/SP-005A4-HLV4-A1-DEDICATED-ADAPTER.md)。独立 `life_engine_discord` 插件源码与 R1 consumer 的固定 Host-neutral port 已实现；标准 generic `send()` 和其他发送面 fail closed，默认 factory 不提供 transport。本地 inert 测试不是 Host 加载或真实边界证据。A2 = NOT AUTHORIZED；HLV4-B = NOT AUTHORIZED；REAL_SEND = NO；REAL_HOST_SENT / ACKNOWLEDGED = NOT ACQUIRED。下文为 A0 原始架构冻结记录。
+
+## HISTORICAL — A0 状态与证据边界
 
 本合同以 canonical main `0b733908ffdef059a43428af42f3b3cb83a9850e` 为 Base，冻结待独立审核的 HLV4-A 修复路径；A0 仅修改文档，没有安装插件、启动 Gateway、执行 Living 或发送消息。R0 / R1 = DONE；HLV4-A built-in Discord path = REJECTED；dedicated plugin route = ARCHITECTURE_FREEZE_PENDING；HLV4-B = NOT AUTHORIZED；REAL_SEND = NO。本文描述后续实现必须满足的条件，不构成实现或运行验证证据。
 

@@ -129,9 +129,15 @@ class SimulationConsumer:
 
 
 class RealDeliveryConsumer:
-    """Final local pre-transport intercept. No channel, router or network API."""
-    def __init__(self, authority):
+    """REAL_CONTACT admission. A bound port owns the sole post-consume call.
+
+    The original local intercept remains the default validation path. A transport
+    port is installed only by trusted Host integration code, never by a caller
+    choosing a transport while consuming a permit.
+    """
+    def __init__(self, authority, *, port=None):
         self.authority = authority
+        self._port = port
         self._count = 0
 
     @property
@@ -143,3 +149,20 @@ class RealDeliveryConsumer:
                 attempt=attempt, invocation=invocation, payload=payload):
             self._count += 1
             return 'LOCAL_PRE_TRANSPORT_INTERCEPT'
+
+    async def deliver_bound(self, permit, *, target, intent, attempt, invocation, payload):
+        """Admit once, then invoke the fixed Host port; never issue SENT evidence.
+
+        The Host execution window holds its lifecycle lease across guard,
+        consume and the single exact invocation. Exception and unknown results
+        remain reconciliation concerns, never retries.
+        """
+        if self._port is None:
+            fail('REAL_TRANSPORT_UNBOUND')
+        # The Host port holds its lifecycle lease through admission and the
+        # single invocation. The authority's own lock is acquired inside it:
+        # Host lifecycle -> BindingAuthority -> Core management barrier.
+        with self._port.execution_window(self.authority, target, payload) as transport:
+            with self.authority._consume_real_permit(permit, target=target, intent=intent,
+                    attempt=attempt, invocation=invocation, payload=payload):
+                return await transport.invoke_exact(target.channel, payload)
