@@ -13,6 +13,9 @@ from .living_domain import (LivingContext, LivingTickContext, canonical, fail, f
                             instant, scope_values, text, LivingError)
 from .living_host_capability import Capability, ExecutionPermit, CredentialVault
 from .living_host_metadata import BindingMetadata
+from .living_real_delivery import (BindingMode, ExecutionPurpose, PolicyDecision,
+    RealDeliveryPolicy, TrustedDeliveryTarget, DeliveryContext,
+    OneShotRealDeliveryGrant, validation_text)
 from .living_recovery import LivingRecoveryContext, RecoveryDelegation, OperationRecoveryRequest
 from .prompt import PromptSessionContext, PromptPurpose
 
@@ -21,6 +24,7 @@ ROLES = {'tick': 'SCHEDULER', 'query_context': 'SESSION', 'prepare_contact': 'SE
          'claim_attempt': 'EXECUTOR', 'observe_inbound': 'CONNECTOR',
          'submit_delivery_result': 'COLLECTOR', 'status': 'OWNER', 'recover_operation': 'RECOVERY'}
 NO_REAL_SEND = True
+_REAL_FACTORY_SEAL = object()
 
 
 @dataclass(frozen=True)
@@ -63,7 +67,8 @@ class BindingAuthority:
     authority restart 接受该 factory 的当前 runtime，独立 epoch 不改 generation。
     """
     def __init__(self, runtime, directory, *, owner, scope, install_id, host_identity,
-                 producer, target, initialize=False, isolated_test=False, test_key=None):
+                 producer, target, initialize=False, isolated_test=False, test_key=None,
+                 _real_factory=None, _real_target=None, _real_policy=None):
         if type(owner) is not Principal or type(scope) is not WorldScope or owner.owner_id != scope.owner_id:
             fail('AUTHORIZATION_DENIED')
         if test_key is not None and not isolated_test:
@@ -76,6 +81,22 @@ class BindingAuthority:
         self.install_id, self.host_identity, self.producer = install_id, host_identity, producer
         self._installation_evidence = fingerprint([str(runtime.repository.root), str(Path(directory).resolve())])
         self._isolated_test = isolated_test
+        if _real_factory is not None and _real_factory is not _REAL_FACTORY_SEAL:
+            fail('AUTHORIZATION_DENIED')
+        if _real_factory is _REAL_FACTORY_SEAL:
+            if (type(_real_target) is not TrustedDeliveryTarget
+                    or target != _real_target.key
+                    or not isinstance(_real_policy, RealDeliveryPolicy)
+                    or _real_target.binding != host_identity
+                    or _real_target.owner != str(owner.principal_id)):
+                fail('REAL_POLICY_DENIED')
+        self.execution_mode = (BindingMode.REAL_DELIVERY if _real_factory is _REAL_FACTORY_SEAL
+                               else BindingMode.SIMULATION)
+        self._real_target = _real_target
+        self._real_policy = _real_policy
+        self._real_grants = {}
+        self._real_grant_history = set()
+        self._real_issued = set()
         self._mutex = threading.RLock()
         self._closed = False
         self.binding_runtime_epoch, self.plugin_epoch = uuid4().hex, uuid4().hex
@@ -146,6 +167,7 @@ class BindingAuthority:
         with self._mutex:
             self._closed = True
             self._vault.revoke()
+            self._revoke_real_grants()
             self._snapshots.clear()
             self._metadata.close()
             if self._install_lease is not None:
@@ -196,6 +218,7 @@ class BindingAuthority:
 
     def _revoke(self):
         self._vault.revoke()
+        self._revoke_real_grants()
         self._snapshots.clear()
         self._permit_sessions.clear()
         if self._pending:
@@ -347,6 +370,8 @@ class BindingAuthority:
         return LivingRecoveryContext(self._recovery_principal, delegation), request
 
     def _issue_permit(self, e, result):
+        if self.execution_mode is not BindingMode.SIMULATION:
+            fail('CAPABILITY_DENIED')
         if result.get('execute') is not True or result.get('state') != 'CLAIMED':
             fail('CAPABILITY_DENIED')
         claims = self._claims(e, 'claim_attempt', {})
@@ -356,10 +381,66 @@ class BindingAuthority:
         self._permit_sessions[result['attempt_id']] = e.session
         return self._vault.issue(ExecutionPermit, claims)
 
+    def _revoke_real_grants(self):
+        for grant in self._real_grants.values():
+            grant.revoke()
+        self._real_grants.clear()
+        self._real_issued.clear()
+
+    def _real_context(self, e, intent, attempt, payload_digest):
+        if (self.execution_mode is not BindingMode.REAL_DELIVERY
+                or type(self._real_target) is not TrustedDeliveryTarget or e.session is None):
+            fail('REAL_POLICY_DENIED')
+        data = self._validate_envelope(e, 'claim_attempt')
+        if data['target'] != self._real_target.key:
+            fail('TARGET_MISMATCH')
+        return DeliveryContext(self.host_identity, self.binding_runtime_epoch,
+            self.plugin_epoch, self._generation(), self._real_target, intent, attempt,
+            e.invocation_id, ExecutionPurpose.REAL_CONTACT, data['mode'], e.session,
+            payload_digest)
+
+    def _issue_real_permit(self, e, result, intent):
+        """Only the first Core execute=true result may spend a preinstalled grant."""
+        if result.get('execute') is not True or result.get('state') != 'CLAIMED':
+            fail('CAPABILITY_DENIED')
+        grant = self._real_grants.get((intent, e.invocation_id))
+        if grant is None:
+            self._reconcile = True
+            return None
+        now = instant(self.runtime.clock())
+        try:
+            context = self._real_context(e, intent, result['attempt_id'], grant.payload_digest)
+            grant.reserve(self, context, now)
+            decision = self._real_policy.decide(context)
+            if decision is not PolicyDecision.ALLOW:
+                fail('REAL_POLICY_DENIED')
+            claims = self._claims(e, 'claim_attempt', {})
+            claims.update(binding=self.host_identity, intent=intent, attempt=result['attempt_id'],
+                          target=self._real_target.key,
+                          purpose=ExecutionPurpose.REAL_CONTACT.value,
+                          real_payload_digest=grant.payload_digest,
+                          expiry=min(now + 10, grant.expiry))
+            if claims['expiry'] <= now:
+                fail('REAL_GRANT_DENIED')
+            permit = self._vault.issue(ExecutionPermit, claims)
+            grant.state = 'SPENT'
+            self._real_issued.add(result['attempt_id'])
+            self._permit_sessions[result['attempt_id']] = e.session
+            self._pending.add(result['attempt_id'])
+            return permit
+        except Exception:
+            grant.revoke()
+            self._reconcile = True
+            return None
+
     @contextmanager
     def consume_permit(self, permit, *, target, attempt, invocation, purpose='SIMULATED_CONTACT'):
         """锁覆盖 consume→本地 fake side effect，Core transaction 已结束。"""
         with self._mutex:
+            if self.execution_mode is not BindingMode.SIMULATION:
+                fail('CAPABILITY_DENIED')
+            if purpose != ExecutionPurpose.SIMULATED_CONTACT.value:
+                fail('CAPABILITY_DENIED')
             data = self._data()
             if data['mode'] != 'LIVING_ACTIVE':
                 fail('LIVING_NOT_ACTIVE')
@@ -384,3 +465,104 @@ class BindingAuthority:
                 self._vault.consume(permit, ExecutionPermit, expected, instant(self.runtime.clock()))
             self._permit_sessions.pop(attempt, None)
             yield
+
+    @contextmanager
+    def _consume_real_permit(self, permit, *, target, intent, attempt, invocation, payload):
+        """One atomic local admission; the caller may only enter a local intercept."""
+        with self._mutex:
+            data = self._data()
+            if (self.execution_mode is not BindingMode.REAL_DELIVERY
+                    or data['mode'] != 'LIVING_ACTIVE'
+                    or type(target) is not TrustedDeliveryTarget
+                    or target != self._real_target or target.key != data['target']):
+                fail('REAL_POLICY_DENIED')
+            digest = validation_text(payload)
+            grant = self._real_grants.get((intent, invocation))
+            if (grant is None or grant.state != 'SPENT' or grant.attempt != attempt
+                    or grant.payload_digest != digest or grant.target != target):
+                fail('REAL_GRANT_DENIED')
+            if attempt not in self._real_issued:
+                fail('CAPABILITY_STALE')
+            root = self.runtime.status(self.context())['root']
+            if root['target'] != target.key or root['paused'] or not root['enabled']:
+                self._revoke()
+                fail('EXECUTION_REVOKED')
+            session = self._permit_sessions.get(attempt)
+            if session is None:
+                fail('SESSION_STALE')
+            self.runtime.status(LivingContext(self.owner, self.scope, self._generation(),
+                                              self.producer, session))
+            context = DeliveryContext(self.host_identity, self.binding_runtime_epoch,
+                self.plugin_epoch, self._generation(), target, intent, attempt, invocation,
+                ExecutionPurpose.REAL_CONTACT, data['mode'], session, digest)
+            try:
+                decision = self._real_policy.decide(context)
+            except Exception:
+                decision = PolicyDecision.DENY
+            if decision is not PolicyDecision.ALLOW:
+                self._revoke()
+                fail('REAL_POLICY_DENIED')
+            expected = dict(install_id=self.install_id,
+                instance_id=self.runtime.repository.instance_id, revision=data['revision'],
+                generation=self._generation(), binding=self.host_identity,
+                authority_epoch=self.binding_runtime_epoch,
+                plugin_epoch=self.plugin_epoch, target=target.key, intent=intent,
+                attempt=attempt, invocation=invocation,
+                purpose=ExecutionPurpose.REAL_CONTACT.value,
+                real_payload_digest=digest)
+            with locked(self.runtime.repository.root, 'management'):
+                expected['generation'] = self._generation()
+                self._vault.consume(permit, ExecutionPermit, expected,
+                                    instant(self.runtime.clock()))
+            self._real_issued.remove(attempt)
+            self._permit_sessions.pop(attempt, None)
+            yield
+
+
+class RealDeliveryBindingFactory:
+    """Trusted local deployment surface; never expose it as a model/tool API."""
+    def __init__(self, policy, target):
+        if not isinstance(policy, RealDeliveryPolicy) or type(target) is not TrustedDeliveryTarget:
+            fail('REAL_POLICY_DENIED')
+        self.policy, self.target = policy, target
+
+    def create(self, runtime, directory, *, owner, scope, install_id, host_identity,
+               producer, initialize=False, isolated_test=False, test_key=None):
+        return BindingAuthority(runtime, directory, owner=owner, scope=scope,
+            install_id=install_id, host_identity=host_identity, producer=producer,
+            target=self.target.key, initialize=initialize, isolated_test=isolated_test,
+            test_key=test_key, _real_factory=_REAL_FACTORY_SEAL,
+            _real_target=self.target, _real_policy=self.policy)
+
+    def one_shot(self, authority, *, intent, invocation, payload, ttl=30):
+        if type(ttl) is not int or not 0 < ttl <= 60:
+            fail('INVALID_ARGUMENT')
+        text(intent); text(invocation)
+        digest = validation_text(payload)
+        with authority._mutex:
+            authority._data()
+            if (authority.execution_mode is not BindingMode.REAL_DELIVERY
+                    or authority._real_policy is not self.policy
+                    or authority._real_target != self.target):
+                fail('REAL_POLICY_DENIED')
+            if authority._generation() != authority.runtime.repository.generation:
+                fail('GENERATION_STALE')
+            key = (intent, invocation)
+            if key in authority._real_grant_history:
+                fail('REAL_GRANT_SPENT')
+            grant = OneShotRealDeliveryGrant(authority, self.target, intent,
+                invocation, digest, instant(authority.runtime.clock()) + ttl)
+            authority._real_grants[key] = grant
+            authority._real_grant_history.add(key)
+            return grant
+
+    def replace_policy(self, authority, policy):
+        if not isinstance(policy, RealDeliveryPolicy):
+            fail('REAL_POLICY_DENIED')
+        with authority._mutex:
+            authority._data()
+            if authority._real_policy is not self.policy:
+                fail('REAL_POLICY_DENIED')
+            authority._real_policy = policy
+            authority._revoke()
+        self.policy = policy
