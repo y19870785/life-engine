@@ -153,13 +153,16 @@ class RealDeliveryConsumer:
     async def deliver_bound(self, permit, *, target, intent, attempt, invocation, payload):
         """Admit once, then invoke the fixed Host port; never issue SENT evidence.
 
-        ``preflight`` is synchronous and side-effect free. The only await after
-        permit consumption is the single exact transport invocation. Exception
-        and unknown results remain reconciliation concerns, never retries.
+        The Host execution window holds its lifecycle lease across guard,
+        consume and the single exact invocation. Exception and unknown results
+        remain reconciliation concerns, never retries.
         """
         if self._port is None:
             fail('REAL_TRANSPORT_UNBOUND')
-        self._port.preflight(self.authority, target, payload)
-        with self.authority._consume_real_permit(permit, target=target, intent=intent,
-                attempt=attempt, invocation=invocation, payload=payload):
-            return await self._port.invoke_exact(target, payload)
+        # The Host port holds its lifecycle lease through admission and the
+        # single invocation. The authority's own lock is acquired inside it:
+        # Host lifecycle -> BindingAuthority -> Core management barrier.
+        with self._port.execution_window(self.authority, target, payload) as transport:
+            with self.authority._consume_real_permit(permit, target=target, intent=intent,
+                    attempt=attempt, invocation=invocation, payload=payload):
+                return await transport.invoke_exact(target.channel, payload)

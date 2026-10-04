@@ -174,16 +174,6 @@ class AdapterContractTests(unittest.TestCase):
     def test_post_consume_path_is_single_fixed_invoke(self):
         adapter_tree = ast.parse((Path(__file__).parents[1] /
             'integrations/hermes_living/adapter.py').read_text(encoding='utf-8'))
-        port = next(x for x in adapter_tree.body if isinstance(x, ast.ClassDef)
-                    and x.name == '_ExactPort')
-        invoke = next(x for x in port.body if isinstance(x, ast.AsyncFunctionDef)
-                      and x.name == 'invoke_exact')
-        self.assertEqual(len([x for x in ast.walk(invoke) if isinstance(x, ast.Await)]), 1)
-        self.assertFalse(any(isinstance(x, (ast.For, ast.While, ast.Try))
-                             for x in ast.walk(invoke)))
-        calls = [x for x in ast.walk(invoke) if isinstance(x, ast.Call)]
-        self.assertEqual(len(calls), 1)
-        self.assertEqual(calls[0].func.attr, 'invoke_exact')
         consumer_tree = ast.parse((Path(__file__).parents[1] /
             'runtime/life_engine/living_real_delivery.py').read_text(encoding='utf-8'))
         consumer = next(x for x in consumer_tree.body if isinstance(x, ast.ClassDef)
@@ -191,6 +181,11 @@ class AdapterContractTests(unittest.TestCase):
         deliver = next(x for x in consumer.body if isinstance(x, ast.AsyncFunctionDef)
                        and x.name == 'deliver_bound')
         self.assertEqual(len([x for x in ast.walk(deliver) if isinstance(x, ast.Await)]), 1)
+        calls = [x for x in ast.walk(deliver) if isinstance(x, ast.Call)]
+        self.assertEqual(len([x for x in calls if isinstance(x.func, ast.Attribute)
+                              and x.func.attr == 'invoke_exact']), 1)
+        self.assertFalse(any(isinstance(x, (ast.For, ast.While, ast.Try))
+                             for x in ast.walk(deliver)))
 
     def test_network_dependency_fence(self):
         path = Path(__file__).parents[1] / 'integrations/hermes_living/adapter.py'
@@ -230,7 +225,9 @@ class RealAdapterAdmissionTests(unittest.TestCase):
         self.adapter = Adapter(object(), transport=self.transport)
         self.identity = adapter_module.AdapterIdentity('profile', 'agent', 'fake-app',
             hashlib.sha256(b'fake-credential-identity').hexdigest())
-        self.adapter.bind_trusted_host(h.authority, h.target, self.identity)
+        self.registry = adapter_module.ProtectedDeliveryRegistry(h.target, self.identity)
+        self.projection = self.registry.project(h.authority)
+        self.adapter.bind_trusted_host(self.projection, self.identity)
         self.assertTrue(asyncio.run(self.adapter.connect()))
 
     def tearDown(self):
@@ -308,7 +305,7 @@ class RealAdapterAdmissionTests(unittest.TestCase):
         intent, result = self.claimed()
         asyncio.run(self.adapter.disconnect())
         replacement = Adapter(object(), transport=InertExactTransport())
-        replacement.bind_trusted_host(self.h.authority, self.h.target, self.identity)
+        replacement.bind_trusted_host(self.projection, self.identity)
         self.assertTrue(asyncio.run(replacement.connect()))
         with self.assertRaises(LivingError):
             asyncio.run(replacement.deliver_authorized_real_contact(result.permit,
@@ -349,7 +346,7 @@ class RealAdapterAdmissionTests(unittest.TestCase):
             self.deliver(intent, result)
         other = Adapter(object(), transport=InertExactTransport())
         with self.assertRaises(LivingError):
-            other.bind_trusted_host(h.authority, h.target, self.identity)
+            other.bind_trusted_host(self.projection, self.identity)
         self.assertEqual(self.transport.calls, [])
 
     def test_a1_transport_exception_and_unknown_do_not_retry(self):

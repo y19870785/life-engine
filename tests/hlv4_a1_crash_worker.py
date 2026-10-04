@@ -59,12 +59,19 @@ def run(filename, mode):
         MemoryAudience(AudienceKind.SOUL, scope.soul_id),
         Revision(s['world_revision']), PromptPurpose.SOUL_RESPONSE)
     facade = LivingHostFacade(authority)
+    transport = InertExactTransport()
+    identity = adapter_module.AdapterIdentity('profile', 'agent', 'fake-app',
+        hashlib.sha256(b'fake-credential-identity').hexdigest())
+    projection = adapter_module.ProtectedDeliveryRegistry(target, identity).project(authority)
+    adapter = Adapter(object(), transport=transport)
+    adapter.bind_trusted_host(projection, identity)
+    if not _loop.run_until_complete(adapter.connect()):
+        raise AssertionError('inert adapter not connected')
     data = dict(intent_id=cfg['intent'], expected_revision=cfg['expected'])
     envelope = authority.envelope('EXECUTOR', 'r1-claim', session=session)
     cap = authority.issue(envelope, 'claim_attempt', data)
     factory.one_shot(authority, intent=cfg['intent'], invocation='r1-claim',
                      payload='R1 local validation text')
-    transport = InertExactTransport()
 
     def phase(point, code):
         with Path(cfg['phase']).open('wb') as handle:
@@ -84,12 +91,6 @@ def run(filename, mode):
     if mode == 'CR02':
         phase('permit_before_guard', 91)
 
-    adapter = Adapter(object(), transport=transport)
-    adapter.bind_trusted_host(authority, target,
-        adapter_module.AdapterIdentity('profile', 'agent', 'fake-app',
-            hashlib.sha256(b'fake-credential-identity').hexdigest()))
-    if not _loop.run_until_complete(adapter.connect()):
-        raise AssertionError('inert adapter not connected')
     if mode == 'CR03':
         authority._vault.consume = lambda *args, **kwargs: phase('guard_before_consume', 92)
 
