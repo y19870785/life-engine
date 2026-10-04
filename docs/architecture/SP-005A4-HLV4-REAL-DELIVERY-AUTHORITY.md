@@ -1,6 +1,10 @@
 # SP-005A4-HLV4-R0 — Real Living Delivery Authority 合同
 
-## CURRENT — R1 实施状态（2026-10-04）
+## CURRENT — HLV4-A0 专用 Hermes Adapter 边界冻结（2026-10-04）
+
+R0 / R1 = DONE；R1 canonical main `0b733908ffdef059a43428af42f3b3cb83a9850e`。HLV4-A built-in Discord path = REJECTED：Hermes 0.21.3 `DiscordAdapter.send()` 的 override、split、fallback 与 retry 行为不能作为 REAL_CONTACT 最终边界。新的 [Dedicated Hermes Delivery Adapter 合同](SP-005A4-HLV4-DEDICATED-HERMES-DELIVERY-ADAPTER.md)规定独立 `life_engine_discord` 平台、generic `send()` 硬拒绝和专用受信入口；dedicated plugin route = ARCHITECTURE_FREEZE_PENDING，待独立审核和后续实现/真实隔离验证。built-in 路径 `HOST_PATCH_REQUIRED = YES`；dedicated plugin 路线条件性 `HOST_PATCH_REQUIRED = NO`。本次 `ARCHITECTURE_CHANGE_REQUIRED = NO`、`ROADMAP_DIRECTION_CHANGE = NO`；HLV4-B = NOT AUTHORIZED，REAL_SEND = NO，REAL_HOST_SENT / ACKNOWLEDGED = NOT ACQUIRED。本文旧阶段快照保留历史含义。
+
+## HISTORICAL — R1 实施状态（2026-10-04）
 
 R0 = DONE / FROZEN；canonical main `88e699ca34cab463cd65be61edfdf61522b8952a`，PR #41 Squash Merge，exact main push CI #37175172979 四矩阵 SUCCESS，已经独立核验。R1 = IMPLEMENTED / DRAFT_REVIEW_PENDING；[R1本地验证报告](../validation/SP-005A4-HLV4-R1-REAL-DELIVERY-AUTHORITY.md)记录typed authority、one-shot grant、双consumer、本地intercept及crash/recovery证据。HLV4-A仍BLOCKED，待R1 canonical DONE和重新授权；HLV4-B NOT AUTHORIZED。Runtime目前无真实Host transport mapping；REAL_SEND=NO。下文R0原文是冻结目标合同和当时状态快照，R1实施不改变原设计史。
 

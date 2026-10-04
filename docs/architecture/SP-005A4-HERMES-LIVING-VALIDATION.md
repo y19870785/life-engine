@@ -1,6 +1,10 @@
 # SP-005A4-HLV0 — Hermes Living Sandbox Validation 架构冻结
 
-## CURRENT — HLV4-R1 实施（2026-10-04）
+## CURRENT — HLV4-A0 专用 Delivery Adapter 候选（2026-10-04）
+
+R0 / R1 = DONE；R1 canonical main `0b733908ffdef059a43428af42f3b3cb83a9850e`。HLV4-A built-in Discord path = REJECTED；Hermes 0.21.3 源码 `01382698fc32ec7740b6a204d9b7a6abeac74d33` 的 built-in send 不能充当 REAL_CONTACT 最终边界。[HLV4-A0 专用 Adapter 合同](SP-005A4-HLV4-DEDICATED-HERMES-DELIVERY-ADAPTER.md)冻结官方 plugin registry 下的 `life_engine_discord` 候选；其架构仍待独立审核，运行验证尚未开始。built-in 路径需 Host patch；独立 plugin 路径条件性无需 Host patch。`ARCHITECTURE_CHANGE_REQUIRED = NO`、`ROADMAP_DIRECTION_CHANGE = NO`；HLV4-B = NOT AUTHORIZED；REAL_SEND = NO；REAL_HOST_SENT / ACKNOWLEDGED = NOT ACQUIRED；ACK_VALIDATOR = HOST_GAP。以下旧 CURRENT 为历史阶段快照。
+
+## HISTORICAL — HLV4-R1 实施（2026-10-04）
 
 R0 = DONE / FROZEN；canonical main `88e699ca34cab463cd65be61edfdf61522b8952a`。R1 = IMPLEMENTED / DRAFT_REVIEW_PENDING；[R1验证报告](../validation/SP-005A4-HLV4-R1-REAL-DELIVERY-AUTHORITY.md)仅取得Host-neutral本地authority/intercept证据，不是Hermes Host/真实SENT。HLV4-A = BLOCKED，直至R1 canonical DONE且另行授权；HLV4-B = NOT AUTHORIZED。REAL_HOST_SENT / ACKNOWLEDGED = NOT ACQUIRED；ACK_VALIDATOR = HOST_GAP；REAL_SEND = NO。DATA_SCHEMA = 8；Schema Signature = SP-005A-living-runtime-v1；Prompt Template = SP-004K-prompt-v1。下列R0前后历史状态保持当时含义，不将原SIMULATED_CONTACT permit解释为REAL_CONTACT。
 
