@@ -1,5 +1,9 @@
 # SP-005A4-HLV0 — Hermes Living Validation 测试矩阵
 
+## CURRENT — HLV4-A2-R0 Provider Transport 架构候选（2026-10-05）
+
+R0 / R1 / A0 / A1 = DONE；A1 canonical main `d490c729960b119334cadefc023dfc1dd67f6137`。A2 = BLOCKED / `REAL_TRANSPORT_IMPLEMENTATION_REQUIRED`，没有 Host 运行或发送证据。[A2-R0 合同](../architecture/SP-005A4-HLV4-DEDICATED-DISCORD-PROVIDER-TRANSPORT.md) = `FROZEN_CANDIDATE / DRAFT_REVIEW_PENDING`：discord.py 2.7.1 自动重试已在源码确认；候选改用隔离 plugin-owned one-shot HTTP capability，等待独立审核。A2-R1、A2 retry、HLV4-B = NOT AUTHORIZED；`REAL_HOST_DELIVERY_BOUNDARY_PASS / REAL_HOST_SENT / ACKNOWLEDGED = NOT_ACQUIRED`，`ACK_VALIDATOR = HOST_GAP`，`REAL_SEND = NO`。以下 A1 CURRENT 为历史阶段快照。
+
 ## CURRENT — HLV4-A1 本地实施（2026-10-04）
 
 R0 / R1 / A0 = DONE；A1 = IMPLEMENTED / DRAFT_REVIEW_PENDING。[A1 本地验证](../validation/SP-005A4-HLV4-A1-DEDICATED-ADAPTER.md)覆盖独立平台、generic 拒绝、R1 REAL_CONTACT permit 到 inert port、replay/recovery 与无网络依赖；完整回归和 exact Head CI 仍须成功。真实 Hermes plugin load、profile isolation、Gateway/adapter lifecycle、provider SDK boundary = DEFERRED_TO_HLV4_A2，A2 / HLV4-B = NOT AUTHORIZED。REAL_SEND = NO；REAL_HOST_SENT / ACKNOWLEDGED = NOT ACQUIRED；ACK_VALIDATOR = HOST_GAP。A0 以下状态为历史快照。

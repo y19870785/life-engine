@@ -1,5 +1,9 @@
 # Life Engine 长期开发路线与阶段治理
 
+## CURRENT — HLV4-A2-R0 Provider Transport 架构候选（2026-10-05）
+
+R0 / R1 / A0 / A1 = DONE；A2 因 `REAL_TRANSPORT_IMPLEMENTATION_REQUIRED` 停止，A1 默认无 provider transport 仍是正确的安全状态。[A2-R0 架构候选](../architecture/SP-005A4-HLV4-DEDICATED-DISCORD-PROVIDER-TRANSPORT.md)仅冻结单次 Discord MESSAGE_CREATE 尝试、SDK retry 隔离与 UNKNOWN / NO RESEND。局部顺序为 A2-R0 → A2-R1 → A2 retry → HLV4-B → Hermes Living Adapter Stabilization → SP-005A2-P1 → Memory Evolution V1；后续各阶段均未获执行授权，NEXT 不是授权。`REAL_SEND = NO`，`REAL_HOST_SENT / ACKNOWLEDGED = NOT_ACQUIRED`，`ACK_VALIDATOR = HOST_GAP`。以下 A1 CURRENT 为历史阶段快照。
+
 ## CURRENT — HLV4-A1 Dedicated Adapter 本地实施（2026-10-04）
 
 R0 / R1 / A0 = DONE；canonical main `337f5f95d47929c0a63c86cf9e2f70a14b9f6ddb`。A1 = IMPLEMENTED / DRAFT_REVIEW_PENDING，见 [A1 验证报告](../validation/SP-005A4-HLV4-A1-DEDICATED-ADAPTER.md)；本地代码/测试最高为 `DEDICATED_ADAPTER_IMPLEMENTATION_PASS`，不等于真实 Host 证据。A2 real Host validation 和 HLV4-B one-shot send 均 NOT AUTHORIZED；REAL_SEND = NO，REAL_HOST_SENT / ACKNOWLEDGED = NOT ACQUIRED，ACK_VALIDATOR = HOST_GAP。路线方向不变：A1 → A2 → HLV4-B → Hermes Living Adapter Stabilization → SP-005A2-P1 → Memory Evolution V1；NEXT 不等于执行授权。以下 A0 CURRENT 为历史快照。
