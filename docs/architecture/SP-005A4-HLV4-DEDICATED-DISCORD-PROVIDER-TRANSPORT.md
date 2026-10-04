@@ -4,7 +4,7 @@
 
 本合同以 canonical main `d490c729960b119334cadefc023dfc1dd67f6137`、Hermes 0.21.3 源码 `01382698fc32ec7740b6a204d9b7a6abeac74d33`、该 checkout 中的 discord.py 2.7.1 与 aiohttp 3.14.3 为审计对象。A1 = DONE；A1 的 `LifeEngineDiscordAdapter(..., transport=None)` 是有意的默认拒绝，不是缺陷。A2 因 `REAL_TRANSPORT_IMPLEMENTATION_REQUIRED` 停止。本文只冻结 **待独立审查的架构候选**，不安装插件、不创建 client、不实现 transport、不访问 Host credential、不运行 Gateway 或网络请求。
 
-`SELECTED_PROVIDER_BOUNDARY = PLUGIN_OWNED_ONE_SHOT_HTTP_MESSAGE_CREATE`；`SELECTED_PROVIDER_CLIENT_OWNER = isolated life_engine_discord plugin`；`PRIVATE_API_DEPENDENCY = NO`。这只是后续 A2-R1 的实施方向，不是可发送能力。A2-R1、A2 retry、HLV4-B 均未授权；`REAL_SEND = NO`，`REAL_HOST_SENT / ACKNOWLEDGED = NOT_ACQUIRED`，`ACK_VALIDATOR = HOST_GAP`。若 A2-R1 不能机械证明本合同，按下文 STOP，不改写一次性 Attempt 或 authority 语义。
+`SELECTED_PROVIDER_BOUNDARY = PLUGIN_OWNED_ONE_SHOT_HTTP_MESSAGE_CREATE`；`SELECTED_PROVIDER_CLIENT_OWNER = isolated life_engine_discord plugin`；`PRIVATE_API_DEPENDENCY = NO`（仅在使用官方 `PlatformConfig.token` seam、无需读取 discord.py/built-in 私有字段时成立）。这只是后续 A2-R1 的实施方向，不是可发送能力。A2-R1、A2 retry、HLV4-B 均未授权；`REAL_SEND = NO`，`REAL_HOST_SENT / ACKNOWLEDGED = NOT_ACQUIRED`，`ACK_VALIDATOR = HOST_GAP`。若 A2-R1 不能机械证明本合同，按下文 STOP，不改写一次性 Attempt 或 authority 语义。
 
 ## 固定源码证据与调用链
 
@@ -28,9 +28,25 @@ discord.py 2.7.1 的 `Ratelimit.acquire()` 在 `discord/http.py:456-487` 可 awa
 | A `Messageable.send()` | 进入可重试的 `HTTPClient.request()`；内部 `_get_channel()`、body/mentions/nonce 构造；限流等待在调用内 | SDK client 持有 credential/session，易于 Host 归属，但 consume 后无法保证目标/payload 冻结，也无法界定一次 POST；Hermes built-in 调用还有额外 fallback | **REJECT**。公开 API 不能满足 A0 的 one permit → at most one irreversible attempt。 |
 | B `HTTPClient.send_message()` | 仍进入同一 5 次循环；无 per-call retry-off；global/bucket await 在 consume 后 | 可传冻结 channel ID/body，保留 SDK auth/session/rate limit，但必须依赖私有 `HTTPClient`，且核心重试不消失 | **REJECT**。只消除 `Messageable` 层不能消除 HTTP 自动重试。 |
 | C SDK one-shot internal wrapper | 要读取/替换 `HTTPClient.__session`、复制或绕过 `request()` 的锁、限流与认证逻辑；内部路径无稳定 one-shot 开关 | 私有属性、版本签名和 bucket 状态脆弱；不能 patch installed SDK、monkeypatch 或劫持 built-in | **REJECT**。将 SDK 内部复制到 wrapper 后实质上已是独立 HTTP 客户端，且维护风险更高。 |
-| D 专用 plugin-owned one-shot HTTP capability | 独立 admission 在 consume 前；消费后只调用一次无重定向、无自动重试的 POST；429/5xx/reset 一律不重试 | 由 **同一个 isolated plugin owner** 管理 credential、session、限流、lifecycle；不进入 Core。必须独立解决与同 credential 的其它 REST client 的协调，A2-R1 证明无 duplicate owner、无 middleware/redirect/retry | **ACCEPT AS ARCHITECTURE CANDIDATE**。不是“裸 aiohttp + token”捷径；若 ownership、限流或一次 POST 证明失败，则 STOP。 |
+| D 专用 plugin-owned one-shot HTTP capability | 独立 admission 在 consume 前；消费后只调用一次无重定向、无自动重试的 POST；429/5xx/reset 一律不重试 | 由 **同一个 isolated plugin owner** 管理 credential、session、全局及 route/bucket 限流、lifecycle；不进入 Core。A2-R1 必须先通过跨 platform/profile credential 独占 Gate，证明没有第二独立 REST owner、无 middleware/redirect/retry | **ACCEPT AS ARCHITECTURE CANDIDATE**。不是“裸 aiohttp + token”捷径；若 ownership、限流或一次 POST 证明失败，则 STOP。 |
 
-本选择不 patch Hermes Core、built-in adapter 或 discord.py。未来 A2-R1 只可在专用 plugin 的受保护 Host scope 内构建 provider capability；不得把 raw Bot token 复制给 Core、grant、permit、receipt、journal、模型或证据。若同一 credential 被其它 adapter/client 独立持有且无法隔离或协调，`HOST_CAPABILITY_INSUFFICIENT`；不得以双客户端各自猜测限流继续。
+本选择不 patch Hermes Core、built-in adapter 或 discord.py。未来 A2-R1 只可在专用 plugin 的受保护 Host scope 内构建 provider capability；不得把 raw Bot token 复制给 Core、grant、permit、receipt、journal、模型或证据。下述 Gate 是 option D 的必要前提，不能由 Hermes native duplicate-credential 检查替代。
+
+## Hermes credential claim 与官方 credential seam
+
+Hermes 0.21.3、源码 `01382698fc32ec7740b6a204d9b7a6abeac74d33` 的 `gateway/run_adapters.py:1510-1514` 明确：`GatewayRunner._adapter_credential_claim(platform, adapter)` 先取 `_adapter_credential_fingerprint(adapter)`，再返回 `(platform, fingerprint)`；`run_adapters.py:1530-1547` 的 fingerprint 候选可从 `adapter.config.token` 取得，缺失时 claim 直接为 `None`。因此 `(discord, fingerprint-X) != (life_engine_discord, fingerprint-X)`；`HERMES_NATIVE_CREDENTIAL_CLAIM = NOT_SUFFICIENT_FOR_CROSS_PLATFORM_EXCLUSIVITY`。它可辅助同 platform/profile 冲突检测，**绝不能**把 native check PASS 写成 `SINGLE_CREDENTIAL_OWNER = PASS`。这也是对先前“由 Host native claim 证明唯一 owner”可能误读的显式修正，不改变选定 provider boundary。
+
+官方来源见 `gateway/platform_registry.py:42-47, 370-385`：`PlatformEntry.adapter_factory(config)` 接收 `PlatformConfig`；`gateway/config.py:367-372` 的 `PlatformConfig.token` 是 credential-bearing 配置。`RAW_CREDENTIAL_SOURCE = PlatformConfig.token within protected Host/plugin scope`。候选 D 可以在隔离插件受保护作用域内接收该字段，**不需要** discord.py 私有 `HTTPClient`、built-in DiscordAdapter 私有字段、monkeypatch、全局 token scrape、模型输入或 generic metadata。只有这条官方来源、完整保护和独占 Gate 均成立时，`PRIVATE_API_DEPENDENCY = NO` 才有意义；factory/registration 本身不授予 REAL_CONTACT authority。
+
+## CROSS_PLATFORM_CREDENTIAL_EXCLUSIVITY_GATE
+
+A2-R1 必须在创建任何 authenticated provider client/session、取得 REAL_CONTACT execution capability **之前**，由可信 Host/plugin 管理面完整枚举隔离 Test Home 内所有 enabled、configured 与 live 的 credential owner，覆盖 built-in `discord`、`life_engine_discord`、其它 plugin、default/test/secondary profile、其它 adapter 和 provider client。还须核对受保护 registry 所列的相关 Gateway/Home owner；若作用域无法完整证明，fail closed。比较原始 credential 只在受保护 secret scope 内、内存中进行 exact equality；不得把 token、前后缀、hash、fingerprint 或可恢复衍生值写入日志、证据、Core、World、Memory、Story、Prompt、grant、permit、receipt、journal、Git、PR 或异常。对外只报告 `CREDENTIAL_PRESENT = YES`、`CROSS_PLATFORM_CREDENTIAL_CONFLICT = YES/NO`、`SINGLE_CREDENTIAL_OWNER = PASS/FAIL`。
+
+同 token 的同 platform 重复、`discord` + `life_engine_discord`、跨 profile、第二 adapter/plugin 或第二独立 authenticated REST owner 一律 DENY；尤其 built-in `discord` 与专用平台同 token 时立即 `DUPLICATE_CREDENTIAL_CLAIM`，不能以 built-in “不会被调用”继续。不同 credential 不应误报冲突。Hermes native multiplex claim 可作为附加证据，但不能证明跨 platform 独占。Gate 结果与 Gateway process、plugin epoch、adapter instance epoch、credential identity、application identity 一起纳入 provider capability 生命周期；对外 credential identity 只能是受保护 registry 分配的 opaque lifecycle reference，不是 token hash。owner 变化即旧 capability STALE、旧 grant REVOKED、旧 permit STALE。实时 reload/recreation 必须重新核验，而非沿用曾经的 PASS。
+
+冻结 `SINGLE_REST_OWNERSHIP_DOMAIN = one credential → one authenticated REST ownership/rate-limit domain`。同 credential 的 `/users/@me`、guild/channel/permission 验证与 MESSAGE_CREATE 等全部 authenticated REST 请求，要么走同一 plugin-owned client/lifecycle **和同一全局 credential + route/bucket 限流协调域**，要么在 REAL_CONTACT 执行窗口前完成且不存在第二独立 REST owner。不得为验证临时建第二 client，也不得让 client A 发 MESSAGE_CREATE、client B 独立维护 global、remaining/reset 或 route bucket。若无法在不 patch Hermes 的情况下证明跨平台 credential 独占，`HOST_CAPABILITY_INSUFFICIENT`；若必须修改 Hermes Core，`HOST_PATCH_REQUIRED`；若两个独立 REST owner 同时持有同 credential 无法排除，`PROVIDER_BOUNDARY_INCOMPATIBLE`。
+
+A2-R1 必须只用 fake credentials 测：同 token/同 platform 重复 DENY；同 token 的 `discord` + `life_engine_discord` DENY；同 token/另一 profile DENY；不同 credential 不误冲突；第二 authenticated REST owner DENY；唯一 plugin-owned REST owner 才 eligible。不得在本合同阶段读取 Test Bot token，也不得用真实 token 运行上述测试。
 
 ## Provider capability、target 与 payload
 
@@ -44,7 +60,7 @@ nonce 是可选关联线索，**不是授权或 exactly-once 依据**。discord.
 
 ## 限流与唯一不可逆尝试
 
-`RATE_LIMIT_ADMISSION_POSITION = PRE_CONSUME`：专用 plugin 在 final guard 前完成本地 route/global 限流 admission、必要等待、连接/session 健康及 target/body 准备。限流值来自 provider response headers，不能硬编码为长期额度；单一 credential owner 串行化相同 route 的 admission。该准备只能降低 429 风险，**不能保证 provider 不再返回 429**；动态限流的剩余风险由一次 POST + 不重试处理。若发现真正的限流等待只能在 consume 后插入且无法消除，`PROVIDER_BOUNDARY_INCOMPATIBLE`。
+`RATE_LIMIT_ADMISSION_POSITION = PRE_CONSUME`：唯一 plugin-owned REST domain 在 final guard 前协调 **该 credential 的 global limit、MESSAGE_CREATE route/bucket 与所有其它 authenticated REST 请求**，完成本地 admission、必要等待、连接/session 健康及 target/body 准备。限流值来自 provider response headers，不能硬编码为长期额度；不能只串行化 MESSAGE_CREATE route。首次 bucket identity 未知仍可进入单次尝试；若返回 429，只能 `RATE_LIMITED_NO_RETRY`，不得第二 HTTP attempt、第二 permit 或 refund。该准备只能降低 429 风险，**不能保证 provider 不再返回 429**；动态限流的剩余风险由一次 POST + 不重试处理。若发现真正的限流等待只能在 consume 后插入且无法消除，`PROVIDER_BOUNDARY_INCOMPATIBLE`。
 
 最终顺序：pre-consume target/client/payload/rate-limit freeze → final lifecycle 与 authority guard → atomic `consume_once()` → **唯一** `await one_shot_message_create(frozen_capability, frozen_body)`。该 await 包含发起一个 POST、读一次响应；不得再有 queue、arbitrary await、目标解析、payload mutation、SDK `HTTPClient.request()`、重定向、retry middleware、generic ledger、fallback、fan-out 或第二个 provider call。aiohttp 3.14.3 的源码显示 POST 不属于持久连接自动重试方法；未来实现仍必须显式禁重定向和中间件重试，并以 socket/HTTP trap 证明 **最多一次** MESSAGE_CREATE request。若实际依赖变更，默认拒绝，重新审计。
 
@@ -68,4 +84,4 @@ nonce 是可选关联线索，**不是授权或 exactly-once 依据**。discord.
 
 A2-R1 只可用 fake/inert provider boundary、源码 fence、单次请求 trap 测试；真实 Discord REST 禁止。后续 **另行授权** 的 A2 retry 必须在真实隔离 Gateway 中完成所有 target/client/payload/rate-limit 准备及 final guard，consume permit 后，在即将执行唯一 `one_shot_message_create` 的调用点放置不可切换、不可 fall-through 的 `HARD_PRE_SEND_INTERCEPT`。intercept 前不能宣称到达 last reversible point；intercept 必须证明 provider invocation、MESSAGE_CREATE HTTP attempt、network send 全为 0。A2 retry 也不能产生 SENT。
 
-A2-R1 必须以测试证明：同 credential 单 owner、精确普通 text channel、fixed JSON、无 middleware/redirect/自动重试、限流等待仅在 consume 前、POST 上限 1、所有异常/429/5xx/reset 不重发、生命周期与 invocation 线性化、credential 不离开 Host/plugin。若必须 patch Hermes/discord.py，报告 `HOST_PATCH_REQUIRED`；若 one-shot retry 隔离失败，报告 `PROVIDER_RETRY_INCOMPATIBLE`；若 target、payload、限流或 client 必须在 consume 后重新解析/等待，报告 `PROVIDER_BOUNDARY_INCOMPATIBLE`；若 R0/R1/A0 的 authority/Attempt/permit/recovery/evidence 真源必须改变，报告 `ARCHITECTURE_CHANGE_REQUIRED`。本候选不要求 Schema 或 Prompt 变化：`DATA_SCHEMA = 8`、Schema Signature `SP-005A-living-runtime-v1`、Prompt Template `SP-004K-prompt-v1`。
+A2-R1 必须以测试证明：`CROSS_PLATFORM_CREDENTIAL_EXCLUSIVITY_GATE` 的六类 fake-credential case、唯一 REST owner 与跨 route/global 限流协调、精确普通 text channel、fixed JSON、无 middleware/redirect/自动重试、限流等待仅在 consume 前、POST 上限 1、所有异常/429/5xx/reset 不重发、生命周期与 invocation 线性化、credential 不离开 Host/plugin。若必须 patch Hermes/discord.py，报告 `HOST_PATCH_REQUIRED`；若 one-shot retry 隔离失败，报告 `PROVIDER_RETRY_INCOMPATIBLE`；若 target、payload、限流或 client 必须在 consume 后重新解析/等待，报告 `PROVIDER_BOUNDARY_INCOMPATIBLE`；若 R0/R1/A0 的 authority/Attempt/permit/recovery/evidence 真源必须改变，报告 `ARCHITECTURE_CHANGE_REQUIRED`。本候选不要求 Schema 或 Prompt 变化：`DATA_SCHEMA = 8`、Schema Signature `SP-005A-living-runtime-v1`、Prompt Template `SP-004K-prompt-v1`。
