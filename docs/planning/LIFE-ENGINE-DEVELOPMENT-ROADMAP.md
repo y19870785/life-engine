@@ -1,5 +1,9 @@
 # Life Engine 长期开发路线与阶段治理
 
+## CURRENT — HLV4-A2-R1 Provider Transport 实施候选（2026-10-05）
+
+A2-R0 = DONE；canonical main `9ebfdebe50bd766c513742267e7bfbdfb1170238`。A2-R1 已获独立实施授权，当前仅建立默认 fail-closed 的 [plugin-owned one-shot provider transport](../architecture/SP-005A4-HLV4-DEDICATED-DISCORD-PROVIDER-TRANSPORT.md)及 fake/inert 测试，待 Draft Review。A2 retry 与 HLV4-B 未授权；`REAL_HOST_DELIVERY_BOUNDARY_PASS / REAL_HOST_SENT / ACKNOWLEDGED = NOT_ACQUIRED`，`ACK_VALIDATOR = HOST_GAP`，`REAL_SEND = NO`。局部顺序仍是 A2-R1 → A2 retry → HLV4-B → Hermes Living Adapter Stabilization → SP-005A2-P1 → Memory Evolution V1。下文 A2-R0 CURRENT 为历史阶段快照。
+
 ## CURRENT — HLV4-A2-R0 Provider Transport 架构候选（2026-10-05）
 
 R0 / R1 / A0 / A1 = DONE；A2 因 `REAL_TRANSPORT_IMPLEMENTATION_REQUIRED` 停止，A1 默认无 provider transport 仍是正确的安全状态。[A2-R0 架构候选](../architecture/SP-005A4-HLV4-DEDICATED-DISCORD-PROVIDER-TRANSPORT.md)仅冻结单次 Discord MESSAGE_CREATE 尝试、SDK retry 隔离与 UNKNOWN / NO RESEND。局部顺序为 A2-R0 → A2-R1 → A2 retry → HLV4-B → Hermes Living Adapter Stabilization → SP-005A2-P1 → Memory Evolution V1；后续各阶段均未获执行授权，NEXT 不是授权。`REAL_SEND = NO`，`REAL_HOST_SENT / ACKNOWLEDGED = NOT_ACQUIRED`，`ACK_VALIDATOR = HOST_GAP`。以下 A1 CURRENT 为历史阶段快照。

@@ -7,6 +7,7 @@ The only generic Hermes outbound method returns a non-retryable denial.
 
 from contextlib import contextmanager
 from dataclasses import dataclass, field
+import asyncio
 import re
 import threading
 from weakref import WeakKeyDictionary, ref
@@ -134,7 +135,29 @@ class _ExactPort:
                     or target.binding != authority.host_identity):
                 fail('ADAPTER_LIFECYCLE_STALE')
             validation_text(payload)
-            yield transport
+            adapter._active_windows += 1
+            adapter._idle.clear()
+            # Provider preparation is synchronous and strictly pre-consume.
+            # The legacy inert A1 port has no preparation method.
+            prepared = None
+            try:
+                if hasattr(transport, 'prepare_exact'):
+                    from .provider_ownership import ProviderBoundaryError, PreSendDeny
+                    try:
+                        prepared = transport.prepare_exact(projection, target, payload)
+                    except ProviderBoundaryError as exc:
+                        raise PreSendDeny(str(exc)) from None
+                else:
+                    prepared = transport
+                yield prepared
+            finally:
+                try:
+                    if prepared is not None and hasattr(transport, 'release_admission'):
+                        transport.release_admission()
+                finally:
+                    adapter._active_windows -= 1
+                    if adapter._active_windows == 0:
+                        adapter._idle.set()
 
 
 class LifeEngineDiscordAdapter(BasePlatformAdapter):
@@ -147,6 +170,9 @@ class LifeEngineDiscordAdapter(BasePlatformAdapter):
     def __init__(self, config, *, transport=None):
         super().__init__(config, Platform(PLATFORM_NAME))
         self._lifecycle_lock = threading.RLock()
+        self._active_windows = 0
+        self._idle = threading.Event()
+        self._idle.set()
         self._instance_epoch = uuid4().hex
         self._bound_instance_epoch = None
         self._bound_epoch = None
@@ -159,9 +185,27 @@ class LifeEngineDiscordAdapter(BasePlatformAdapter):
         self._transport = transport  # Default factory installs no transport.
         self._connected = False
 
+    def install_trusted_provider_transport(self, transport):
+        """Trusted Host wiring after official adapter_factory, before authority bind.
+
+        This method is not registered with Hermes tools, send routes or cron.
+        A provider owner must have been created from this exact PlatformConfig
+        after its cross-platform credential gate.
+        """
+        from .provider_transport import OneShotDiscordTransport
+        with self._lifecycle_lock:
+            if (type(transport) is not OneShotDiscordTransport
+                    or transport._source_config is not self.config
+                    or self._transport is not None or self._consumer is not None
+                    or self._connected or self._active_windows):
+                fail('PROVIDER_TRANSPORT_INSTALL_DENIED')
+            self._transport = transport
+
     def bind_trusted_host(self, projection, identity):
         """Trusted local deployment wiring; never registered as a Hermes tool."""
         with self._lifecycle_lock:
+            if self._active_windows:
+                fail('ADAPTER_LIFECYCLE_BUSY')
             if type(projection) is not AuthorityHostProjection:
                 fail('HOST_IDENTITY_MISSING')
             authority, target = projection.authority, projection.target
@@ -188,6 +232,8 @@ class LifeEngineDiscordAdapter(BasePlatformAdapter):
             self._bound_epoch = authority.binding_runtime_epoch
             self._bound_plugin_epoch = authority.plugin_epoch
             self._bound_instance_epoch = self._instance_epoch
+            if hasattr(self._transport, 'bind_lifecycle'):
+                self._transport.bind_lifecycle(projection)
             self._consumer = RealDeliveryConsumer(authority, port=_ExactPort(self))
 
     async def connect(self, *, is_reconnect=False):
@@ -198,20 +244,33 @@ class LifeEngineDiscordAdapter(BasePlatformAdapter):
             return self._connected
 
     async def disconnect(self):
-        with self._lifecycle_lock:
-            self._connected = False
-            if self._authority is not None:
-                self._authority.reload_plugin()
+        transport = self._transport
+        while True:
+            with self._lifecycle_lock:
+                if not self._active_windows:
+                    self._connected = False
+                    if hasattr(transport, 'revoke'):
+                        transport.revoke()
+                    if self._authority is not None:
+                        self._authority.reload_plugin()
+                    break
+            await asyncio.to_thread(self._idle.wait)
+        if hasattr(transport, 'close'):
+            await transport.close()
 
     def credential_identity_changed(self, credential_digest):
         """Trusted Host lifecycle projection; raw credentials never enter here."""
         if type(credential_digest) is not str or not _DIGEST.fullmatch(credential_digest):
             fail('HOST_IDENTITY_MISSING')
         with self._lifecycle_lock:
+            if self._active_windows:
+                fail('ADAPTER_LIFECYCLE_BUSY')
             if self._identity is None:
                 fail('HOST_IDENTITY_MISSING')
             if credential_digest != self._identity.credential_digest:
                 self._connected = False
+                if hasattr(self._transport, 'revoke'):
+                    self._transport.revoke()
                 self._identity = AdapterIdentity(self._identity.profile,
                     self._identity.agent, self._identity.application,
                     credential_digest)
@@ -222,10 +281,14 @@ class LifeEngineDiscordAdapter(BasePlatformAdapter):
         if type(application) is not str or not _IDENTITY.fullmatch(application):
             fail('HOST_IDENTITY_MISSING')
         with self._lifecycle_lock:
+            if self._active_windows:
+                fail('ADAPTER_LIFECYCLE_BUSY')
             if self._identity is None:
                 fail('HOST_IDENTITY_MISSING')
             if application != self._identity.application:
                 self._connected = False
+                if hasattr(self._transport, 'revoke'):
+                    self._transport.revoke()
                 self._identity = AdapterIdentity(self._identity.profile,
                     self._identity.agent, application,
                     self._identity.credential_digest)
@@ -238,9 +301,14 @@ class LifeEngineDiscordAdapter(BasePlatformAdapter):
         consumer = self._consumer
         if consumer is None:
             fail('REAL_TRANSPORT_UNBOUND')
-        return await consumer.deliver_bound(permit, target=target, intent=intent,
-                                            attempt=attempt, invocation=invocation,
-                                            payload=payload)
+        from .provider_ownership import PreSendDeny
+        from .provider_transport import ProviderInvocationResult, ProviderResultClass
+        try:
+            return await consumer.deliver_bound(permit, target=target, intent=intent,
+                                                attempt=attempt, invocation=invocation,
+                                                payload=payload)
+        except PreSendDeny:
+            return ProviderInvocationResult(ProviderResultClass.PRE_SEND_DENY)
 
     async def send(self, chat_id, content, reply_to=None, metadata=None):
         return SendResult(success=False, error=GENERIC_DENIAL, retryable=False)
