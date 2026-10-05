@@ -165,4 +165,9 @@ class RealDeliveryConsumer:
         with self._port.execution_window(self.authority, target, payload) as transport:
             with self.authority._consume_real_permit(permit, target=target, intent=intent,
                     attempt=attempt, invocation=invocation, payload=payload):
+                # A provider-bound Host port may require an ephemeral local
+                # admission mark. This is not a permit or recoverable authority;
+                # the existing Core permit has already been consumed.
+                if hasattr(transport, 'arm_after_consume'):
+                    transport.arm_after_consume(self.authority, permit, attempt)
                 return await transport.invoke_exact(target.channel, payload)
