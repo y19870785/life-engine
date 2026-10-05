@@ -1,7 +1,8 @@
 """Dedicated one-shot Discord MESSAGE_CREATE boundary.
 
 The Hermes plugin default never constructs this transport. A trusted Host
-binding must first prove credential ownership and inject a session factory.
+binding must first prove credential ownership. Production sessions are sealed
+to the audited aiohttp implementation; fake sessions are test-only.
 No Discord SDK or network client is imported by this module.
 """
 
@@ -20,6 +21,9 @@ from .provider_ownership import (CredentialClaim, DiscordRestOwnership,
 
 _SNOWFLAKE = re.compile(r'[0-9]{1,20}\Z')
 _ROUTE = 'POST /channels/{channel_id}/messages'
+_AUDITED_SESSION_SEAL = object()
+_PRODUCTION_TRANSPORT_SEAL = object()
+_INERT_TEST_TRANSPORT_SEAL = object()
 
 
 class ProviderResultClass(Enum):
@@ -63,6 +67,35 @@ class ResolvedTextChannel:
     channel: str
     application: str
     channel_type: str
+
+    def __post_init__(self):
+        if (any(type(value) is not str for value in
+                (self.server, self.channel, self.application, self.channel_type))
+                or not _SNOWFLAKE.fullmatch(self.server)
+                or not _SNOWFLAKE.fullmatch(self.channel)
+                or not self.application):
+            raise ProviderBoundaryError('EXACT_TEXT_CHANNEL_REQUIRED')
+
+
+@dataclass(frozen=True)
+class ProtectedLocalTextChannelResolver:
+    """Exact local Host projection; has no credential, client or REST seam.
+
+    Its provenance/completeness in a real Hermes Home is an A2 retry gate.
+    """
+
+    target: TrustedDeliveryTarget
+    resolved: ResolvedTextChannel
+
+    def __post_init__(self):
+        if (type(self.target) is not TrustedDeliveryTarget
+                or type(self.resolved) is not ResolvedTextChannel):
+            raise ProviderBoundaryError('PROTECTED_LOCAL_RESOLVER_REQUIRED')
+
+    def resolve(self, target):
+        if target != self.target:
+            raise ProviderBoundaryError('EXACT_TEXT_CHANNEL_REQUIRED')
+        return self.resolved
 
 
 @dataclass(frozen=True)
@@ -131,12 +164,12 @@ class PreparedDiscordMessageCreate:
             response = await self._session.post_once(
                 'https://discord.com/api/v10/channels/' + channel + '/messages',
                 headers=self._headers, data=self._payload.body)
+            self._capability.owner.domain.observe(_ROUTE, response.status, response.headers)
+            return classify_response(response, channel)
         except BaseException:
-            # Do not expose provider exceptions, credential-bearing URL/headers,
-            # or treat a post-entry exception as safe to retry.
+            # Includes response read/parse/rate-limit processing failures. Once
+            # invocation begins, provider acceptance may be unknowable.
             return ProviderInvocationResult(ProviderResultClass.UNKNOWN)
-        self._capability.owner.domain.observe(_ROUTE, response.status, response.headers)
-        return classify_response(response, channel)
 
 
 def classify_response(response, channel):
@@ -162,13 +195,25 @@ def classify_response(response, channel):
 class OneShotDiscordTransport:
     """Trusted adapter dependency; no generic send method or retry queue."""
 
-    def __init__(self, ownership, *, application, resolver=None, source_config=None):
-        if type(ownership) is not DiscordRestOwnership:
+    def __init__(self, ownership, *, application, resolver=None, source_config=None,
+                 _seal=None):
+        if (type(ownership) is not DiscordRestOwnership
+                or type(resolver) is not ProtectedLocalTextChannelResolver
+                or (_seal is not _PRODUCTION_TRANSPORT_SEAL
+                    and _seal is not _INERT_TEST_TRANSPORT_SEAL)):
             raise ProviderBoundaryError('REST_OWNERSHIP_REQUIRED')
+        session = ownership.session
+        if _seal is _PRODUCTION_TRANSPORT_SEAL:
+            if (type(session) is not _AiohttpOneShotSession
+                    or session._seal is not _AUDITED_SESSION_SEAL):
+                raise ProviderBoundaryError('AUDITED_PROVIDER_SESSION_REQUIRED')
+        elif type(session) is not InertTestProviderSession:
+            raise ProviderBoundaryError('INERT_TEST_SESSION_REQUIRED')
         self._ownership = ownership
         self._application = application
         self._resolver = resolver
         self._source_config = source_config
+        self._seal = _seal
 
     def bind_lifecycle(self, projection):
         self._ownership.bind_lifecycle_once((projection.authority_epoch,
@@ -183,8 +228,18 @@ class OneShotDiscordTransport:
     def prepare_exact(self, projection, target, payload):
         if projection.expected.application != self._application:
             raise ProviderBoundaryError('APPLICATION_IDENTITY_MISMATCH')
-        if self._resolver is None:
+        if type(self._resolver) is not ProtectedLocalTextChannelResolver:
             raise ProviderBoundaryError('PROTECTED_TARGET_RESOLVER_MISSING')
+        session = self._ownership.session
+        if self._seal is _PRODUCTION_TRANSPORT_SEAL:
+            if (type(session) is not _AiohttpOneShotSession
+                    or session._seal is not _AUDITED_SESSION_SEAL):
+                raise ProviderBoundaryError('AUDITED_PROVIDER_SESSION_REQUIRED')
+        elif self._seal is _INERT_TEST_TRANSPORT_SEAL:
+            if type(session) is not InertTestProviderSession:
+                raise ProviderBoundaryError('INERT_TEST_SESSION_REQUIRED')
+        else:
+            raise ProviderBoundaryError('AUDITED_PROVIDER_SESSION_REQUIRED')
         resolved = self._resolver.resolve(target)
         if (type(resolved) is not ResolvedTextChannel
                 or resolved.server != target.server
@@ -203,7 +258,7 @@ class OneShotDiscordTransport:
         try:
             # Session and exact Authorization header freeze before consume.
             return PreparedDiscordMessageCreate(capability, frozen,
-                        self._ownership.session, self._ownership.authorization_header,
+                        session, self._ownership.authorization_header,
                         projection.authority)
         except BaseException:
             self._ownership.domain.release()
@@ -222,17 +277,70 @@ class TrustedProviderTransportFactory:
     """
 
     def create(self, config, *, profile, adapter_owner, inventory, resolver,
-               session_factory, application):
+               application, session_factory=None):
+        if session_factory is not None:
+            raise ProviderBoundaryError('AUDITED_PROVIDER_SESSION_REQUIRED')
         if (type(getattr(config, 'token', None)) is not str or not config.token
                 or getattr(config, 'enabled', None) is not True
                 or not profile or not adapter_owner or not application):
             raise ProviderBoundaryError('PROTECTED_PLATFORM_CONFIG_REQUIRED')
+        if type(resolver) is not ProtectedLocalTextChannelResolver:
+            raise ProviderBoundaryError('PROTECTED_LOCAL_RESOLVER_REQUIRED')
+        audited_factory = AiohttpOneShotSessionFactory()
+        audited_factory.require_verified_version()
         claim = CredentialClaim('life_engine_discord', profile, adapter_owner,
                                 config.token)
         owner = DiscordRestOwnership.create(candidate=claim, inventory=inventory,
-                    session_factory=session_factory, lifecycle=None)
+                    session_factory=audited_factory, lifecycle=None)
         return OneShotDiscordTransport(owner, application=application,
-                                       resolver=resolver, source_config=config)
+            resolver=resolver, source_config=config, _seal=_PRODUCTION_TRANSPORT_SEAL)
+
+    def create_inert_test_only(self, config, *, profile, adapter_owner, inventory,
+                               resolver, session, application):
+        """Explicit local test seam; accepts only the built-in no-network session."""
+        if type(session) is not InertTestProviderSession:
+            raise ProviderBoundaryError('INERT_TEST_SESSION_REQUIRED')
+        if (type(getattr(config, 'token', None)) is not str or not config.token
+                or getattr(config, 'enabled', None) is not True
+                or not profile or not adapter_owner or not application):
+            raise ProviderBoundaryError('PROTECTED_PLATFORM_CONFIG_REQUIRED')
+        if type(resolver) is not ProtectedLocalTextChannelResolver:
+            raise ProviderBoundaryError('PROTECTED_LOCAL_RESOLVER_REQUIRED')
+        claim = CredentialClaim('life_engine_discord', profile, adapter_owner,
+                                config.token)
+        owner = DiscordRestOwnership.create(candidate=claim, inventory=inventory,
+            session_factory=_InertTestSessionFactory(session), lifecycle=None)
+        return OneShotDiscordTransport(owner, application=application,
+            resolver=resolver, source_config=config, _seal=_INERT_TEST_TRANSPORT_SEAL)
+
+
+class InertTestProviderSession:
+    """TEST ONLY: scripted responses, no socket/client/HTTP dependency."""
+
+    def __init__(self, responses=None):
+        self.responses = list(responses or ())
+        self.calls = []
+        self.closed = False
+
+    async def post_once(self, url, *, headers, data):
+        self.calls.append((url, dict(headers), data))
+        if not self.responses:
+            raise ConnectionResetError('inert response absent')
+        result = self.responses.pop(0)
+        if isinstance(result, BaseException):
+            raise result
+        return result
+
+    async def close(self):
+        self.closed = True
+
+
+class _InertTestSessionFactory:
+    def __init__(self, session):
+        self._session = session
+
+    def create(self, token):
+        return self._session
 
 
 class AiohttpOneShotSessionFactory:
@@ -242,15 +350,24 @@ class AiohttpOneShotSessionFactory:
     The test suite injects a fake factory and blocks all sockets.
     """
 
-    def create(self, token):
+    @staticmethod
+    def require_verified_version():
         try:
             import aiohttp
             if aiohttp.__version__ != '3.14.3':
                 raise ProviderBoundaryError('UNVERIFIED_AIOHTTP_VERSION')
-            return _AiohttpOneShotSession(aiohttp.ClientSession(trust_env=False,
-                                                                 raise_for_status=False))
+            return aiohttp
         except ProviderBoundaryError:
             raise
+        except BaseException:
+            raise ProviderBoundaryError('PROVIDER_SESSION_CREATE_DENIED') from None
+
+    def create(self, token):
+        aiohttp = self.require_verified_version()
+        try:
+            return _AiohttpOneShotSession(aiohttp.ClientSession(trust_env=False,
+                                                raise_for_status=False, middlewares=()),
+                                          _seal=_AUDITED_SESSION_SEAL)
         except BaseException:
             raise ProviderBoundaryError('PROVIDER_SESSION_CREATE_DENIED') from None
 
@@ -263,8 +380,9 @@ class _HttpResponse:
 
 
 class _AiohttpOneShotSession:
-    def __init__(self, session):
+    def __init__(self, session, *, _seal=None):
         self._session = session
+        self._seal = _seal
 
     async def post_once(self, url, *, headers, data):
         # No middleware, redirect follow, retry library, or SDK HTTPClient.

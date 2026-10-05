@@ -1,10 +1,14 @@
 """A2-R1 fake-only provider boundary tests. No Hermes Home or Discord token."""
 
 import asyncio
+from contextlib import contextmanager
 from dataclasses import dataclass
+import hashlib
 import json
 import socket
+import sys
 import threading
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
@@ -16,10 +20,12 @@ from integrations.hermes_living.provider_ownership import (
 from integrations.hermes_living.provider_transport import (
     OneShotDiscordTransport, FrozenUtf8TextJson, ProviderResultClass,
     AiohttpOneShotSessionFactory, ResolvedTextChannel,
-    TrustedProviderTransportFactory, _AiohttpOneShotSession)
+    TrustedProviderTransportFactory, _AiohttpOneShotSession,
+    ProtectedLocalTextChannelResolver, InertTestProviderSession)
 from life_engine.living_host_binding import RealDeliveryBindingFactory
 from life_engine.living_host_facade import LivingHostFacade
 from life_engine.living_real_delivery import TrustedDeliveryTarget
+from life_engine.living_domain import LivingError
 
 
 @dataclass
@@ -33,23 +39,7 @@ class FakeResponse:
             self.headers = {}
 
 
-class FakeSession:
-    def __init__(self, responses=None):
-        self.responses = list(responses or [])
-        self.calls = []
-        self.closed = False
-
-    async def post_once(self, url, *, headers, data):
-        self.calls.append((url, dict(headers), data))
-        if not self.responses:
-            raise ConnectionResetError('fake response lost')
-        result = self.responses.pop(0)
-        if isinstance(result, BaseException):
-            raise result
-        return result
-
-    async def close(self):
-        self.closed = True
+FakeSession = InertTestProviderSession
 
 
 class FakeSessionFactory:
@@ -73,6 +63,16 @@ class FakeProtectedResolver:
                                    self.channel_type)
 
 
+def local_resolver(target, channel_type='guild_text'):
+    return ProtectedLocalTextChannelResolver(target,
+        ResolvedTextChannel(target.server, target.channel, 'fake-app', channel_type))
+
+
+def sample_target():
+    return TrustedDeliveryTarget('life_engine_discord', 'discord', '123456',
+        '789012', 'owner', 'profile', 'agent', 'binding')
+
+
 @dataclass
 class PlatformConfig:
     token: str
@@ -93,22 +93,94 @@ def ownership(claim, claims=None, session=None):
 
 
 class CredentialGateTests(unittest.TestCase):
-    def test_official_platform_config_token_is_only_factory_source(self):
-        factory = FakeSessionFactory()
-        c = candidate('fake-token-A')
-        with self.assertRaisesRegex(ProviderBoundaryError, 'CONFIG_REQUIRED'):
-            TrustedProviderTransportFactory().create(PlatformConfig(c.token, False),
+    def test_production_factory_rejects_arbitrary_retrying_session(self):
+        class RetryingSessionFactory:
+            calls = 0
+            def create(self, token):
+                self.calls += 1
+                raise AssertionError('would issue two POST requests')
+        malicious = RetryingSessionFactory()
+        c = candidate()
+        with self.assertRaisesRegex(ProviderBoundaryError, 'AUDITED_PROVIDER'):
+            TrustedProviderTransportFactory().create(PlatformConfig(c.token),
                 profile=c.profile, adapter_owner=c.owner,
                 inventory=ProtectedCredentialInventory([c], complete=True),
-                resolver=FakeProtectedResolver(), session_factory=factory,
+                resolver=local_resolver(sample_target()), application='fake-app',
+                session_factory=malicious)
+        self.assertEqual(malicious.calls, 0)
+
+    def test_test_only_factory_rejects_arbitrary_session(self):
+        class RetryingSession:
+            async def post_once(self, *args, **kwargs):
+                raise AssertionError('would issue two POST requests')
+        c = candidate()
+        with self.assertRaisesRegex(ProviderBoundaryError, 'INERT_TEST_SESSION'):
+            TrustedProviderTransportFactory().create_inert_test_only(
+                PlatformConfig(c.token), profile=c.profile,
+                adapter_owner=c.owner,
+                inventory=ProtectedCredentialInventory([c], complete=True),
+                resolver=local_resolver(sample_target()),
+                session=RetryingSession(), application='fake-app')
+
+    def test_production_factory_rejects_unverified_aiohttp_version(self):
+        c = candidate()
+        with patch.dict(sys.modules, {'aiohttp': SimpleNamespace(__version__='0.0')}):
+            with self.assertRaisesRegex(ProviderBoundaryError, 'UNVERIFIED_AIOHTTP'):
+                TrustedProviderTransportFactory().create(PlatformConfig(c.token),
+                    profile=c.profile, adapter_owner=c.owner,
+                    inventory=ProtectedCredentialInventory([c], complete=True),
+                    resolver=local_resolver(sample_target()), application='fake-app')
+
+    def test_network_or_credential_resolver_is_rejected_before_session(self):
+        class NetworkResolver:
+            calls = 0
+            def resolve(self, target):
+                self.calls += 1
+                socket.create_connection(('discord.com', 443))
+        class CredentialResolver:
+            token = 'fake-token-A'
+            calls = 0
+            def resolve(self, target):
+                self.calls += 1
+                return ResolvedTextChannel(target.server, target.channel,
+                                           'fake-app', 'guild_text')
+        class SecondRestOwnerResolver:
+            authenticated_rest_owner = object()
+            calls = 0
+            def resolve(self, target):
+                self.calls += 1
+                return ResolvedTextChannel(target.server, target.channel,
+                                           'fake-app', 'guild_text')
+        c = candidate()
+        for resolver in (NetworkResolver(), CredentialResolver(),
+                         SecondRestOwnerResolver()):
+            with self.subTest(resolver=type(resolver).__name__):
+                with self.assertRaisesRegex(ProviderBoundaryError, 'LOCAL_RESOLVER'):
+                    TrustedProviderTransportFactory().create(
+                        PlatformConfig(c.token), profile=c.profile,
+                        adapter_owner=c.owner,
+                        inventory=ProtectedCredentialInventory([c], complete=True),
+                        resolver=resolver, application='fake-app')
+                self.assertEqual(resolver.calls, 0)
+
+    def test_official_platform_config_token_is_only_factory_source(self):
+        session = FakeSession()
+        c = candidate('fake-token-A')
+        with self.assertRaisesRegex(ProviderBoundaryError, 'CONFIG_REQUIRED'):
+            TrustedProviderTransportFactory().create_inert_test_only(
+                PlatformConfig(c.token, False),
+                profile=c.profile, adapter_owner=c.owner,
+                inventory=ProtectedCredentialInventory([c], complete=True),
+                resolver=local_resolver(sample_target()), session=session,
                 application='fake-app')
-        self.assertEqual(factory.calls, 0)
-        transport = TrustedProviderTransportFactory().create(PlatformConfig(c.token),
+        self.assertEqual(session.calls, [])
+        transport = TrustedProviderTransportFactory().create_inert_test_only(
+            PlatformConfig(c.token),
             profile=c.profile, adapter_owner=c.owner,
             inventory=ProtectedCredentialInventory([c], complete=True),
-            resolver=FakeProtectedResolver(), session_factory=factory,
+            resolver=local_resolver(sample_target()), session=session,
             application='fake-app')
-        self.assertEqual(factory.calls, 1)
+        self.assertIs(transport._ownership.session, session)
         asyncio.run(transport._ownership.close())
 
     def test_complete_inventory_required_before_session(self):
@@ -227,14 +299,13 @@ class RealAuthorityProviderTests(unittest.TestCase):
         h.facade = LivingHostFacade(h.authority)
         self.session = FakeSession()
         self.claim = candidate('fake-token-provider-integration')
-        self.session_factory = FakeSessionFactory(self.session)
-        self.resolver = FakeProtectedResolver()
+        self.resolver = local_resolver(h.target)
         self.config = PlatformConfig(self.claim.token)
-        self.transport = TrustedProviderTransportFactory().create(
+        self.transport = TrustedProviderTransportFactory().create_inert_test_only(
             self.config, profile=self.claim.profile,
             adapter_owner=self.claim.owner,
             inventory=ProtectedCredentialInventory([self.claim], complete=True),
-            resolver=self.resolver, session_factory=self.session_factory,
+            resolver=self.resolver, session=self.session,
             application='fake-app')
         self.owner = self.transport._ownership
         self.adapter = a1.Adapter(self.config)
@@ -245,8 +316,43 @@ class RealAuthorityProviderTests(unittest.TestCase):
             h.target, self.identity).project(h.authority)
         self.adapter.bind_trusted_host(self.projection, self.identity)
         self.assertTrue(asyncio.run(self.adapter.connect()))
+        # Windows' asyncio Proactor creates a loopback socketpair. Permit that
+        # local control pipe, but trap every external socket path.
+        def external_address(address):
+            return not (isinstance(address, tuple) and address
+                        and address[0] in ('127.0.0.1', '::1'))
+        original_connect = socket.socket.connect
+        original_connect_ex = socket.socket.connect_ex
+        original_sendto = socket.socket.sendto
+        original_create = socket.create_connection
+        def guarded_connect(sock, address):
+            if external_address(address):
+                raise AssertionError('A2-R1 unexpected external network attempt')
+            return original_connect(sock, address)
+        def guarded_connect_ex(sock, address):
+            if external_address(address):
+                raise AssertionError('A2-R1 unexpected external network attempt')
+            return original_connect_ex(sock, address)
+        def guarded_sendto(sock, data, *args):
+            if args and external_address(args[-1]):
+                raise AssertionError('A2-R1 unexpected external network attempt')
+            return original_sendto(sock, data, *args)
+        def guarded_create(address, *args, **kwargs):
+            if external_address(address):
+                raise AssertionError('A2-R1 unexpected external network attempt')
+            return original_create(address, *args, **kwargs)
+        self._network_patches = [
+            patch.object(socket.socket, 'connect', guarded_connect),
+            patch.object(socket.socket, 'connect_ex', guarded_connect_ex),
+            patch.object(socket.socket, 'sendto', guarded_sendto),
+            patch.object(socket, 'create_connection', guarded_create),
+        ]
+        for network_patch in self._network_patches:
+            network_patch.start()
 
     def tearDown(self):
+        for network_patch in reversed(self._network_patches):
+            network_patch.stop()
         asyncio.run(self.owner.close())
         self.h.tearDown()
 
@@ -282,7 +388,7 @@ class RealAuthorityProviderTests(unittest.TestCase):
         self.transport._resolver = None
         with self.assertRaisesRegex(ProviderBoundaryError, 'RESOLVER_MISSING'):
             self.transport.prepare_exact(self.projection, self.h.target, self.h.payload)
-        self.transport._resolver = FakeProtectedResolver(channel_type='forum')
+        self.transport._resolver = local_resolver(self.h.target, channel_type='forum')
         with self.assertRaisesRegex(ProviderBoundaryError, 'TEXT_CHANNEL'):
             self.transport.prepare_exact(self.projection, self.h.target, self.h.payload)
         self.assertEqual(self.session.calls, [])
@@ -344,6 +450,15 @@ class RealAuthorityProviderTests(unittest.TestCase):
         self._unknown_case(FakeResponse(200, b'{"id":"24680","channel_id":"999"}'))
     def test_missing_message_id_not_sent_candidate(self):
         self._unknown_case(FakeResponse(200, b'{"channel_id":"789012"}'))
+
+    def test_response_processing_error_is_unknown_without_retry(self):
+        self._unknown_case(FakeResponse(200,
+            b'{"id":"24680","channel_id":"789012"}', headers=object()))
+
+    def test_external_network_trap_is_active(self):
+        with self.assertRaisesRegex(AssertionError, 'unexpected external network'):
+            socket.create_connection(('discord.com', 443))
+        self.assertEqual(self.session.calls, [])
 
     def test_rate_limit_deny_before_permit_consume(self):
         self.owner.domain.observe('GET /users/@me', 429,
@@ -475,6 +590,227 @@ class RealAuthorityProviderTests(unittest.TestCase):
         self.assertEqual(len(self.session.calls), 1)
         self.assertTrue(self.session.closed)
 
+    def _same_event_loop_rotation(self, rotate):
+        self.session.responses.append(FakeResponse(200,
+            b'{"id":"24680","channel_id":"789012"}'))
+        entered, release = asyncio.Event(), asyncio.Event()
+        original_post = self.session.post_once
+        async def held_post(url, *, headers, data):
+            entered.set()
+            await release.wait()
+            return await original_post(url, headers=headers, data=data)
+        self.session.post_once = held_post
+        intent, result = self.h.claimed()
+        async def run():
+            delivery = asyncio.create_task(
+                self.adapter.deliver_authorized_real_contact(result.permit,
+                    target=self.h.target, intent=intent,
+                    attempt=result.response['result']['attempt_id'],
+                    invocation='r1-claim', payload=self.h.payload))
+            await entered.wait()
+            try:
+                with self.assertRaisesRegex(LivingError, 'ADAPTER_LIFECYCLE_BUSY'):
+                    rotate()
+            finally:
+                release.set()
+            return await delivery
+        outcome = asyncio.run(run())
+        self.assertIs(outcome.classification,
+                      ProviderResultClass.PROVIDER_CONFIRMED_SUCCESS)
+        self.assertEqual(len(self.session.calls), 1)
+        self.assertIn('/789012/messages', self.session.calls[0][0])
+
+    def test_same_event_loop_credential_rotation_rejected_while_inflight(self):
+        self._same_event_loop_rotation(lambda: self.adapter.credential_identity_changed(
+            hashlib.sha256(b'new-fake-credential').hexdigest()))
+        self.assertEqual(self.adapter._identity, self.identity)
+
+    def test_same_event_loop_application_rotation_rejected_while_inflight(self):
+        self._same_event_loop_rotation(lambda: self.adapter.application_identity_changed(
+            'new-fake-app'))
+        self.assertEqual(self.adapter._identity, self.identity)
+
+
+class ProviderLifecycleRaceTests(unittest.TestCase):
+    """Real R1 permit + inert provider path at three deterministic checkpoints."""
+
+    OPERATIONS = ('disconnect', 'credential_rotation', 'application_rotation',
+                  'adapter_recreation', 'target_transition')
+    ADAPTER_LOCKED = {'disconnect', 'credential_rotation', 'application_rotation'}
+
+    def _transition(self, fixture, operation):
+        if operation == 'disconnect':
+            asyncio.run(fixture.adapter.disconnect())
+        elif operation == 'credential_rotation':
+            fixture.adapter.credential_identity_changed(hashlib.sha256(
+                b'rotated-fake-credential').hexdigest())
+        elif operation == 'application_rotation':
+            fixture.adapter.application_identity_changed('rotated-fake-app')
+        elif operation == 'adapter_recreation':
+            replacement = a1.Adapter(object(), transport=a1.InertExactTransport())
+            replacement.bind_trusted_host(fixture.projection, fixture.identity)
+            self.assertTrue(asyncio.run(replacement.connect()))
+        elif operation == 'target_transition':
+            h = fixture.h
+            old = h.target
+            changed = TrustedDeliveryTarget(old.platform, old.provider, old.server,
+                '999999', old.owner, old.profile, old.agent, old.binding)
+            with h.authority.lifecycle_transition():
+                h.living.configure(h.ctx, h.rev(), h.op(), target=changed.key)
+                h.authority.update_target(changed.key)
+        else:
+            raise AssertionError(operation)
+
+    @staticmethod
+    def _delivery_worker(fixture, intent, result, outcomes):
+        try:
+            outcomes.append(fixture.deliver(intent, result))
+        except LivingError:
+            outcomes.append('DENY')
+        except BaseException as exc:
+            outcomes.append(exc)
+
+    def _race(self, operation, stage):
+        fixture = RealAuthorityProviderTests(methodName='runTest')
+        fixture.setUp()
+        worker = transition_worker = None
+        release = threading.Event()
+        try:
+            fixture.session.responses.append(FakeResponse(200,
+                b'{"id":"24680","channel_id":"789012"}'))
+            intent, result = fixture.h.claimed()
+            outcomes = []
+            if stage == 'before_admission':
+                lock = (fixture.adapter._lifecycle_lock if operation in self.ADAPTER_LOCKED
+                        else fixture.h.authority._mutex)
+                with lock:
+                    worker = threading.Thread(target=self._delivery_worker,
+                        args=(fixture, intent, result, outcomes), daemon=True)
+                    worker.start()
+                    self._transition(fixture, operation)
+                expected_attempts = 0
+            else:
+                arrived = threading.Event()
+                if stage == 'after_admission_before_consume':
+                    port = fixture.adapter._consumer._port
+                    original = port.execution_window
+                    @contextmanager
+                    def staged_window(*args):
+                        with original(*args) as prepared:
+                            arrived.set()
+                            if not release.wait(15):
+                                raise AssertionError('admission barrier timeout')
+                            yield prepared
+                    port.execution_window = staged_window
+                elif stage == 'after_consume_before_invocation':
+                    authority = fixture.h.authority
+                    original = authority._consume_real_permit
+                    @contextmanager
+                    def staged_consume(*args, **kwargs):
+                        with original(*args, **kwargs):
+                            arrived.set()
+                            if not release.wait(15):
+                                raise AssertionError('consume barrier timeout')
+                            yield
+                    authority._consume_real_permit = staged_consume
+                else:
+                    raise AssertionError(stage)
+                worker = threading.Thread(target=self._delivery_worker,
+                    args=(fixture, intent, result, outcomes), daemon=True)
+                worker.start()
+                self.assertTrue(arrived.wait(15))
+                self.assertFalse(fixture.adapter._lifecycle_lock.acquire(blocking=False))
+                if (stage == 'after_admission_before_consume'
+                        and operation not in self.ADAPTER_LOCKED):
+                    self._transition(fixture, operation)
+                    expected_attempts = 0
+                else:
+                    transition_started = threading.Event()
+                    transition_outcomes = []
+                    def change():
+                        transition_started.set()
+                        try:
+                            self._transition(fixture, operation)
+                            transition_outcomes.append('DONE')
+                        except BaseException as exc:
+                            transition_outcomes.append(exc)
+                    transition_worker = threading.Thread(target=change, daemon=True)
+                    transition_worker.start()
+                    self.assertTrue(transition_started.wait(15))
+                    expected_attempts = 1
+                release.set()
+            worker.join(15)
+            self.assertFalse(worker.is_alive(), 'provider delivery deadlocked')
+            if transition_worker is not None:
+                transition_worker.join(15)
+                self.assertFalse(transition_worker.is_alive(), 'transition deadlocked')
+                self.assertEqual(transition_outcomes, ['DONE'])
+            self.assertEqual(len(fixture.session.calls), expected_attempts)
+            if expected_attempts:
+                self.assertEqual(len(outcomes), 1)
+                self.assertIs(outcomes[0].classification,
+                              ProviderResultClass.PROVIDER_CONFIRMED_SUCCESS)
+                self.assertIn('/789012/messages', fixture.session.calls[0][0])
+            else:
+                self.assertEqual(outcomes, ['DENY'])
+                self.assertFalse(any(grant.state == 'SPENT' for grant in
+                    fixture.h.authority._real_grants.values()))
+        finally:
+            release.set()
+            if worker is not None:
+                worker.join(15)
+            if transition_worker is not None:
+                transition_worker.join(15)
+            fixture.tearDown()
+
+    def test_provider_path_lifecycle_matrix(self):
+        for operation in self.OPERATIONS:
+            for stage in ('before_admission', 'after_admission_before_consume',
+                          'after_consume_before_invocation'):
+                with self.subTest(operation=operation, stage=stage):
+                    self._race(operation, stage)
+
+    def test_second_credential_owner_claim_during_delivery_denied(self):
+        fixture = RealAuthorityProviderTests(methodName='runTest')
+        fixture.setUp()
+        entered, release = threading.Event(), threading.Event()
+        original = fixture.session.post_once
+        async def held_post(*args, **kwargs):
+            entered.set()
+            if not await asyncio.to_thread(release.wait, 15):
+                raise AssertionError('provider barrier timeout')
+            return await original(*args, **kwargs)
+        fixture.session.post_once = held_post
+        fixture.session.responses.append(FakeResponse(200,
+            b'{"id":"24680","channel_id":"789012"}'))
+        worker = None
+        try:
+            intent, result = fixture.h.claimed()
+            outcomes = []
+            worker = threading.Thread(target=self._delivery_worker,
+                args=(fixture, intent, result, outcomes), daemon=True)
+            worker.start()
+            self.assertTrue(entered.wait(15))
+            rival = candidate(fixture.claim.token, platform='discord',
+                              owner='second-rest-owner')
+            factory = FakeSessionFactory()
+            with self.assertRaisesRegex(ProviderBoundaryError, 'SECOND_REST_OWNER'):
+                DiscordRestOwnership.create(candidate=rival,
+                    inventory=ProtectedCredentialInventory([rival], complete=True),
+                    session_factory=factory, lifecycle=None)
+            self.assertEqual(factory.calls, 0)
+            release.set()
+            worker.join(15)
+            self.assertFalse(worker.is_alive())
+            self.assertEqual(len(fixture.session.calls), 1)
+            self.assertIs(outcomes[0].classification,
+                          ProviderResultClass.PROVIDER_CONFIRMED_SUCCESS)
+        finally:
+            release.set()
+            if worker is not None:
+                worker.join(15)
+            fixture.tearDown()
+
 
 class StaticNetworkFenceTests(unittest.TestCase):
     def test_default_adapter_has_no_transport_and_no_network(self):
@@ -504,6 +840,43 @@ class StaticNetworkFenceTests(unittest.TestCase):
         self.assertEqual(response.status, 302)
         self.assertEqual(len(calls), 1)
         self.assertIs(calls[0][1]['allow_redirects'], False)
+
+    def test_production_factory_seals_audited_session_and_one_post(self):
+        calls, constructors = [], []
+        class Response:
+            status = 302
+            headers = {'Location': 'https://other.invalid'}
+            async def read(self): return b''
+        class RequestContext:
+            async def __aenter__(self): return Response()
+            async def __aexit__(self, *args): return False
+        class FakeAiohttpClient:
+            def __init__(self, **kwargs):
+                constructors.append(kwargs)
+            def post(self, url, **kwargs):
+                calls.append((url, kwargs))
+                return RequestContext()
+            async def close(self): pass
+        fake_module = SimpleNamespace(__version__='3.14.3',
+                                      ClientSession=FakeAiohttpClient)
+        c = candidate('fake-token-sealed-production')
+        with patch.dict(sys.modules, {'aiohttp': fake_module}):
+            transport = TrustedProviderTransportFactory().create(
+                PlatformConfig(c.token), profile=c.profile,
+                adapter_owner=c.owner,
+                inventory=ProtectedCredentialInventory([c], complete=True),
+                resolver=local_resolver(sample_target()), application='fake-app')
+        try:
+            self.assertEqual(constructors, [{'trust_env': False,
+                'raise_for_status': False, 'middlewares': ()}])
+            session = transport._ownership.session
+            response = asyncio.run(session.post_once('https://discord.invalid',
+                headers={'Authorization': 'Bot fake'}, data=b'{}'))
+            self.assertEqual(response.status, 302)
+            self.assertEqual(len(calls), 1)
+            self.assertIs(calls[0][1]['allow_redirects'], False)
+        finally:
+            asyncio.run(transport._ownership.close())
 
 
 if __name__ == '__main__':
