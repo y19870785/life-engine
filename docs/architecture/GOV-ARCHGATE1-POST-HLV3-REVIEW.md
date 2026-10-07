@@ -1,6 +1,8 @@
 # GOV-ARCHGATE1 — HLV3 后 Architecture Review Gate 结论
 
-## 治理状态与来源
+> CURRENT GOVERNANCE NOTE：[GOV-SOUL-ROADMAP1](GOV-SOUL-ROADMAP1-SOUL-CONTINUITY-MAINLINE.md) 已取代本文当时冻结的 HLV4 → Adapter Stabilization → P1 → Memory Evolution 后续局部顺序。本文作为历史架构评审证据保留；技术结论不被抹去，当前主线是 Soul Continuity，Host Integration 已延期，Full Private RP 为外部阻塞封存状态。
+
+## HISTORICAL — 治理状态与来源
 
 Task Type：Documentation / Governance / Roadmap Calibration。Roadmap Stage：Post-HLV3 Architecture Review Gate。Why Now：HLV1～HLV3 已独立完成，GOV-ROADMAP1 预留的局部顺序评审已由 ChatGPT / 小雪完成；本任务将用户正式下达的评审结论记录到仓库，不重新进行 Host 验证，也不发布实施授权。
 

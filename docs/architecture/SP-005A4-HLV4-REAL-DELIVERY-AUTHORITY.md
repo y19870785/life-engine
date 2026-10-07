@@ -1,10 +1,14 @@
 # SP-005A4-HLV4-R0 — Real Living Delivery Authority 合同
 
-## CURRENT — HLV4-A2-R0 Provider 边界审计（2026-10-05）
+## CURRENT GOVERNANCE NOTE — GOV-SOUL-ROADMAP1
+
+本 Host-neutral authority 合同不变；[Soul Continuity 治理记录](GOV-SOUL-ROADMAP1-SOUL-CONTINUITY-MAINLINE.md)将其后续真实 Host 执行转入 `DEFERRED / NOT AUTHORIZED`。A2-R1 = DONE，但 `REAL_HOST_DELIVERY_BOUNDARY_PASS / REAL_HOST_SENT / ACKNOWLEDGED = NOT_ACQUIRED`，`REAL_SEND = NO`。以下状态为历史快照，不授权 A2 retry 或 HLV4-B。
+
+## HISTORICAL — HLV4-A2-R0 Provider 边界审计（2026-10-05）
 
 R0 / R1 / A0 / A1 = DONE。A2 因 `REAL_TRANSPORT_IMPLEMENTATION_REQUIRED` 停止；A1 的无 provider transport 默认 factory 保持 fail closed。[Dedicated Discord Provider Transport 架构候选](SP-005A4-HLV4-DEDICATED-DISCORD-PROVIDER-TRANSPORT.md)只精化 Host provider 层的一次 HTTP 尝试、限流和结果分类，不改变本合同的 BindingAuthority、grant、permit、Attempt、recovery 或 DeliveryEvidence 真源。A2-R1、A2 retry、HLV4-B 未授权；`REAL_SEND = NO`，`REAL_HOST_SENT / ACKNOWLEDGED = NOT_ACQUIRED`，`ACK_VALIDATOR = HOST_GAP`。以下 A1 CURRENT 为历史阶段快照。
 
-## CURRENT — HLV4-A1 专用 Adapter 本地实施（2026-10-04）
+## HISTORICAL — HLV4-A1 专用 Adapter 本地实施（2026-10-04）
 
 R0 / R1 / A0 = DONE；A1 = IMPLEMENTED / DRAFT_REVIEW_PENDING，见 [A1 报告](../validation/SP-005A4-HLV4-A1-DEDICATED-ADAPTER.md)。原 R1 `RealDeliveryConsumer.intercept()` 保留；新增固定 port admission 不改 permit、grant、policy、recovery 或 DeliveryEvidence 真源。Hermes plugin load / real lifecycle / provider call site = DEFERRED_TO_HLV4_A2；A2 / HLV4-B = NOT AUTHORIZED；REAL_SEND = NO；ACK_VALIDATOR = HOST_GAP。以下 A0 CURRENT 为历史阶段快照。
 

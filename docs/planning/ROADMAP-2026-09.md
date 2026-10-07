@@ -1,6 +1,12 @@
 # Life Engine 后续开发路线 — 2026-09
 
-## CURRENT CANONICAL STATE — Post-HLV3 / GOV-ARCHGATE1（2026-10-03）
+## CURRENT GOVERNANCE OVERRIDE — GOV-SOUL-ROADMAP1
+
+本页是 2026-09 阶段规划的历史记录；当前治理以 [GOV-SOUL-ROADMAP1](../architecture/GOV-SOUL-ROADMAP1-SOUL-CONTINUITY-MAINLINE.md) 为准。A2-R1 canonical implementation commit = `a552a2d0846ff024b930d0d802228b863a6da74f`，A2-R1 = DONE。Soul Continuity = `ACTIVE_MAINLINE`，唯一 NEXT 为 `SP-006S0 Soul Continuity Architecture Freeze / NOT AUTHORIZED`；Host Integration = `DEFERRED`，Full Private RP = `FROZEN_EXTERNAL_BLOCKER`。旧 HLV4 → Adapter Stabilization → P1 → Memory Evolution 顺序已被取代，下面表格及说明只表达当时计划，不构成当前执行顺序或授权。
+
+`SP-005A2-P1 = RESEQUENCED_UNDER_SOUL_CONTINUITY_MAINLINE / NOT AUTHORIZED`；Memory Evolution V1 = `SOUL_CONTINUITY_MAINLINE / PLANNED / NOT AUTHORIZED`，具体依赖由 SP-006S0 评审。`REAL_HOST_SENT / ACKNOWLEDGED = NOT_ACQUIRED`，`ACK_VALIDATOR = HOST_GAP`，`REAL_SEND = NO`。
+
+## HISTORICAL — Post-HLV3 / GOV-ARCHGATE1 当前状态快照（2026-10-03）
 
 canonical Base：`9d064d0a90d8d02a5dab04a6baee18bbbf6dcdc2`；PR #39 Squash Merge 与 exact main push CI #37122681930 四矩阵已独立核验。SP-005A4-HLV0 = DONE；SP-005A4-HLV1 = DONE；SP-005A4-HLV2 = DONE；SP-005A4-HLV3 = DONE。REAL_HOST_READONLY_PASS / REAL_HOST_LIFECYCLE_PASS / REAL_HOST_LIFECYCLE_AUTHORITY_PASS / REAL_HOST_DRY_RUN_PASS = CONFIRMED；REAL_HOST_SENT / ACKNOWLEDGED = NOT ACQUIRED；ACK_VALIDATOR = HOST_GAP。
 
@@ -14,7 +20,7 @@ DATA_SCHEMA = 8；Schema Signature = SP-005A-living-runtime-v1；Prompt Template
 
 Full Private RP 仍被 Host capability 阻塞：Hermes 尚未取得独立通过的 Full Private RP final-output commit / session incarnation 证据；OpenClaw CAP0/CAP1 也没有找到可组成一次 fail-closed 授权的插件边界。已有 World/Roleplay Runtime 与生产 Host 私密 RP 是两件事。路线中任何阶段都不自动解锁 H1/H2 Adapter。
 
-## 主线阶段
+## HISTORICAL — 2026-09 主线阶段
 
 | 顺序 | 阶段 | 当前状态 | 目标与验收边界 |
 | --- | --- | --- | --- |
@@ -40,7 +46,7 @@ SP-005A2-R1 = DONE；SP-005A3-B0 = DONE；SP-005A3-B1 Architecture = DONE；SP-0
 
 DATA_SCHEMA = 8；Schema Signature = SP-005A-living-runtime-v1；Prompt Template = SP-004K-prompt-v1；PROMPT_TEMPLATE_UPGRADE_REQUIRED = YES；SP-005A2-P1 = NOT AUTHORIZED。A3 v2 为 HISTORICAL 冻结分支；A3 v3 已从 R1 Base 独立实现并合并。本轮 GOV-ARCHGATE1 不开始 P1、真实 Host、Media、Voice、HLV4 或 Memory Evolution。
 
-## 当前执行依赖与授权边界
+## HISTORICAL — 当时执行依赖与授权边界
 
 1. HLV0～HLV3已独立DONE，Architecture Review Gate PASS；GOV-ARCHGATE1当前仅记录结论，仍须完整Draft/Ready/Merge/canonical-main治理后才DONE。
 2. GOV-ARCHGATE1完成不授权发送；HLV4另发独立任务书，在separate task + explicit authorization前REAL_SEND=FORBIDDEN。

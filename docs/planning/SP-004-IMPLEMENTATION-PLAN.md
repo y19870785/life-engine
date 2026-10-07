@@ -1,8 +1,10 @@
 # SP-004 — 实施历史与后续路线建议
 
-## 2026-09-26 当前状态快照
+> CURRENT GOVERNANCE NOTE：本文是 SP-004 的实施历史，当前主线与唯一 NEXT 见 [GOV-SOUL-ROADMAP1](../architecture/GOV-SOUL-ROADMAP1-SOUL-CONTINUITY-MAINLINE.md)。旧路线建议不构成今日执行授权。
 
-当前事实基线：canonical main `8e2db9ae50b1ac3c46bb1953851d14442c58f085`；`DATA_SCHEMA = 7`、World Schema Signature `SP-004F-bridge-runtime-v1`、Prompt template `SP-004K-prompt-v1`。下面大量章节是各阶段形成时的历史记录，含当时的 PROPOSED / PENDING 状态；**当前事实以本节为准**，后续路线以[2026-09 路线图](ROADMAP-2026-09.md)为准。
+## HISTORICAL — 2026-09-26 当前状态快照
+
+当时事实基线：canonical main `8e2db9ae50b1ac3c46bb1953851d14442c58f085`；`DATA_SCHEMA = 7`、World Schema Signature `SP-004F-bridge-runtime-v1`、Prompt template `SP-004K-prompt-v1`。下面大量章节是各阶段形成时的历史记录，含当时的 PROPOSED / PENDING 状态；这些状态只对 2026-09-26 快照成立。
 
 | 阶段 | 当前状态 | 已合并能力 |
 | --- | --- | --- |

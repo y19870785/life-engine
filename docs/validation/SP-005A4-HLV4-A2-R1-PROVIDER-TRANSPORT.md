@@ -1,5 +1,7 @@
 # SP-005A4-HLV4-A2-R1 — Dedicated Discord Provider Transport 本地验证
 
+> CURRENT GOVERNANCE NOTE：本报告保留 Draft 阶段的原始本地验证证据与当时限制。[GOV-SOUL-ROADMAP1](../architecture/GOV-SOUL-ROADMAP1-SOUL-CONTINUITY-MAINLINE.md) 记录 A2-R1 最终 DONE、attempt 1/2 CANCELLED、attempt 3 SUCCESS 及治理偏差；Host Integration 后续已 `DEFERRED / NOT AUTHORIZED`。本报告不证明真实 Host plugin load、provider delivery、SENT 或 ACK。
+
 ## 范围与证据上限
 
 固定 Base：`9ebfdebe50bd766c513742267e7bfbdfb1170238`。本轮依据已冻结的 [A2-R0 Provider Transport 合同](../architecture/SP-005A4-HLV4-DEDICATED-DISCORD-PROVIDER-TRANSPORT.md)实现 plugin-owned one-shot `MESSAGE_CREATE` 边界。只使用 synthetic credential、fake resolver 与 fake provider session；未安装真实 Hermes plugin、未启动 Gateway、未读取 Test Bot credential、未连接 Discord 或进行任何 provider HTTP 请求。`REAL_HOST_PLUGIN_LOAD / REAL_HOST_LIFECYCLE / REAL_HOST_DELIVERY_BOUNDARY_PASS / REAL_HOST_SENT / ACKNOWLEDGED = NOT_ACQUIRED`；`ACK_VALIDATOR = HOST_GAP`。

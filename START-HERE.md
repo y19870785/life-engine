@@ -1,10 +1,14 @@
 # 给本机 Hermes / OpenClaw 的接入任务
 
+> **CURRENT — GOV-SOUL-ROADMAP1**：Soul Continuity 是 `ACTIVE_DEVELOPMENT_MAINLINE`，下一阶段候选为 [SP-006S0 Soul Continuity Architecture Freeze](docs/architecture/GOV-SOUL-ROADMAP1-SOUL-CONTINUITY-MAINLINE.md)，尚未授权。受控 Host Sandbox = `TESTABLE / EXPLICIT_AUTHORIZATION_REQUIRED`；Real Delivery Host Integration（A2 retry、HLV4-B）= `DEFERRED / NOT AUTHORIZED`；Full Private RP = `FROZEN_EXTERNAL_BLOCKER / NOT FOR PRODUCTION`。下列接入步骤只有取得单独 Host 操作授权才能执行，本治理任务不授权安装、Gateway 或发送。
+
 ## 当前模式门禁（先读）
 
-**A. Soul Continuity Host Sandbox：TESTABLE，执行须有本次测试授权。** 以下安装、调度与发送步骤用于未 enrollment 的 legacy 隔离实例。B1 Core recovery 已 DONE，但 A3 Host Binding 仍 BLOCKED；enrolled 实例不得沿用旧工具或绕过 LIVING_HANDOFF_REQUIRED。使用独立测试 Profile/Agent、数据 root、Session 与本人目标，先按 [Host 沙箱指南](docs/HOST-SANDBOX-TESTING.md)记录版本、绑定与停止门。GOV-DOC3 文档校准本身不授权执行下列步骤。
+**A. Soul Continuity Host Sandbox：TESTABLE，执行须有独立测试授权。** 以下安装、调度与发送步骤属于历史 legacy 隔离实例指南，不代表当前 Soul Continuity 主线需要 Host 实测。B1 Core recovery 与 A3 Host Binding 本地实现已 DONE；旧 Host 插件不能自动取得新 BindingAuthority。enrolled 实例不得沿用旧工具或绕过 LIVING_HANDOFF_REQUIRED。使用独立测试 Profile/Agent、数据 root、Session 与本人目标，先按 [Host 沙箱指南](docs/HOST-SANDBOX-TESTING.md)记录版本、绑定与停止门。
 
-**B. Full Private RP：当前停止，不得生产启用。** Core Roleplay Runtime 已完成，不等于真实 Host 已通过最终输出、历史隔离、晚到响应和流式发送安全门。Hermes experimental compatibility fork PR #1 只是实验审计证据，不能作为生产安全依据；OpenClaw 即使有 `before_message_write`、`before_agent_finalize`、`message_sending`，也没有已证明的统一 fail-closed final-output commit 授权。不得凭插件加载成功或 prompt 指令绕过此门禁。
+**B. Full Private RP：FROZEN_EXTERNAL_BLOCKER，不得生产启用。** Core Roleplay Runtime 继续保留；冻结的是依赖官方 Host final-output 授权的生产接入，不阻塞 Soul Continuity 主线。Hermes experimental compatibility fork PR #1 只是实验审计证据，不能作为生产安全依据；OpenClaw 即使有 `before_message_write`、`before_agent_finalize`、`message_sending`，也没有已证明的统一 fail-closed final-output commit 授权。不得凭插件加载成功或 prompt 指令绕过此门禁。
+
+**C. Real Delivery Host Integration：DEFERRED / NOT AUTHORIZED。** A2-R1 本地 provider transport 已 DONE，但真实 Hermes plugin load、provider boundary、SENT 与 ACK 未取得。A2 retry 与 HLV4-B 不是当前默认下一阶段；本页旧安装示例不授权 REAL_CONTACT 或真实发送。
 
 首次真实接入默认使用空的测试 Session，不复制生产私密聊天历史，不修改原 Soul 或主模型，不开放 Full RP。若无法确认独立身份、数据目录或本人发送目标，先停止接入并报告。
 

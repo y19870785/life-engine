@@ -1,5 +1,7 @@
 # Living Runtime Core 操作与迁移
 
+> CURRENT GOVERNANCE NOTE：Living Core 已 DONE，Soul Continuity 是当前 `ACTIVE_MAINLINE`；Host Integration 后续已 `DEFERRED / NOT AUTHORIZED`。本页下列 B1 时点的 Base、A3 blocker 与 Host 状态为历史说明，当前状态见 [GOV-SOUL-ROADMAP1](architecture/GOV-SOUL-ROADMAP1-SOUL-CONTINUITY-MAINLINE.md)。
+
 SP-005A1 已合并至 canonical main `84493be98d7ed675de6b859cafdb014a900325ca`，exact main push CI 四矩阵通过，Core 实施阶段 DONE。数据版本为 `DATA_SCHEMA = 8`、`SP-005A-living-runtime-v1`；`SP-004K-prompt-v1` 保持不变。规范见 [冻结架构](architecture/SP-005A-LIVING-RUNTIME.md)，验收逐项对应 [48 项自动测试映射](SP-005A1-VALIDATION.md)。
 
 [A2 Host Binding 架构](architecture/SP-005A2-LIVING-HOST-BINDING.md)、A2-R1、B0 与 B1 均已完成。当前事实基线为 `f83d36c76fea6de1a31b449535d5df6cea3909b5`，B1 增加 Core 只读 recovery API；完整 A3 仍 BLOCKED，剩余 Host 实施须重新授权。旧插件不能自动接管 enrolled 实例。Living 正式 Prompt 拼装仍需单独 P1 授权，真实 Host Living 尚未上线。
