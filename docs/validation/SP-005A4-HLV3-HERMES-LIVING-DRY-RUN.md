@@ -1,6 +1,8 @@
 # SP-005A4-HLV3 — Hermes Living Dry-Run / Permit / Crash Recovery
 
-## 当前结果与治理边界
+> CURRENT GOVERNANCE NOTE：本报告的 HLV3 执行证据与 DONE 结论保留；下列下一阶段判断是 2026-10-03 时点的历史治理快照。当前 Soul Continuity 主线与 Host Integration 延期状态见 [GOV-SOUL-ROADMAP1](../architecture/GOV-SOUL-ROADMAP1-SOUL-CONTINUITY-MAINLINE.md)。
+
+## HISTORICAL — 当时结果与治理边界
 
 2026-10-03，在开工 Base `4c9c5aaf9e9ed2995086781e32241abf23436dcb` 上执行；验证结果 `PASS`。当前 `SP-005A4-HLV3 = DONE`、`REAL_HOST_DRY_RUN_PASS = CONFIRMED`：PR #39 已 Squash Merge 至 canonical main `9d064d0a90d8d02a5dab04a6baee18bbbf6dcdc2`，exact main push CI #37122681930 四矩阵 SUCCESS，并由 ChatGPT / 小雪独立确认。后续 Architecture Review Gate = PASS，顺序与独立授权边界见 [GOV-ARCHGATE1](../architecture/GOV-ARCHGATE1-POST-HLV3-REVIEW.md)。H-LV4 = NEXT / NOT AUTHORIZED；REAL_HOST_SENT / ACKNOWLEDGED = NOT ACQUIRED；Full Private RP 仍 BLOCKED_BY_OFFICIAL_HOST_CAPABILITY。下文case结果、计数、manifest及执行declaration保留原验证事实，不重跑、不修改。
 

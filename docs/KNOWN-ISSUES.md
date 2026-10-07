@@ -1,6 +1,24 @@
 # v0.3 已知问题与历史记录
 
-## CURRENT CANONICAL STATE — Post-HLV3 / GOV-ARCHGATE1（2026-10-03）
+## CURRENT CANONICAL STATE — GOV-SOUL-ROADMAP1
+
+当前治理见 [Soul Continuity 主线记录](architecture/GOV-SOUL-ROADMAP1-SOUL-CONTINUITY-MAINLINE.md)：canonical main `a552a2d0846ff024b930d0d802228b863a6da74f`；`SP-005A4-HLV4-A2-R1 = DONE`，但 `REAL_HOST_PLUGIN_LOAD / REAL_HOST_DELIVERY_BOUNDARY_PASS / REAL_HOST_SENT / ACKNOWLEDGED = NOT_ACQUIRED`，`ACK_VALIDATOR = HOST_GAP`，`REAL_SEND = NO`。
+
+### Active Mainline Issues
+
+Soul Continuity = `ACTIVE_MAINLINE`；下一架构 Gate `SP-006S0 = NEXT / NOT AUTHORIZED`。Soul Identity、连续性证明和可信 Prompt Projection 尚待架构冻结；这些是新主线的待决问题，不由本文定义 Runtime 方案。
+
+### Deferred Host Integration Issues
+
+A2 retry、HLV4-B、Hermes Living Adapter Stabilization、OpenClaw Living Adapter real validation = `DEFERRED / NOT AUTHORIZED`。真实 Host plugin load、provider delivery 和受信 ACK validator 缺口仍在；它们不阻塞 Soul Continuity 主线。
+
+### Frozen External Blockers
+
+Full Private RP = `FROZEN_EXTERNAL_BLOCKER`：Hermes H1 = `BLOCKED_BY_OFFICIAL_HERMES_HOST_CAPABILITY`；OpenClaw H2 = `BLOCKED_BY_UNIFIED_FINAL_OUTPUT_COMMIT_BOUNDARY`。RP Core Runtime 保留，官方 final-output commit 安全门不得绕过。
+
+`DATA_SCHEMA = 8`；`Schema Signature = SP-005A-living-runtime-v1`；`Prompt Template = SP-004K-prompt-v1`；`PROMPT_TEMPLATE_UPGRADE_REQUIRED = YES`。P1 已重排但未授权；Memory Evolution V1 属 Soul Continuity 主线、PLANNED / NOT AUTHORIZED。
+
+## HISTORICAL — Post-HLV3 / GOV-ARCHGATE1 当前状态快照（2026-10-03）
 
 canonical Base：`9d064d0a90d8d02a5dab04a6baee18bbbf6dcdc2`；PR #39 Squash Merge 与 exact main push CI #37122681930 四矩阵已独立核验。SP-005A4-HLV0 = DONE；SP-005A4-HLV1 = DONE；SP-005A4-HLV2 = DONE；SP-005A4-HLV3 = DONE。REAL_HOST_READONLY_PASS / REAL_HOST_LIFECYCLE_PASS / REAL_HOST_LIFECYCLE_AUTHORITY_PASS / REAL_HOST_DRY_RUN_PASS = CONFIRMED；REAL_HOST_SENT / ACKNOWLEDGED = NOT ACQUIRED；ACK_VALIDATOR = HOST_GAP。
 

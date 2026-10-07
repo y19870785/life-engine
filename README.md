@@ -1,34 +1,33 @@
 # Life Engine
 
-**让你的 Hermes / OpenClaw Agent 记住一些共同经历，在合适的时候主动联系你，并延续自己的角色日常。**
+**让同一个 Agent 跨会话、重启、长期关系和未来 Host 迁移，持续生活在同一时间线中。**
 
-Life Engine 是运行在已有 Hermes / OpenClaw Agent 旁边的持久状态与角色世界运行层。你继续使用原来的聊天渠道、模型和角色设定；它保存状态和待跟进话题，为主动联系提供依据，并为可恢复的 World 与隔离记忆提供底层 Runtime。
+Life Engine 是 Host-neutral 的长期 Personal Agent Runtime。当前开发主线是 Soul Continuity：使同一个 Agent 的身份、经历、记忆、关系、自我叙事和生活状态跨会话与进程重启保持可验证的连续性，并为未来模型变化和 Host 迁移建立可靠边界。已有 Hermes / OpenClaw 接入与世界、记忆、故事、主动行为能力继续保留。
 
-> **v0.3 开发预览 · 当前状态（2026-10-03）**：SP-005A3 与 SP-005A4-HLV0～HLV3 = **DONE**；Hermes REAL_HOST_READONLY_PASS / REAL_HOST_LIFECYCLE_PASS / REAL_HOST_LIFECYCLE_AUTHORITY_PASS / REAL_HOST_DRY_RUN_PASS = CONFIRMED。Architecture Review Gate = PASS，本轮 GOV-ARCHGATE1 只记录局部顺序，仍 DRAFT_REVIEW_PENDING。HLV4 = NEXT / NOT AUTHORIZED，REAL_HOST_SENT / ACKNOWLEDGED = NOT ACQUIRED；真实发送仍禁止。见 [Gate 记录](docs/architecture/GOV-ARCHGATE1-POST-HLV3-REVIEW.md)。
+> **v0.3 开发预览 · CURRENT — GOV-SOUL-ROADMAP1**：Soul Continuity = **ACTIVE_MAINLINE**；Host Integration / Real Delivery = **DEFERRED**；Full Private RP = **FROZEN_EXTERNAL_BLOCKER**。唯一下一阶段候选是 **SP-006S0 Soul Continuity Architecture Freeze**，尚未授权执行。A2-R1 本地 provider transport 已 DONE（canonical main `a552a2d0846ff024b930d0d802228b863a6da74f`）；真实 Host plugin load、delivery、SENT 与 ACK 仍未取得，`REAL_SEND = NO`。见[新治理记录](docs/architecture/GOV-SOUL-ROADMAP1-SOUL-CONTINUITY-MAINLINE.md)。
 
 | 能力 | 当前状态 |
 | --- | --- |
 | World Runtime、World Memory、Lore、Story、Prompt Runtime、Controlled Bridge、Character Card Import | **DONE**（Core Runtime） |
-| Soul Continuity Host Sandbox | **TESTABLE**（已有历史 Hermes 受控实测；整体真实 Host 验收仍 PENDING_REAL_HOST_VALIDATION） |
+| Soul Continuity | **ACTIVE MAINLINE**（架构与 Runtime 后续阶段须分别授权；既有 Host Sandbox 可另行授权受控测试） |
 | Living Core、Session World revision fence、只读 operation recovery | **DONE**（A1、B0、B1；Core 自动验证） |
-| A3 Living Host Binding | **DONE**（Host-neutral；B01-B34 = SIMULATED_PASS；真实 adapter 未实施） |
-| Full Private RP on Hermes | **BLOCKED**（官方 Host capability） |
-| Full Private RP on OpenClaw | **BLOCKED**（统一 final-output commit boundary） |
+| Living Host Authority / Dedicated Provider Transport | **DONE**（本地实现；真实 Host plugin load、provider delivery 尚未验证） |
+| Host Integration / Real Delivery | **DEFERRED / NOT AUTHORIZED**（A2 retry、HLV4-B、Adapter Stabilization） |
+| Full Private RP on Hermes / OpenClaw | **FROZEN_EXTERNAL_BLOCKER**（Core RP Runtime 保留，官方 Host final-output 边界仍缺） |
 
 **HISTORICAL_EVIDENCE — 2026-09-30**：Life Engine 在 Hermes 0.21.3 的独立测试 Profile 中完成一次 canonical sandbox 综合评测。历史证据包括插件加载与实例绑定、Owner 识别与错误身份拒绝、Soul Continuity context、上一轮一次受控真实 Discord 文字发送的证据、综合评测本轮 Organic Contact 静默判定、持久性及备份/恢复；详见[脱敏历史记录](docs/validation/HERMES-COMPREHENSIVE-EVALUATION-2026-09-30.md)。一次发送不是自然 eligible organic contact 链路通过，边界仍为 **SENT / ACK UNKNOWN**。
 
-ACK_VALIDATOR = HOST_GAP；Hermes Living只读/生命周期/fake dry-run已确认，真实Living发送尚未取得；OpenClaw real Host validation仍PENDING_REAL_HOST_VALIDATION；Full Private RP = BLOCKED_BY_OFFICIAL_HOST_CAPABILITY，H1/H2 blocker保留。DATA_SCHEMA = 8，Schema Signature = SP-005A-living-runtime-v1，Prompt Template = SP-004K-prompt-v1；SP-005A2-P1 = NOT AUTHORIZED，PROMPT_TEMPLATE_UPGRADE_REQUIRED = YES。
+ACK_VALIDATOR = HOST_GAP；Hermes Living只读/生命周期/fake dry-run已确认，真实Living发送尚未取得；OpenClaw real Host validation仍未取得；H1/H2 blocker保留。Full Private RP 的封存不删除 World / RP Core。DATA_SCHEMA = 8，Schema Signature = SP-005A-living-runtime-v1，Prompt Template = SP-004K-prompt-v1；SP-005A2-P1 = RESEQUENCED_UNDER_SOUL_CONTINUITY_MAINLINE / NOT AUTHORIZED，PROMPT_TEMPLATE_UPGRADE_REQUIRED = YES。
 
 ## 当前阶段
 
-- Current Phase: Post-HLV3 Architecture Review Gate / GOV-ARCHGATE1 文档记录
-- Current Completed Gate: SP-005A4-HLV0 / HLV1 / HLV2 / HLV3 = DONE；SP-005A3 = DONE
-- Canonical Base: `9d064d0a90d8d02a5dab04a6baee18bbbf6dcdc2`
-- Local Order: HLV4 → Hermes Living Adapter Stabilization → SP-005A2-P1 → Memory Evolution V1
-- Next: SP-005A4-HLV4 = NEXT / NOT AUTHORIZED，必须另发独立任务书与明确授权
+- Current Phase: GOV-SOUL-ROADMAP1；Soul Continuity = ACTIVE_MAINLINE
+- Current Completed Gate: HLV0～HLV3、HLV4-R0/R1/A0/A1/A2-R0/A2-R1 = DONE
+- Canonical Base: `a552a2d0846ff024b930d0d802228b863a6da74f`
+- Next: SP-006S0 Soul Continuity Architecture Freeze = NEXT / NOT AUTHORIZED
 - Long-term Roadmap: [长期路线与阶段治理](docs/planning/LIFE-ENGINE-DEVELOPMENT-ROADMAP.md)
 
-Roadmap state != execution authorization。本轮只修改文档，NO_REAL_HOST_OPERATION = true、NO_REAL_SEND = true。P1 = AFTER_HERMES_ADAPTER_STABILIZATION / NOT AUTHORIZED；Memory Evolution V1 = AFTER_SP-005A2-P1 / PLANNED。DATA_SCHEMA=8、Schema Signature=SP-005A-living-runtime-v1、Prompt Template=SP-004K-prompt-v1、PROMPT_TEMPLATE_UPGRADE_REQUIRED=YES保持不变。GOV-ARCHGATE1 Draft/CI后停止，等待独立审核。
+Roadmap state != execution authorization。本轮只修改文档，NO_REAL_HOST_OPERATION = true、NO_REAL_SEND = true。P1 已重排但未授权；Memory Evolution V1 属 Soul Continuity 主线、PLANNED / NOT AUTHORIZED；具体顺序由 SP-006S0 评审。DATA_SCHEMA=8、Schema Signature=SP-005A-living-runtime-v1、Prompt Template=SP-004K-prompt-v1、PROMPT_TEMPLATE_UPGRADE_REQUIRED=YES 保持不变。
 
 ## 用起来是什么感觉？
 

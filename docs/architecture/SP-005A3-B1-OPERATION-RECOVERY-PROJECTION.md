@@ -1,5 +1,7 @@
 # SP-005A3-B1 — Durable Operation Recovery Projection
 
+> CURRENT GOVERNANCE NOTE：本文原“2026-10-01 当前状态”是 B1 合并时快照；当前 A3 与 A2-R1 已 DONE，Host Integration 后续 DEFERRED，Soul Continuity 为主线。见 [GOV-SOUL-ROADMAP1](GOV-SOUL-ROADMAP1-SOUL-CONTINUITY-MAINLINE.md)；B1 recovery 技术合同不变。
+
 **2026-10-01 当前状态校准**：B1 Architecture / Implementation = DONE；合并后 canonical main 为 `f83d36c76fea6de1a31b449535d5df6cea3909b5`。合并与 exact main push CI 证据见 [B1 验证映射](../SP-005A3-B1-VALIDATION.md)。下文历史 Base 与冻结合同保留；A3 Host 层仍 BLOCKED，恢复实施须另行授权。历史 Hermes legacy 测试不升级 Living R01–R12 或未执行的 Host 子集。
 
 ## 状态与范围

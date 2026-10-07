@@ -1,5 +1,7 @@
 # SP-005A0 — Living Runtime 架构冻结候选
 
+> CURRENT GOVERNANCE NOTE：下列 A0/R1 与 A1 阶段状态、Schema 7 是冻结时的历史快照；当前 Schema 8、Soul Continuity 主线与授权边界见 [GOV-SOUL-ROADMAP1](GOV-SOUL-ROADMAP1-SOUL-CONTINUITY-MAINLINE.md)。本文件的 Living 架构合同继续保留。
+
 状态：A0 与 R1 已合并，固定 A1 Base 为 `9159c493ad435cf947ed8c0fef278e1f5fb9dc83`。本文件保留冻结架构与 R1 语义，不因实现修改决策。SP-005A1 实施交付为 **PENDING_INDEPENDENT_REVIEW**；实际入口、迁移与限制见 [Core 操作说明](../LIVING-RUNTIME.md)，测试对应 [48 项映射](../SP-005A1-VALIDATION.md)。原 A0/R1 审计 Base 是历史证据。
 
 当前版本保持 `DATA_SCHEMA = 7`、`SP-004F-bridge-runtime-v1`、`SP-004K-prompt-v1`。GOV-DOC2、SP-005H0 implementation 已完成；Hermes/OpenClaw real Host validation 均为 **PENDING_REAL_HOST_VALIDATION**。Full Private RP、H1、H2 均 **BLOCKED**。A0 不依赖真实 Host PASS：本领域由 Core 持有状态，Host 只提供 wake/tool invocation/delivery；这不意味着宿主接线已经完成。

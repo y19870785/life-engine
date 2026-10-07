@@ -1,6 +1,14 @@
 # v0.3 验证记录
 
-## CURRENT CANONICAL STATE — Post-HLV3 / GOV-ARCHGATE1（2026-10-03）
+## CURRENT CANONICAL STATE — GOV-SOUL-ROADMAP1
+
+canonical main = `a552a2d0846ff024b930d0d802228b863a6da74f`。[PR #46](https://github.com/y19870785/life-engine/pull/46) Squash Merge 后，[exact main push CI #37297156541](https://github.com/y19870785/life-engine/actions/runs/37297156541) 的有效 attempt 3 为 `push / main / exact SHA / completed / success`，Ubuntu、Windows × Python 3.11、3.12 全部 SUCCESS；`SP-005A4-HLV4-A2-R1 = DONE`。attempt 1、2 均 CANCELLED；attempt 2 后继续执行 attempt 3 构成 `CI_RECOVERY_GOVERNANCE_DEVIATION = YES`，详见[治理记录](architecture/GOV-SOUL-ROADMAP1-SOUL-CONTINUITY-MAINLINE.md)。技术证据未失效，但该偏差不抹去。
+
+Soul Continuity = `ACTIVE_MAINLINE`；Host Integration = `DEFERRED`；Full Private RP = `FROZEN_EXTERNAL_BLOCKER`。下一阶段 `SP-006S0 Soul Continuity Architecture Freeze = NEXT / NOT AUTHORIZED`。A2 retry、HLV4-B 与真实发送均未授权；`REAL_HOST_PLUGIN_LOAD / REAL_HOST_DELIVERY_BOUNDARY_PASS / REAL_HOST_SENT / ACKNOWLEDGED = NOT_ACQUIRED`，`ACK_VALIDATOR = HOST_GAP`，`REAL_SEND = NO`。
+
+`DATA_SCHEMA = 8`；`Schema Signature = SP-005A-living-runtime-v1`；`Prompt Template = SP-004K-prompt-v1`；`PROMPT_TEMPLATE_UPGRADE_REQUIRED = YES`。下列 HLV/GOV-DOC3/B1 记录为当时证据，不改写历史测试结论。
+
+## HISTORICAL — Post-HLV3 / GOV-ARCHGATE1 当前状态快照（2026-10-03）
 
 canonical Base：`9d064d0a90d8d02a5dab04a6baee18bbbf6dcdc2`；PR #39 Squash Merge 与 exact main push CI #37122681930 四矩阵已独立核验。SP-005A4-HLV0 = DONE；SP-005A4-HLV1 = DONE；SP-005A4-HLV2 = DONE；SP-005A4-HLV3 = DONE。REAL_HOST_READONLY_PASS / REAL_HOST_LIFECYCLE_PASS / REAL_HOST_LIFECYCLE_AUTHORITY_PASS / REAL_HOST_DRY_RUN_PASS = CONFIRMED；REAL_HOST_SENT / ACKNOWLEDGED = NOT ACQUIRED；ACK_VALIDATOR = HOST_GAP。
 
@@ -50,7 +58,7 @@ Windows / Python 3.12.10 / Node 22.23.2：执行 `py -3.12 -X utf8 -m unittest d
 
 本轮 14 份 Markdown 变更的 106 个相对链接/锚点检查通过，`git diff --check` 通过；历史 JSON 的 59 个 rows 与统计一致，两份源报告的 SHA-256 与 Owner 提供的清单一致。检查未把私人 sender/channel/message ID、实际 Host 路径或实例/代次标识写入变更文档；原始证据清单中的其他文件没有冒充已复核。Runtime / tests / workflow diff 均为空。
 
-## B1 后 canonical 当前状态（2026-10-01）
+## HISTORICAL — B1 后 canonical 当前状态（2026-10-01）
 
 > HISTORICAL：本节保留当时状态与证据；当前状态以顶部 CURRENT CANONICAL STATE 为准。
 

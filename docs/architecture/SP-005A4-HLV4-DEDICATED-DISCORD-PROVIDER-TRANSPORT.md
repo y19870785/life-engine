@@ -1,6 +1,10 @@
 # SP-005A4-HLV4-A2-R0 — Dedicated Discord Provider Transport 架构候选
 
-## CURRENT — A2-R1 本地实现候选（2026-10-05）
+## CURRENT GOVERNANCE NOTE — GOV-SOUL-ROADMAP1
+
+本 provider transport 合同和 A2-R1 本地实现继续有效；A2-R1 = DONE，canonical main `a552a2d0846ff024b930d0d802228b863a6da74f`。按[新治理记录](GOV-SOUL-ROADMAP1-SOUL-CONTINUITY-MAINLINE.md)，真实 Host A2 retry 与 HLV4-B 已 `DEFERRED / NOT AUTHORIZED`。`REAL_HOST_PLUGIN_LOAD / REAL_HOST_DELIVERY_BOUNDARY_PASS / REAL_HOST_SENT / ACKNOWLEDGED = NOT_ACQUIRED`，`REAL_SEND = NO`。以下原 CURRENT 为历史状态快照。
+
+## HISTORICAL — A2-R1 本地实现候选（2026-10-05）
 
 A2-R0 已由 ChatGPT / 小雪独立确认 DONE，canonical main 为 `9ebfdebe50bd766c513742267e7bfbdfb1170238`。A2-R1 在 `integrations/hermes_living/provider_ownership.py` 与 `provider_transport.py` 实现受保护 credential inventory 的跨 platform 精确比较、单一 REST owner、credential-global 与 route 限流 admission、普通 guild text channel 冻结、固定 JSON bytes，以及一次无自动重试的 MESSAGE_CREATE 调用。`RealDeliveryConsumer` 仍消费原 R1 permit；Host port 只增加消费后本地 admission 标记，不能恢复或作为第二种 token。默认 plugin factory 仍不安装 transport；完整 inventory 与受保护 target resolver 缺失时 fail closed。生产 factory 只使用模块内 sealed 的 `aiohttp 3.14.3` one-shot session，拒绝任意 caller-supplied factory；resolver 只接受 frozen `ProtectedLocalTextChannelResolver`，不得拥有 credential 或 authenticated REST。显式 `TEST_ONLY` seam 仅接受内置 inert session。详见 [A2-R1 本地验证与 F01–F03 修订](../validation/SP-005A4-HLV4-A2-R1-PROVIDER-TRANSPORT.md)。上述实现仅用 fake credential / fake session 验证，Host 配置完整性和真实 provider 边界仍留给另行授权的 A2 retry；本轮 `REAL_SEND = NO`、`REAL_HOST_DELIVERY_BOUNDARY_PASS / REAL_HOST_SENT / ACKNOWLEDGED = NOT_ACQUIRED`、`ACK_VALIDATOR = HOST_GAP`。下文 R0 状态是架构冻结时的历史快照。
 

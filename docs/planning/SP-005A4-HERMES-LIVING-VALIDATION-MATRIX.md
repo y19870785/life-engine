@@ -1,14 +1,18 @@
 # SP-005A4-HLV0 — Hermes Living Validation 测试矩阵
 
-## CURRENT — HLV4-A2-R1 本地 provider transport 验证（2026-10-05）
+## CURRENT GOVERNANCE NOTE — GOV-SOUL-ROADMAP1
+
+[新治理记录](../architecture/GOV-SOUL-ROADMAP1-SOUL-CONTINUITY-MAINLINE.md)以 Soul Continuity 为 `ACTIVE_MAINLINE`；本矩阵的历史 case 结果与安全合同保留。A2-R1 = DONE（canonical main `a552a2d0846ff024b930d0d802228b863a6da74f`），A2 retry / HLV4-B = `DEFERRED / NOT AUTHORIZED`；`REAL_HOST_PLUGIN_LOAD / REAL_HOST_DELIVERY_BOUNDARY_PASS / REAL_HOST_SENT / ACKNOWLEDGED = NOT_ACQUIRED`，`REAL_SEND = NO`。以下原 CURRENT 均为历史快照。
+
+## HISTORICAL — HLV4-A2-R1 本地 provider transport 验证（2026-10-05）
 
 A2-R0 = DONE（canonical main `9ebfdebe50bd766c513742267e7bfbdfb1170238`）。A2-R1 = IMPLEMENTED / DRAFT_REVIEW_PENDING；[本地验证报告](../validation/SP-005A4-HLV4-A2-R1-PROVIDER-TRANSPORT.md)记录 fake credential 独占、单一 REST owner、限流前置、一次 POST、429/5xx/reset/timeout/redirect 分类与 network trap。真实 Host plugin load、真实 lifecycle 和 delivery boundary 均未取得；A2 retry / HLV4-B = NOT AUTHORIZED，`REAL_SEND = NO`、`REAL_HOST_DELIVERY_BOUNDARY_PASS / REAL_HOST_SENT / ACKNOWLEDGED = NOT_ACQUIRED`、`ACK_VALIDATOR = HOST_GAP`。下文 A2-R0 CURRENT 为历史阶段快照。
 
-## CURRENT — HLV4-A2-R0 Provider Transport 架构候选（2026-10-05）
+## HISTORICAL — HLV4-A2-R0 Provider Transport 架构候选（2026-10-05）
 
 R0 / R1 / A0 / A1 = DONE；A1 canonical main `d490c729960b119334cadefc023dfc1dd67f6137`。A2 = BLOCKED / `REAL_TRANSPORT_IMPLEMENTATION_REQUIRED`，没有 Host 运行或发送证据。[A2-R0 合同](../architecture/SP-005A4-HLV4-DEDICATED-DISCORD-PROVIDER-TRANSPORT.md) = `FROZEN_CANDIDATE / DRAFT_REVIEW_PENDING`：discord.py 2.7.1 自动重试已在源码确认；候选改用隔离 plugin-owned one-shot HTTP capability，等待独立审核。A2-R1、A2 retry、HLV4-B = NOT AUTHORIZED；`REAL_HOST_DELIVERY_BOUNDARY_PASS / REAL_HOST_SENT / ACKNOWLEDGED = NOT_ACQUIRED`，`ACK_VALIDATOR = HOST_GAP`，`REAL_SEND = NO`。以下 A1 CURRENT 为历史阶段快照。
 
-## CURRENT — HLV4-A1 本地实施（2026-10-04）
+## HISTORICAL — HLV4-A1 本地实施（2026-10-04）
 
 R0 / R1 / A0 = DONE；A1 = IMPLEMENTED / DRAFT_REVIEW_PENDING。[A1 本地验证](../validation/SP-005A4-HLV4-A1-DEDICATED-ADAPTER.md)覆盖独立平台、generic 拒绝、R1 REAL_CONTACT permit 到 inert port、replay/recovery 与无网络依赖；完整回归和 exact Head CI 仍须成功。真实 Hermes plugin load、profile isolation、Gateway/adapter lifecycle、provider SDK boundary = DEFERRED_TO_HLV4_A2，A2 / HLV4-B = NOT AUTHORIZED。REAL_SEND = NO；REAL_HOST_SENT / ACKNOWLEDGED = NOT ACQUIRED；ACK_VALIDATOR = HOST_GAP。A0 以下状态为历史快照。
 
@@ -30,7 +34,7 @@ DATA_SCHEMA = 8；Schema Signature = SP-005A-living-runtime-v1；Prompt Template
 
 ## HISTORICAL — R0 前治理记录
 
-## CURRENT CANONICAL STATE — Post-HLV3 / GOV-ARCHGATE1（2026-10-03）
+## HISTORICAL — Post-HLV3 / GOV-ARCHGATE1 当前状态快照（2026-10-03）
 
 canonical Base：`9d064d0a90d8d02a5dab04a6baee18bbbf6dcdc2`；PR #39 Squash Merge 与 exact main push CI #37122681930 四矩阵已独立核验。SP-005A4-HLV0 = DONE；SP-005A4-HLV1 = DONE；SP-005A4-HLV2 = DONE；SP-005A4-HLV3 = DONE。REAL_HOST_READONLY_PASS / REAL_HOST_LIFECYCLE_PASS / REAL_HOST_LIFECYCLE_AUTHORITY_PASS / REAL_HOST_DRY_RUN_PASS = CONFIRMED；REAL_HOST_SENT / ACKNOWLEDGED = NOT ACQUIRED；ACK_VALIDATOR = HOST_GAP。
 

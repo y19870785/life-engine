@@ -1,14 +1,22 @@
 # Life Engine 长期开发路线与阶段治理
 
-## CURRENT — HLV4-A2-R1 Provider Transport 实施候选（2026-10-05）
+## CURRENT — GOV-SOUL-ROADMAP1 / Soul Continuity Mainline
+
+[本次治理记录](../architecture/GOV-SOUL-ROADMAP1-SOUL-CONTINUITY-MAINLINE.md)以 canonical main `a552a2d0846ff024b930d0d802228b863a6da74f` 为 Base，正式取代此前 HLV4 后续局部顺序。三轨状态：Soul Continuity = `ACTIVE_MAINLINE`；Host Integration / Real Delivery = `DEFERRED`；Full Private RP = `FROZEN_EXTERNAL_BLOCKER`。A2-R1 = DONE；真实 Host plugin load、delivery boundary、SENT、ACK 未取得。下文旧 CURRENT 均为 `SUPERSEDED CURRENT SNAPSHOT`，原技术合同与历史证据保留。
+
+当前高层顺序：GOV-SOUL-ROADMAP1 → **SP-006S0 Soul Continuity Architecture Freeze** → Soul Identity / Continuity Core V1 → Prompt Projection Integration → Memory Evolution V1 → Relationship Memory → Autobiographical Memory → Soul / Relationship Continuity Evolution → Living Integration → Proactive Life / Routine → Media Runtime → Voice Runtime。`SP-006S0 = NEXT / NOT AUTHORIZED`；其余阶段也未授权。P1 = `RESEQUENCED_UNDER_SOUL_CONTINUITY_MAINLINE / NOT AUTHORIZED`；Memory Evolution V1 = `SOUL_CONTINUITY_MAINLINE / PLANNED / NOT AUTHORIZED`。Prompt Projection 与 Memory 的具体接口和先后关系留待 SP-006S0。
+
+A2 retry、HLV4-B、Hermes Living Adapter Stabilization、OpenClaw Living Adapter real validation = `DEFERRED / NOT AUTHORIZED`。Full Private RP 的 H1/H2 外部 Host blocker 保留，但不阻塞 Soul Continuity；RP Core Runtime 不删除。`DATA_SCHEMA = 8`、`Schema Signature = SP-005A-living-runtime-v1`、`Prompt Template = SP-004K-prompt-v1`、`PROMPT_TEMPLATE_UPGRADE_REQUIRED = YES`。Roadmap state != execution authorization。
+
+## HISTORICAL — HLV4-A2-R1 Provider Transport 实施候选（2026-10-05）
 
 A2-R0 = DONE；canonical main `9ebfdebe50bd766c513742267e7bfbdfb1170238`。A2-R1 已获独立实施授权，当前仅建立默认 fail-closed 的 [plugin-owned one-shot provider transport](../architecture/SP-005A4-HLV4-DEDICATED-DISCORD-PROVIDER-TRANSPORT.md)及 fake/inert 测试，待 Draft Review。A2 retry 与 HLV4-B 未授权；`REAL_HOST_DELIVERY_BOUNDARY_PASS / REAL_HOST_SENT / ACKNOWLEDGED = NOT_ACQUIRED`，`ACK_VALIDATOR = HOST_GAP`，`REAL_SEND = NO`。局部顺序仍是 A2-R1 → A2 retry → HLV4-B → Hermes Living Adapter Stabilization → SP-005A2-P1 → Memory Evolution V1。下文 A2-R0 CURRENT 为历史阶段快照。
 
-## CURRENT — HLV4-A2-R0 Provider Transport 架构候选（2026-10-05）
+## HISTORICAL — HLV4-A2-R0 Provider Transport 架构候选（2026-10-05）
 
 R0 / R1 / A0 / A1 = DONE；A2 因 `REAL_TRANSPORT_IMPLEMENTATION_REQUIRED` 停止，A1 默认无 provider transport 仍是正确的安全状态。[A2-R0 架构候选](../architecture/SP-005A4-HLV4-DEDICATED-DISCORD-PROVIDER-TRANSPORT.md)仅冻结单次 Discord MESSAGE_CREATE 尝试、SDK retry 隔离与 UNKNOWN / NO RESEND。局部顺序为 A2-R0 → A2-R1 → A2 retry → HLV4-B → Hermes Living Adapter Stabilization → SP-005A2-P1 → Memory Evolution V1；后续各阶段均未获执行授权，NEXT 不是授权。`REAL_SEND = NO`，`REAL_HOST_SENT / ACKNOWLEDGED = NOT_ACQUIRED`，`ACK_VALIDATOR = HOST_GAP`。以下 A1 CURRENT 为历史阶段快照。
 
-## CURRENT — HLV4-A1 Dedicated Adapter 本地实施（2026-10-04）
+## HISTORICAL — HLV4-A1 Dedicated Adapter 本地实施（2026-10-04）
 
 R0 / R1 / A0 = DONE；canonical main `337f5f95d47929c0a63c86cf9e2f70a14b9f6ddb`。A1 = IMPLEMENTED / DRAFT_REVIEW_PENDING，见 [A1 验证报告](../validation/SP-005A4-HLV4-A1-DEDICATED-ADAPTER.md)；本地代码/测试最高为 `DEDICATED_ADAPTER_IMPLEMENTATION_PASS`，不等于真实 Host 证据。A2 real Host validation 和 HLV4-B one-shot send 均 NOT AUTHORIZED；REAL_SEND = NO，REAL_HOST_SENT / ACKNOWLEDGED = NOT ACQUIRED，ACK_VALIDATOR = HOST_GAP。路线方向不变：A1 → A2 → HLV4-B → Hermes Living Adapter Stabilization → SP-005A2-P1 → Memory Evolution V1；NEXT 不等于执行授权。以下 A0 CURRENT 为历史快照。
 

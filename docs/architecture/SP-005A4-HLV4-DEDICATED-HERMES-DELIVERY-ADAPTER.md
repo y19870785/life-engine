@@ -1,10 +1,14 @@
 # SP-005A4-HLV4-A0 — Hermes 专用 Living Delivery Adapter 边界合同
 
-## CURRENT — HLV4-A2-R0 Provider Transport 精化（2026-10-05）
+## CURRENT GOVERNANCE NOTE — GOV-SOUL-ROADMAP1
+
+A0/A1 合同继续有效；[Soul Continuity 治理记录](GOV-SOUL-ROADMAP1-SOUL-CONTINUITY-MAINLINE.md)将 A2 retry、HLV4-B 和 Adapter Stabilization 转入 `DEFERRED / NOT AUTHORIZED`。A2-R1 本地实现已 DONE；真实 plugin load、delivery boundary、SENT 和 ACK 仍未取得。以下为历史阶段快照。
+
+## HISTORICAL — HLV4-A2-R0 Provider Transport 精化（2026-10-05）
 
 A0 / A1 = DONE；A2 在真实 Host 操作前因 `REAL_TRANSPORT_IMPLEMENTATION_REQUIRED` 停止。A0 下文的 `channel.send(content=exact_payload)` 是当时待 HLV4-A 锁定的 SDK 调用占位；[A2-R0 source audit 与架构候选](SP-005A4-HLV4-DEDICATED-DISCORD-PROVIDER-TRANSPORT.md)发现 discord.py 2.7.1 在 `HTTPClient.request()` 内自动重试，因此该占位不能直接成为 one-permit/one-attempt 边界。A0 的 exact target、final guard、consume、无重试和 generic fail-closed 原则不变。A2-R0 仅文档，A2-R1 / A2 retry / HLV4-B 均未授权；`REAL_SEND = NO`。以下 A1 CURRENT 为历史阶段快照。
 
-## CURRENT — HLV4-A1 本地实施（2026-10-04）
+## HISTORICAL — HLV4-A1 本地实施（2026-10-04）
 
 A0 = DONE（canonical main `337f5f95d47929c0a63c86cf9e2f70a14b9f6ddb`）；A1 = IMPLEMENTED / DRAFT_REVIEW_PENDING，见 [A1 本地验证报告](../validation/SP-005A4-HLV4-A1-DEDICATED-ADAPTER.md)。独立 `life_engine_discord` 插件源码与 R1 consumer 的固定 Host-neutral port 已实现；标准 generic `send()` 和其他发送面 fail closed，默认 factory 不提供 transport。本地 inert 测试不是 Host 加载或真实边界证据。A2 = NOT AUTHORIZED；HLV4-B = NOT AUTHORIZED；REAL_SEND = NO；REAL_HOST_SENT / ACKNOWLEDGED = NOT ACQUIRED。下文为 A0 原始架构冻结记录。
 
