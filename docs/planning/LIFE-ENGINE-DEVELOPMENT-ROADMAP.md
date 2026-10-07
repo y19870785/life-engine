@@ -4,7 +4,9 @@
 
 [后续开发计划](SOUL-CONTINUITY-DEVELOPMENT-PLAN.md)保留当前三轨方向，并把顺序细化为 M0 架构冻结 → M1 Soul Identity Core V1 → **M1.x Continuity Proof / Simulation Gate** → M2 Memory Evolution V1 + Read-only Prompt Projection → M3 Relationship + Autobiographical Memory → M4 Soul / Relationship Continuity Evolution + Living Integration → M5 Proactive Life / Routine + Media → M6 Voice + Host Expansion。`M1.x` 是显式门禁，后续实施任务编号仍须独立冻结；[SP-006S0 架构合同](../architecture/SP-006S0-SOUL-CONTINUITY-ARCHITECTURE.md)内容状态为 `APPROVED_ARCHITECTURE_BASELINE / NOT_IMPLEMENTATION_AUTHORIZATION`，M1/M1.x/M2 均未获实施授权。
 
-M0 应先冻结六种 Continuity、机械 verdict / evidence、离线 Simulation Harness 与 Minimal Prompt Projection Contract；M1.x 必须在大规模 Memory Evolution 前提供 continuation、fork、mismatch、unknown 的可验证边界，`UNKNOWN` 默认 fail-closed。M2 才从可信 Identity、Memory、World 和 Relationship Context 派生只读投影；完整 SP-005A2-P1 不自动前移。首个产品里程碑同时验证身份和记忆连续性，数据库恢复成功不能替代 Soul Continuity PASS。Host 回归只在实质官方能力证据出现后进入独立评审，Full Private RP 继续封存。规划状态仍为 `APPROVED_PLANNING_BASELINE / NOT_EXECUTION_AUTHORIZATION`；本轮仅授权 SP-006S0 架构文档，不授权 Runtime。
+**CURRENT stage override：**`SP-006S0 = DONE`；`M1 = ACTIVE_STAGE`；仅 [M1-P0 Continuity Persistence Protocol Freeze](../architecture/M1-P0-CONTINUITY-PERSISTENCE-PROTOCOL.md) 获 `AUTHORIZED / PROTOCOL_FREEZE_ONLY`。M1 Schema、Migration、Soul Identity/Continuity Write Path、M1-A 及后续实施，M1.x 与 M2 均 `NOT AUTHORIZED`。M1-P0 的[崩溃矩阵](M1-P0-CRASH-RECOVERY-MATRIX.md)和[实施门禁](M1-P0-IMPLEMENTATION-GATE.md)是设计文档，不是测试 PASS 或执行许可；下文旧状态属于其明确标注的历史快照。
+
+M0 已冻结六种 Continuity、机械 verdict / evidence、离线 Simulation Harness 与 Minimal Prompt Projection Contract；M1.x 必须在大规模 Memory Evolution 前提供 continuation、fork、mismatch、unknown 的可验证边界，`UNKNOWN` 默认 fail-closed。M2 才从可信 Identity、Memory、World 和 Relationship Context 派生只读投影；完整 SP-005A2-P1 不自动前移。首个产品里程碑同时验证身份和记忆连续性，数据库恢复成功不能替代 Soul Continuity PASS。Host 回归只在实质官方能力证据出现后进入独立评审，Full Private RP 继续封存。规划状态仍为 `APPROVED_PLANNING_BASELINE / NOT_EXECUTION_AUTHORIZATION`；本轮仅授权 M1-P0 协议文档，不授权 Runtime。
 
 ## HISTORICAL GOVERNANCE SNAPSHOT — GOV-SOUL-ROADMAP1 / Soul Continuity Mainline
 

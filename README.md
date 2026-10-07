@@ -1,12 +1,12 @@
 # Life Engine
 
-> **CURRENT — Soul Continuity Plan V2 = APPROVED_PLANNING_BASELINE / NOT_EXECUTION_AUTHORIZATION**：[后续开发计划](docs/planning/SOUL-CONTINUITY-DEVELOPMENT-PLAN.md)已通过独立规划审核。[SP-006S0 架构合同](docs/architecture/SP-006S0-SOUL-CONTINUITY-ARCHITECTURE.md)的内容状态为 `APPROVED_ARCHITECTURE_BASELINE / NOT_IMPLEMENTATION_AUTHORIZATION`；仓库任务只有经 Ready、Squash Merge、exact main push CI 与合并后独立核验，才能判定 DONE。M1、M1.x、M2 均 `NOT AUTHORIZED`。
+> **CURRENT — Soul Continuity Plan V2 = APPROVED_PLANNING_BASELINE / NOT_EXECUTION_AUTHORIZATION**：[后续开发计划](docs/planning/SOUL-CONTINUITY-DEVELOPMENT-PLAN.md)已通过独立规划审核。[SP-006S0 架构合同](docs/architecture/SP-006S0-SOUL-CONTINUITY-ARCHITECTURE.md)已完成仓库治理，`SP-006S0 = DONE`。`M1 = ACTIVE_STAGE` 仅表示阶段进入；当前仅授权 [M1-P0 持久化协议冻结](docs/architecture/M1-P0-CONTINUITY-PERSISTENCE-PROTOCOL.md)的文档与只读审计，`M1-P0 = AUTHORIZED / PROTOCOL_FREEZE_ONLY`；Schema、Migration、Soul Identity/Continuity Writer 等 M1 实施及 M1.x、M2 均 `NOT AUTHORIZED`。
 
 **让同一个 Agent 跨会话、重启、长期关系和未来 Host 迁移，持续生活在同一时间线中。**
 
 Life Engine 是 Host-neutral 的长期 Personal Agent Runtime。当前开发主线是 Soul Continuity：使同一个 Agent 的身份、经历、记忆、关系、自我叙事和生活状态跨会话与进程重启保持可验证的连续性，并为未来模型变化和 Host 迁移建立可靠边界。已有 Hermes / OpenClaw 接入与世界、记忆、故事、主动行为能力继续保留。
 
-> **v0.3 开发预览 · CURRENT**：Soul Continuity = **ACTIVE_MAINLINE**；Host Integration / Real Delivery = **DEFERRED**；Full Private RP = **FROZEN_EXTERNAL_BLOCKER**。SP-006S0 架构内容已通过独立 Draft Review，但内容获批不等于仓库任务 DONE，也不授权实施；A2-R1 本地 provider transport 已 DONE（implementation commit `a552a2d0846ff024b930d0d802228b863a6da74f`），真实 Host plugin load、delivery、SENT 与 ACK 仍未取得，`REAL_SEND = NO`。此前治理决定见[历史记录](docs/architecture/GOV-SOUL-ROADMAP1-SOUL-CONTINUITY-MAINLINE.md)。
+> **v0.3 开发预览 · CURRENT**：Soul Continuity = **ACTIVE_MAINLINE**；Host Integration / Real Delivery = **DEFERRED**；Full Private RP = **FROZEN_EXTERNAL_BLOCKER**。SP-006S0 已完成；M1-P0 仅设计持久化协议，不实施 Runtime；A2-R1 本地 provider transport 已 DONE（implementation commit `a552a2d0846ff024b930d0d802228b863a6da74f`），真实 Host plugin load、delivery、SENT 与 ACK 仍未取得，`REAL_SEND = NO`。此前治理决定见[历史记录](docs/architecture/GOV-SOUL-ROADMAP1-SOUL-CONTINUITY-MAINLINE.md)。
 
 | 能力 | 当前状态 |
 | --- | --- |
@@ -23,14 +23,14 @@ ACK_VALIDATOR = HOST_GAP；Hermes Living只读/生命周期/fake dry-run已确�
 
 ## 当前阶段
 
-- Current Mainline: Soul Continuity = ACTIVE_MAINLINE；SP-006S0 架构内容已审，仓库完成状态须另行核验
+- Current Mainline: Soul Continuity = ACTIVE_MAINLINE；SP-006S0 = DONE；M1 = ACTIVE_STAGE；M1-P0 = AUTHORIZED / PROTOCOL_FREEZE_ONLY
 - Current Completed Gate: HLV0～HLV3、HLV4-R0/R1/A0/A1/A2-R0/A2-R1 = DONE
 - GOV-SOUL-ROADMAP1 Governance Base: `a552a2d0846ff024b930d0d802228b863a6da74f`（治理 PR 开工时的 canonical main）
-- Architecture Content: APPROVED_ARCHITECTURE_BASELINE / NOT_IMPLEMENTATION_AUTHORIZATION；M1 / M1.x / M2 = NOT AUTHORIZED
+- Architecture Content: APPROVED_ARCHITECTURE_BASELINE；M1 Runtime / Schema / Migration、M1.x、M2 = NOT AUTHORIZED
 - Long-term Roadmap: [长期路线与阶段治理](docs/planning/LIFE-ENGINE-DEVELOPMENT-ROADMAP.md)
 - Soul Continuity 已审规划基线：[后续开发计划](docs/planning/SOUL-CONTINUITY-DEVELOPMENT-PLAN.md)（M1 与 M2 之间的 Continuity Proof / Simulation Gate；`NOT_EXECUTION_AUTHORIZATION`）
 
-Roadmap state != execution authorization。SP-006S0 架构内容获批 != SP-006S0 DONE；SP-006S0 DONE != M1 AUTHORIZED。P1 已重排但未授权；Memory Evolution V1 属 Soul Continuity 主线、PLANNED / NOT AUTHORIZED；阶段顺序见[SP-006S0 实施计划](docs/planning/SP-006S0-IMPLEMENTATION-PLAN.md)。DATA_SCHEMA=8、Schema Signature=SP-005A-living-runtime-v1、Prompt Template=SP-004K-prompt-v1、PROMPT_TEMPLATE_UPGRADE_REQUIRED=YES 保持不变；本轮不操作 Host 或 REAL_SEND。
+Roadmap state != execution authorization。SP-006S0 DONE 只解锁已授权的 M1-P0 架构/协议文档，不授权 M1 实施；M1-P0 文档审核或未来 DONE 也不自动授权 M1-A。P1 已重排但未授权；Memory Evolution V1 属 Soul Continuity 主线、PLANNED / NOT AUTHORIZED；阶段顺序见[SP-006S0 实施计划](docs/planning/SP-006S0-IMPLEMENTATION-PLAN.md)。DATA_SCHEMA=8、Schema Signature=SP-005A-living-runtime-v1、Prompt Template=SP-004K-prompt-v1、PROMPT_TEMPLATE_UPGRADE_REQUIRED=YES 保持不变；本轮不操作 Host 或 REAL_SEND。
 
 ## 用起来是什么感觉？
 
