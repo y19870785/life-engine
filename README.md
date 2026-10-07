@@ -1,5 +1,7 @@
 # Life Engine
 
+> **Soul Continuity 规划细化（待独立审核）**：[后续开发计划](docs/planning/SOUL-CONTINUITY-DEVELOPMENT-PLAN.md)与[SP-006S0 架构冻结任务书候选](docs/planning/SP-006S0-ARCHITECTURE-FREEZE-TASK.md)已编制。新计划在 Soul Identity Core V1 与 Memory Evolution V1 之间明确 Continuity Proof / Simulation Gate；这只是规划提案，`SP-006S0 = NEXT / NOT AUTHORIZED`，不授予 Runtime、Host 或真实发送权限。
+
 **让同一个 Agent 跨会话、重启、长期关系和未来 Host 迁移，持续生活在同一时间线中。**
 
 Life Engine 是 Host-neutral 的长期 Personal Agent Runtime。当前开发主线是 Soul Continuity：使同一个 Agent 的身份、经历、记忆、关系、自我叙事和生活状态跨会话与进程重启保持可验证的连续性，并为未来模型变化和 Host 迁移建立可靠边界。已有 Hermes / OpenClaw 接入与世界、记忆、故事、主动行为能力继续保留。
@@ -26,6 +28,7 @@ ACK_VALIDATOR = HOST_GAP；Hermes Living只读/生命周期/fake dry-run已确�
 - GOV-SOUL-ROADMAP1 Governance Base: `a552a2d0846ff024b930d0d802228b863a6da74f`（治理 PR 开工时的 canonical main）
 - Next: SP-006S0 Soul Continuity Architecture Freeze = NEXT / NOT AUTHORIZED
 - Long-term Roadmap: [长期路线与阶段治理](docs/planning/LIFE-ENGINE-DEVELOPMENT-ROADMAP.md)
+- Soul Continuity 规划提案：[后续开发计划](docs/planning/SOUL-CONTINUITY-DEVELOPMENT-PLAN.md)（M1 与 M2 之间的 Continuity Proof / Simulation Gate 待独立审核）
 
 Roadmap state != execution authorization。本轮只修改文档，NO_REAL_HOST_OPERATION = true、NO_REAL_SEND = true。P1 已重排但未授权；Memory Evolution V1 属 Soul Continuity 主线、PLANNED / NOT AUTHORIZED；具体顺序由 SP-006S0 评审。DATA_SCHEMA=8、Schema Signature=SP-005A-living-runtime-v1、Prompt Template=SP-004K-prompt-v1、PROMPT_TEMPLATE_UPGRADE_REQUIRED=YES 保持不变。
 
@@ -168,6 +171,7 @@ python "/永久目录/manage.py" connect --instance "实例ID"
 | 查看当前 CI 与历史模拟宿主验证 | [验证记录](docs/VALIDATION.md) |
 | 了解 World Memory 架构 | [World Memory 架构](docs/architecture/SP-004B-WORLD-MEMORY.md) |
 | 查看当前开发路线 | [2026-09 后续路线](docs/planning/ROADMAP-2026-09.md) |
+| 查看 Soul Continuity 后续计划 | [开发计划与连续性验证 Gate](docs/planning/SOUL-CONTINUITY-DEVELOPMENT-PLAN.md) |
 | 查阅 SP-004 阶段实施历史 | [实施计划](docs/planning/SP-004-IMPLEMENTATION-PLAN.md) |
 | 理解私密 RP 的 Host 合同 | [Host Integration 架构](docs/architecture/SP-004H-HOST-INTEGRATION.md) |
 | 查看配置样例 | [examples](examples/) |
