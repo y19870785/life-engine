@@ -1,5 +1,7 @@
 # Life Engine 后续开发路线 — 2026-09
 
+> **Soul Continuity Plan V2 = APPROVED_PLANNING_BASELINE / NOT_EXECUTION_AUTHORIZATION（已通过独立规划审核）**：当前主线的后续阶段与 M1.x Continuity Proof / Simulation Gate 见[开发计划](SOUL-CONTINUITY-DEVELOPMENT-PLAN.md)，SP-006S0 的设计范围见[架构冻结任务书候选](SP-006S0-ARCHITECTURE-FREEZE-TASK.md)。本页 2026-09 历史顺序与证据保持原时点语义；`SP-006S0 = NEXT / NOT AUTHORIZED`，本规划不授权 Host 操作。
+
 ## CURRENT GOVERNANCE OVERRIDE — GOV-SOUL-ROADMAP1
 
 本页是 2026-09 阶段规划的历史记录；当前治理以 [GOV-SOUL-ROADMAP1](../architecture/GOV-SOUL-ROADMAP1-SOUL-CONTINUITY-MAINLINE.md) 为准。A2-R1 canonical implementation commit = `a552a2d0846ff024b930d0d802228b863a6da74f`，A2-R1 = DONE。Soul Continuity = `ACTIVE_MAINLINE`，唯一 NEXT 为 `SP-006S0 Soul Continuity Architecture Freeze / NOT AUTHORIZED`；Host Integration = `DEFERRED`，Full Private RP = `FROZEN_EXTERNAL_BLOCKER`。旧 HLV4 → Adapter Stabilization → P1 → Memory Evolution 顺序已被取代，下面表格及说明只表达当时计划，不构成当前执行顺序或授权。

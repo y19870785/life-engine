@@ -1,5 +1,7 @@
 # GOV-SOUL-ROADMAP1 — Full Private RP 封存与 Soul Continuity 主线
 
+> **Soul Continuity Plan V2 = APPROVED_PLANNING_BASELINE / NOT_EXECUTION_AUTHORIZATION（已通过独立规划审核）**：[Soul Continuity 后续开发计划](../planning/SOUL-CONTINUITY-DEVELOPMENT-PLAN.md)与[SP-006S0 任务书候选](../planning/SP-006S0-ARCHITECTURE-FREEZE-TASK.md)在身份核心与记忆演化之间新增显式 Continuity Proof / Simulation Gate。该规划基线不改写本治理决定的历史 Base 或三轨状态；`SP-006S0 = NEXT / NOT AUTHORIZED`，M1.x 正式编号、verdict / evidence 合同由未来获授权的 SP-006S0 冻结。
+
 ## 决定与依据
 
 GOV-SOUL-ROADMAP1 governance Base = `a552a2d0846ff024b930d0d802228b863a6da74f`。该 SHA 是本治理 PR 开工时的 canonical main，不是合并后的 canonical main。本记录取代 [GOV-ARCHGATE1](GOV-ARCHGATE1-POST-HLV3-REVIEW.md) 确定的后续局部执行顺序。GOV-SOUL-ROADMAP1 是治理与文档任务；本记录不修改 Runtime、Schema、Prompt、Host Adapter 或 provider transport，不授予任何后续实施或真实发送权限。
@@ -20,7 +22,7 @@ GOV-SOUL-ROADMAP1 governance Base = `a552a2d0846ff024b930d0d802228b863a6da74f`�
 
 Soul Continuity 不等于 Prompt Persona。`Soul != Prompt != Model != Session != Host != Character Card != World != Memory`；这些对象参与连续性，但不能单独冒充 Soul Identity。Prompt 只能从当前可信状态派生投影。Soul 也不能取代 Story、Memory 或 World 的真源。
 
-高层顺序为 GOV-SOUL-ROADMAP1 → **SP-006S0 — Soul Continuity Architecture Freeze** → Soul Identity / Continuity Core V1 → Prompt Projection Integration → Memory Evolution V1 → Relationship Memory → Autobiographical Memory → Soul / Relationship Continuity Evolution → Living Integration → Proactive Life / Routine → Media Runtime → Voice Runtime。仅本治理任务获授权；`SP-006S0 = NEXT / NOT AUTHORIZED`，其余阶段均须独立任务与明确授权。
+GOV-SOUL-ROADMAP1 冻结时的高层顺序为 GOV-SOUL-ROADMAP1 → **SP-006S0 — Soul Continuity Architecture Freeze** → Soul Identity / Continuity Core V1 → Prompt Projection Integration → Memory Evolution V1 → Relationship Memory → Autobiographical Memory → Soul / Relationship Continuity Evolution → Living Integration → Proactive Life / Routine → Media Runtime → Voice Runtime。上方已审规划基线将连续性证明提升为 M1 与 M2 之间的显式 Gate，并把 Prompt 分为 M0 最小合同与 M2 只读投影；不改变本记录的三轨治理。`SP-006S0 = NEXT / NOT AUTHORIZED`，其余阶段均须独立任务与明确授权。
 
 SP-006S0 应定义 SoulIdentity、SoulInstance、SoulContinuityGeneration、Soul lifecycle，以及 Soul 与 World、Agent、Character、Host、Model、Session 的关系；还须给出跨日、跨进程及跨 Host 判断“同一个 Soul”的机械证据。Identity、Session、Memory、Relationship、Autobiographical、World、Living、Prompt Continuity 必须分别建模。本文不预定其实现、Schema 或 authority 变更。
 

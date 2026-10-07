@@ -1,10 +1,16 @@
 # Life Engine 长期开发路线与阶段治理
 
+## Soul Continuity Plan V2 — APPROVED_PLANNING_BASELINE / NOT_EXECUTION_AUTHORIZATION
+
+[后续开发计划](SOUL-CONTINUITY-DEVELOPMENT-PLAN.md)与[SP-006S0 任务书候选](SP-006S0-ARCHITECTURE-FREEZE-TASK.md)保留当前三轨方向，并把顺序细化为 M0 架构冻结 → M1 Soul Identity Core V1 → **M1.x Continuity Proof / Simulation Gate** → M2 Memory Evolution V1 + Read-only Prompt Projection → M3 Relationship + Autobiographical Memory → M4 Soul / Relationship Continuity Evolution + Living Integration → M5 Proactive Life / Routine + Media → M6 Voice + Host Expansion。`M1.x` 仅是语义占位，正式编号由 SP-006S0 冻结；这些阶段均不因规划审核通过而获得实施授权。
+
+M0 应先冻结六种 Continuity、机械 verdict / evidence、离线 Simulation Harness 与 Minimal Prompt Projection Contract；M1.x 必须在大规模 Memory Evolution 前提供 continuation、fork、mismatch、unknown 的可验证边界，`UNKNOWN` 默认 fail-closed。M2 才从可信 Identity、Memory、World 和 Relationship Context 派生只读投影；完整 SP-005A2-P1 不自动前移。首个产品里程碑同时验证身份和记忆连续性，数据库恢复成功不能替代 Soul Continuity PASS。Host 回归只在实质官方能力证据出现后进入独立评审，Full Private RP 继续封存。规划已通过独立审核，状态为 `APPROVED_PLANNING_BASELINE / NOT_EXECUTION_AUTHORIZATION`；`SP-006S0 = NEXT / NOT AUTHORIZED`。
+
 ## CURRENT — GOV-SOUL-ROADMAP1 / Soul Continuity Mainline
 
 [本次治理记录](../architecture/GOV-SOUL-ROADMAP1-SOUL-CONTINUITY-MAINLINE.md)以 GOV-SOUL-ROADMAP1 governance Base `a552a2d0846ff024b930d0d802228b863a6da74f` 开工，正式取代此前 HLV4 后续局部顺序。三轨状态：Soul Continuity = `ACTIVE_MAINLINE`；Host Integration / Real Delivery = `DEFERRED`；Full Private RP = `FROZEN_EXTERNAL_BLOCKER`。A2-R1 = DONE；真实 Host plugin load、delivery boundary、SENT、ACK 未取得。下文旧 CURRENT 均为 `SUPERSEDED CURRENT SNAPSHOT`，原技术合同与历史证据保留。
 
-当前高层顺序：GOV-SOUL-ROADMAP1 → **SP-006S0 Soul Continuity Architecture Freeze** → Soul Identity / Continuity Core V1 → Prompt Projection Integration → Memory Evolution V1 → Relationship Memory → Autobiographical Memory → Soul / Relationship Continuity Evolution → Living Integration → Proactive Life / Routine → Media Runtime → Voice Runtime。`SP-006S0 = NEXT / NOT AUTHORIZED`；其余阶段也未授权。P1 = `RESEQUENCED_UNDER_SOUL_CONTINUITY_MAINLINE / NOT AUTHORIZED`；Memory Evolution V1 = `SOUL_CONTINUITY_MAINLINE / PLANNED / NOT AUTHORIZED`。Prompt Projection 与 Memory 的具体接口和先后关系留待 SP-006S0。
+GOV-SOUL-ROADMAP1 冻结时的高层顺序为：GOV-SOUL-ROADMAP1 → **SP-006S0 Soul Continuity Architecture Freeze** → Soul Identity / Continuity Core V1 → Prompt Projection Integration → Memory Evolution V1 → Relationship Memory → Autobiographical Memory → Soul / Relationship Continuity Evolution → Living Integration → Proactive Life / Routine → Media Runtime → Voice Runtime。上方已审规划基线细化了 M1.x Gate 和 Prompt 的两层顺序，正式编号与合同仍待 SP-006S0 冻结；原治理方向不变。`SP-006S0 = NEXT / NOT AUTHORIZED`；其余阶段也未授权。P1 = `RESEQUENCED_UNDER_SOUL_CONTINUITY_MAINLINE / NOT AUTHORIZED`；Memory Evolution V1 = `SOUL_CONTINUITY_MAINLINE / PLANNED / NOT AUTHORIZED`。
 
 A2 retry、HLV4-B、Hermes Living Adapter Stabilization、OpenClaw Living Adapter real validation = `DEFERRED / NOT AUTHORIZED`。Full Private RP 的 H1/H2 外部 Host blocker 保留，但不阻塞 Soul Continuity；RP Core Runtime 不删除。`DATA_SCHEMA = 8`、`Schema Signature = SP-005A-living-runtime-v1`、`Prompt Template = SP-004K-prompt-v1`、`PROMPT_TEMPLATE_UPGRADE_REQUIRED = YES`。Roadmap state != execution authorization。
 
