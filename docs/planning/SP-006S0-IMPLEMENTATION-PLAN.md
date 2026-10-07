@@ -31,7 +31,7 @@ Execution Base = `5f04caf5050efb4742a8f6cb1f8546544d935b64`，仅表示本规划
 | 项 | 冻结计划 |
 | --- | --- |
 | Scope | 实现四 verdict `CONTINUATION/FORK/MISMATCH/UNKNOWN`、最小 `SoulContinuityRecord` 与非回滚 `ContinuityAnchor` 的读取/推进/完整性检查、受控 copy/fork/restore/迁移转移、离线确定性 Continuity Simulation Harness。Core 无全局协调时 `UNKNOWN`。该阶段不接真实 Host 或执行发送。 |
-| Dependencies | M1 独立验收、另发 M1.x 实施授权；PersonRef/relationship binding 与全局协调的最小接口边界先经治理冻结。 |
+| Dependencies | M1 独立验收、另发 M1.x 实施授权；以不含真实 Person 确权的 opaque relationship namespace 测试错误 lineage，跨机器全局协调缺失时返回 `UNKNOWN`。完整 PersonRef 留给 M3，不阻塞离线身份门禁。 |
 | Schema impact | 若 M1 已提供足够 record/anchor 字段，仅补 index/约束；不足则必须另审 Schema。不得为方便建立第二套 World/Memory/Story 真源。 |
 | Migration impact | 旧 backup/snapshot 的 lineage 位点按未知处理，不能因 restore 成功升级为 continuation；升级时保留非回滚 anchor 与旧分支撤销证据。 |
 | Test strategy | 按[矩阵](SP-006S0-CONTINUITY-VALIDATION-MATRIX.md) S01–S16、S19–S20 逐项跑正负例、崩溃注入、复制、并发、损坏、旧 snapshot、不同 Model、模拟 Host 迁移；结构化 fixture 与可重复证据。绝不把 attempt/simulation 标为真实 Host PASS。 |
@@ -44,8 +44,8 @@ Execution Base = `5f04caf5050efb4742a8f6cb1f8546544d935b64`，仅表示本规划
 
 | 项 | 冻结计划 |
 | --- | --- |
-| Scope | 在现有 Memory 真源上逐步加入 Working/Episodic/Semantic/Relationship/Autobiographical ownership、Consolidation/Deduplication/Conflict/Supersession/Importance/Decay/Controlled Forgetting/Retrieval。先实现经授权的 Memory 写入/纠正/遗忘，再将可信 Soul/World/Memory/Relationship/Living 状态只读投影给模型。完整新 Prompt Runtime、SP-005A2-P1 与真实 Host 均非本阶段自动授权。 |
-| Dependencies | M1.x Gate 独立验收；Memory truth、Story accepted event、Bridge Scope、Living authorization 均保持原 ownership；Relationship 的 PersonRef identity 和跨 World 规则先冻结。 |
+| Scope | 在现有 Memory 真源上逐步加入 Working/Episodic/Semantic 与 Relationship/Autobiographical 的类型及 ownership 边界、Consolidation/Deduplication/Conflict/Supersession/Importance/Decay/Controlled Forgetting/Retrieval。先实现经授权的基础 Memory 写入/纠正/遗忘，再将有可信来源的 Soul/World/Memory/Living 状态只读投影给模型；Relationship Context 仅在确权后进入投影，完整跨 World Relationship Memory 与 Autobiographical Memory 留给 M3。完整新 Prompt Runtime、SP-005A2-P1 与真实 Host 均非本阶段自动授权。 |
+| Dependencies | M1.x Gate 独立验收；Memory truth、Story accepted event、Bridge Scope、Living authorization 均保持原 ownership。M2 基础不依赖完整 PersonRef；跨 World Relationship 读写/投影必须等 M3 的 PersonRef identity 与映射规则获单独冻结。 |
 | Schema impact | 未来可能新增记忆类型、派生 lineage、失效索引及版本；必须逐项审查最小 schema/签名变更，不在此规划中实施。Prompt projection contract 尽量复用现有 PromptSnapshot/section/budget/revalidation，若模板升级须独立批准。 |
 | Migration impact | 旧聊天摘要不能自动升级为权威事实；需带 provenance 分类、重新授权或留在非权威层。删除控制与派生/缓存/备份恢复的失效位点不可回退。 |
 | Test strategy | S17/S18 与产品里程碑组合测试：事实纠正不再作为当前事实、受控遗忘后常规检索和 projection 不复活、旧 backup 恢复后仍受非回滚控制；跨 World/RP 隔离、budget trimming、revision/fingerprint/cache invalidation；模型生成摘要不得直接成为权威 Memory。离线模拟，不调用模型。 |
@@ -63,7 +63,7 @@ Execution Base = `5f04caf5050efb4742a8f6cb1f8546544d935b64`，仅表示本规划
 ## 未决决定与交接
 
 1. `OPEN_QUESTION_01`：跨机器全局唯一 continuation 的协调者与身份由谁提供？当前源码只证明单安装局部门禁。建议 Core 离线 `UNKNOWN`，未来 Host/coordination authority 独立审查；阻塞真实跨 Host 权限，不阻塞离线 M1.x 模拟合同。
-2. `OPEN_QUESTION_02`：跨 World 的 `PersonRef` 如何与既有 Story CharacterInstance/WorldScope 映射并保护隐私？建议独立 Soul↔Person 稳定键与 explicit scope mapping；阻塞 M2 Relationship 实现，不阻塞 M1 身份基础。
+2. `OPEN_QUESTION_02`：跨 World 的 `PersonRef` 如何与既有 Story CharacterInstance/WorldScope 映射并保护隐私？建议独立 Soul↔Person 稳定键与 explicit scope mapping；阻塞 M3 跨 World Relationship 实现，不阻塞 M1.x 离线身份 Gate 或 M2 基础 Memory。
 3. `OPEN_QUESTION_03`：record 与非回滚 anchor 的原子提交、崩溃恢复与迁移介质是什么？建议先设计 fail-closed prepare/commit protocol 与故障注入；阻塞 M1.x 正式落地，需在 M1 Schema 设计前裁定。
 
 三个问题的设计选项、证据和治理决策位置详见[架构文档的 Open Questions 小节](../architecture/SP-006S0-SOUL-CONTINUITY-ARCHITECTURE.md)。任何阶段需新授权；`SP-006S0 = DONE`（将来若达成）也不代表 `M1 = STARTED`。本轮终点仅为 Draft PR 独立审核。
