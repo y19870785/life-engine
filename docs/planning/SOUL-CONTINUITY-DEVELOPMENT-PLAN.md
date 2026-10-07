@@ -5,7 +5,9 @@
 Roadmap Stage: Soul Continuity Mainline / 已审阶段规划基线。
 Why Now: GOV-SOUL-ROADMAP1 已确立主线，需要将长期目标细化成可验收的身份、连续性证明、记忆、关系与生活体验闭环。
 
-Planning Governance Base 为 `11b5e51ea0033351b6d21cc56a75caa665a8cb4f`（PR #47 的 Squash commit）；它只标识本规划开工前的固定基线，不声明未来合并后的 canonical main。Soul Continuity Plan V2 已通过独立规划审核，状态为 `APPROVED_PLANNING_BASELINE / NOT_EXECUTION_AUTHORIZATION`。**CURRENT override：**SP-006S0 的审计基线为 `5f04caf5050efb4742a8f6cb1f8546544d935b64`；其[架构合同](../architecture/SP-006S0-SOUL-CONTINUITY-ARCHITECTURE.md)、[验证矩阵](SP-006S0-CONTINUITY-VALIDATION-MATRIX.md)与[实施计划](SP-006S0-IMPLEMENTATION-PLAN.md)的内容状态为 `APPROVED_ARCHITECTURE_BASELINE / NOT_IMPLEMENTATION_AUTHORIZATION`。仓库任务只有独立完成 Ready、Squash Merge、exact main push CI 与合并后核验，才能判定 DONE；M1、M1.x、M2 均 `NOT AUTHORIZED`。
+Planning Governance Base 为 `11b5e51ea0033351b6d21cc56a75caa665a8cb4f`（PR #47 的 Squash commit）；它只标识本规划开工前的固定基线，不声明未来合并后的 canonical main。Soul Continuity Plan V2 已通过独立规划审核，状态为 `APPROVED_PLANNING_BASELINE / NOT_EXECUTION_AUTHORIZATION`。**HISTORICAL SNAPSHOT — 规划编制时的 SP-006S0 生命周期：**其审计基线为 `5f04caf5050efb4742a8f6cb1f8546544d935b64`；[架构合同](../architecture/SP-006S0-SOUL-CONTINUITY-ARCHITECTURE.md)、[验证矩阵](SP-006S0-CONTINUITY-VALIDATION-MATRIX.md)与[实施计划](SP-006S0-IMPLEMENTATION-PLAN.md)的内容曾获 `APPROVED_ARCHITECTURE_BASELINE / NOT_IMPLEMENTATION_AUTHORIZATION`；当时仓库任务仍需 Ready、Squash Merge、exact main push CI 与合并后核验，M1/M1.x/M2 均未获授权。这是当时真实状态，不作为当前授权声明。
+
+**CURRENT stage override：**`SP-006S0 = DONE`（其 Execution Base 仍是上述历史审计 SHA）；`M1 = ACTIVE_STAGE`；仅 [M1-P0 Continuity Persistence Protocol Freeze](../architecture/M1-P0-CONTINUITY-PERSISTENCE-PROTOCOL.md) 为 `AUTHORIZED / PROTOCOL_FREEZE_ONLY`。该 Gate 的[Crash / Recovery Matrix](M1-P0-CRASH-RECOVERY-MATRIX.md)及[Implementation Gate](M1-P0-IMPLEMENTATION-GATE.md)均只设计，不实施。M1 Schema、Migration、Record/Anchor writer、SoulInstance enrollment、M1-A 及后续实施、M1.x、M2 全部 `NOT AUTHORIZED`。
 
 [GOV-SOUL-ROADMAP1](../architecture/GOV-SOUL-ROADMAP1-SOUL-CONTINUITY-MAINLINE.md)的三轨治理继续有效：Soul Continuity = `ACTIVE_MAINLINE`；Host Integration / Real Delivery = `DEFERRED`；Full Private RP = `FROZEN_EXTERNAL_BLOCKER`。本文补强原规划的 Continuity Proof / Simulation Gate，不覆盖既有 World、Memory、Story、Living、Host authority 或 delivery 安全合同。
 
@@ -19,11 +21,11 @@ Host-neutral 方向保持为 `Life Engine → Host Adapter Contract → Hermes /
 
 ## 建议阶段与完成门
 
-M0～M6 是规划语义标签，不是新 SP 编号或执行授权。`M1.x` 仅表示 M1 与 M2 之间不可跳过的 Gate；正式编号由 SP-006S0 Architecture Freeze 冻结，本规划基线不预定 M1.5、SP-006S1 或 SP-006S2。SP-006S0 的当前架构文档执行授权不延伸至 M1、M1.x 或 M2 实施。
+M0～M6 是规划语义标签，不是新 SP 编号或执行授权。`M1.x` 仅表示 M1 与 M2 之间不可跳过的 Gate；正式编号由 SP-006S0 Architecture Freeze 冻结，本规划基线不预定 M1.5、SP-006S1 或 SP-006S2。SP-006S0 的已完成架构文档不延伸授权 M1 Runtime、M1.x 或 M2 实施；当前仅 M1-P0 文档 Gate 获单独授权。
 
 | 里程碑 | 工作范围与依赖 | 必须交付的能力或证据 |
 | --- | --- | --- |
-| M0：SP-006S0 Soul Continuity Architecture Freeze | 审计既有真源与缺口；冻结六种 Continuity、身份/实例/代次、恢复/分叉、M1.x 证据与最小 Prompt Projection Contract | 架构合同、生命周期转换、复用/缺口矩阵、Continuity verdict 与证据能力边界、Simulation Harness 计划、验证矩阵和实施切片；当前仅执行架构文档，不实施 Runtime |
+| M0：SP-006S0 Soul Continuity Architecture Freeze | 审计既有真源与缺口；冻结六种 Continuity、身份/实例/代次、恢复/分叉、M1.x 证据与最小 Prompt Projection Contract | 架构合同、生命周期转换、复用/缺口矩阵、Continuity verdict 与证据能力边界、Simulation Harness 计划、验证矩阵和实施切片；`SP-006S0 = DONE`，不自动授权 Runtime |
 | M1：Soul Identity Core V1 | 依赖 M0；建立 Soul ID、incarnation / generation、creation / continuation lineage、timeline / relationship / authority binding；复用现有持久化但不混同代次 | Soul Identity 独立于 Agent、Character、Host、Session、Model；重启、恢复、复制和迁移有可核对的身份与来源状态，旧执行权限不随恢复继承 |
 | M1.x：Continuity Proof / Simulation Gate | 依赖 M1，且必须先于大规模 Memory Evolution；建立机械 verdict、证据与离线模拟验收 | 对合法 continuation 与 fork、mismatch、unknown 作机械区分；缺证默认 fail-closed；规定并发声称和离线不可判定的处理；通过最低场景矩阵后才进入 M2 |
 | M2：Memory Evolution V1 + Read-only Prompt Projection | 依赖 M1.x 与 M0 的最小投影合同；先完成有来源的最小记忆闭环，再按证据扩展记忆演化 | 记录→持久化→检索→只读投影→纠正/遗忘；Identity、Memory、World、Relationship Context 安全投影；跨会话、跨日、重启、隔离、缓存失效均有机械证据 |
