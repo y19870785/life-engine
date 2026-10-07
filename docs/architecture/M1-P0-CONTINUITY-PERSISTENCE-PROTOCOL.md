@@ -31,7 +31,7 @@
 | Management Authority | 签发有界 `transition_id` 与 Soul/branch/预期头/操作/目标的 decision；持管理锁审核 create/enroll/restore/fork/handoff/retire；批准恢复或人工隔离解除。 | 不能把 decision 当 Host 执行许可；无共同协调者不能签跨机器唯一性。 |
 | Continuity Writer | 在锁内依 decision 准备候选、请求 Anchor CAS、核验后激活数据；可重放同一 transition 的幂等尾步骤。 | 不得从 Prompt、模型、墙钟、最后启动者生成 decision；CAS 失败不得自动改 expected head 重试。 |
 | Continuity Record Store | 按内容/hash 寻址保存 immutable record，支持精确读取、完整性验证及引用保护；可有孤儿候选。 | 不得通过 record 的 `active` 字段独立裁决 current head；不得覆盖已引用 record。 |
-| Continuity Anchor Store | 在业务备份回滚域外保存 SoulId/domain 的单调 `sequence + committed record hash + active branch/head + retirement fence + protocol version`；对 `expected previous anchor` 做持久 CAS。 | 不得被业务 restore/registry 写/旧 binary 重置；不得授予执行权限。 |
+| Continuity Anchor Store | 在业务备份回滚域外保存 `authority-domain + SoulId` 的 SoulRoot；同一持久 CAS 值含不可回滚 Soul retirement fence 与 branch-scoped head 索引。CAS 比较预期 root revision、相关 branch head（首次为 `ABSENT`）及 retirement 状态。 | 不得被业务 restore/registry 写/旧 binary 重置；不得授予执行权限；FORK 不得覆盖 source branch head。 |
 | Durable Registry / Data Generation Store | 准备、校验不活动候选；仅在匹配已提交 anchor 后激活精确 data reference。 | registry/DB 成功不等于 continuity commit；不独立发 Soul verdict。 |
 | Recovery Reader | fresh process 下读 Anchor、Record、registry、候选、版本并确定分类；仅在严格前提下完成幂等尾步骤。 | 不能静默创建 decision、新 generation、新 Instance、新 authority；UNKNOWN 不可升级。 |
 
@@ -39,11 +39,27 @@
 
 ## 3. Record–Anchor 权威关系、状态机与顺序比较
 
-Record 是 immutable lineage evidence，最小绑定上游字段：protocol version、SoulId、authority domain、SoulInstanceId、branch、SoulContinuityGeneration、parent hash/sequence、`transition_id`、operation/decision reference、target DataGeneration 与其完整性 digest、timeline/opaque relationship namespace 摘要、record hash。`transition_id` 由受信 Management Authority 在准备前签发，作用域为 `authority-domain + SoulId + branch`，同一 ID 重试必须绑定**相同** decision、expected head、目标/操作和 record hash；不同 payload 重用 ID 是冲突并隔离。备份、模型或 Host 文本不得签发。`SoulContinuityGeneration` 随受信 transition 前进，不能从 DataGeneration/World/Living/Host 数字推导。
+Record 是 immutable lineage evidence，最小绑定上游字段：protocol version、SoulId、authority domain、SoulInstanceId、branch、SoulContinuityGeneration、parent kind/hash/sequence、`transition_id`、operation/decision reference、target DataGeneration 与其完整性 digest、timeline/opaque relationship namespace 摘要、record hash。`transition_id` 由受信 Management Authority 在准备前签发，作用域为 `authority-domain + SoulId + branch`，同一 ID 重试必须绑定**相同** decision、expected root/branch head、目标/操作和 record hash；不同 payload 重用 ID 是冲突并隔离。备份、模型或 Host 文本不得签发。`SoulContinuityGeneration` 在各 branch 内单调，不能从 DataGeneration/World/Living/Host 数字推导。
 
-Anchor 是**唯一 current-head adjudicator**。Anchor CAS 的单个持久状态包含所引用的 committed transition record hash、序号、当前 active continuation branch/head、retirement fence 与版本；显式 `FORK` 可以登记新 branch record，但原 active branch 不因复制而转让执行权。Record 的 `candidate/active/fork/retired` 是操作意图/派生描述，`record exists != record committed`，`record says active != current active head`。已提交链由可验证的 anchor head 及其 parent chain 判定；anchor 不存业务正文。不能用时间戳在 record 与 anchor 间选较新者。
+Anchor 是**唯一 current-head adjudicator**，但其作用域必须明确：持久 `SoulRoot` 以 `authority-domain + SoulId` 为键，包含 protocol version、单调 root revision、不可回滚 Soul retirement fence（绑定 retirement transition_id 与 immutable retirement Record hash）、原 active branch 指定和最小 `branchId → (branch sequence, generation, committed record hash, activation reference)` 索引；每个逻辑 BranchAnchor 的键是 `authority-domain + SoulId + branchId`。SoulRoot 是单一持久 CAS 单位；一次 CAS 只能改变被 decision 指定的 branch head（或 Soul retirement fence），以预期 root revision 比较确保 source-head、target-ABSENT 与 retirement 条件在**同一**线性化点受检。该最小索引不保存 World/Memory/Story/Living 正文，也不替代各自真源。显式 `FORK` 只增设 target branch head，source branch head 与原 active branch 指定逐字节不变，不转移 execution authority。Record 的 `candidate/active/fork/retired` 是操作意图/派生描述，`record exists != record committed`，`record says active != current active head`。已提交链由 SoulRoot 内对应 BranchAnchor 及其 parent chain 判定；不能用时间戳在 record 与 anchor 间选较新者。
 
-状态：`ABSENT`（无候选）、`PREPARED`（候选 record/数据完整持久，anchor 旧）、`COMMITTED`（anchor CAS 已持久完成且链/候选完整；业务激活可能待完成）、`SUPERSEDED`（被后继有效 anchor 链覆盖）、`RETIRED`（anchor 不可回滚退役 fence）、`QUARANTINED`（操作处理状态，不是 verdict）。`PREPARED` 仅是候选的持久事实；`COMMITTED/SUPERSEDED/RETIRED` 必须由 Anchor 与链派生，不能只存在可回滚 DB。`UNKNOWN` 是证据 verdict，不是处理状态；典型为 `UNKNOWN + QUARANTINED`。
+持久化/生命周期状态：`ABSENT`（root 或指定 branch 尚不存在）、`PREPARED`（候选 record/数据完整持久，branch anchor 旧或 absent）、`COMMITTED`（SoulRoot CAS 已持久完成，所指 record/数据仍须单独验证）、`SUPERSEDED`（被同 branch 后继有效链覆盖）、`RETIRED`（SoulRoot 不可回滚退役 fence）。`QUARANTINED` 是 operational state，不是持久 commit fact 或 verdict。`PREPARED` 仅是候选的持久事实；`COMMITTED/SUPERSEDED/RETIRED` 必须由 Anchor 与链派生，不能只存在可回滚 DB。
+
+### 三层判定合同（F03）
+
+每次 recovery 必须分别输出：① **Persistence Commit Fact** `ABSENT / PREPARED / COMMITTED / INDETERMINATE`（由 durable Anchor CAS 事实裁决，`RETIRED` 另记 Soul lifecycle fact）；② **Identity Verdict** 严守 `CONTINUATION / FORK / MISMATCH / UNKNOWN`（还须验证 Record、parent、decision、目标数据、控制水位与版本）；③ **Operational State** `READY / QUARANTINED(reason=NO_BASELINE / PREPARED_ONLY / ACTIVATION_PENDING / EVIDENCE_CONFLICT) / RETIRED` 与独立的 **Execution Authority** `DENIED` 或由原 Host/Living/delivery 合同另行授予。四者不可互相提升。`COMMITTED` 不等于 `CONTINUATION`；`CONTINUATION` 不等于可运行；`QUARANTINED` 绝不是第五个 verdict。
+
+特例：Anchor 新且 Record、lineage、decision、D1 candidate、控制水位完整有效，但 registry 仍旧：`Persistence = COMMITTED`，普通后继 `Identity = CONTINUATION`（显式 fork 为 `FORK`），`Operational = QUARANTINED(reason=ACTIVATION_PENDING)`，`Execution Authority = DENIED`。同一证据下 activation 只改变持久 registry 与 operational state；identity verdict 不因多跑一次 recovery 而从 `UNKNOWN` 变成 `CONTINUATION`。若 Record、parent、D1、decision、协议版本、控制水位或 Anchor 完整性任一不可证，则 identity 才是 `UNKNOWN`，operational 仍隔离。Soul 退役是生命周期事实；旧实例冒充 current continuation 可判 `MISMATCH`，证据不足判 `UNKNOWN`，绝不新增 `RETIRED` verdict。
+
+### Genesis CREATE、legacy ENROLL 与 branch-scoped FORK（F01/F02）
+
+**CREATE != ENROLL**。首次新 Soul 的受信 decision 必须绑定 `authority-domain + SoulId + main branchId B0 + transition_id + target D1 + protocol version`，并断言 `SoulRoot = ABSENT`。Genesis Record 的 `operation=CREATE`，含 SoulId、SoulInstanceId、B0、`SoulContinuityGeneration=G1`、transition_id、authority domain、protocol version、target DataGeneration/digest、timeline binding、record hash；`parent kind=GENESIS / parent hash=NONE` 是专用不可混淆编码，普通 successor 禁用。Genesis data/record 先持久；`GENESIS_LINEARIZATION_POINT = SoulRoot/Anchor CAS(expected=ABSENT, new=A_genesis)`。该 CAS 必须 durable、linearizable、single-winner、nonrollback；首次 branch head 同时建立为 B0/G1。两个对同一 domain+SoulId 的 CREATE 最多一个成功；败者 `CAS_FAIL`，不得自动换 SoulId、换 branchId 或重基 decision。ACK 丢失用原 transition_id 读回 root；若 root 属别的 decision，停止/隔离，不猜测。`G1` 仅是 Soul continuity 的首代，与 DataGeneration 名称/序号无关。
+
+**ENROLL** 是把已有 legacy `soul_id`/数据纳入新协议，不是创造新 Soul 或证明过去连续性：`LEGACY DATA + SOUL ID != CONTINUITY PROOF`。它需要独立受信 management decision，绑定 legacy Scope/数据证据、目标 Instance、`transition_id` 与 `SoulRoot expected=ABSENT`；建立 `operation=ENROLL`、`parent kind=ENROLL_BASELINE / hash=NONE`、B0/G1 的**protocol enrollment baseline**。该哨兵与 CREATE 的 `GENESIS` 不同，也绝不可用于普通 successor。旧数据及 enrollment 以前的历史 verdict 仍为 `UNKNOWN`；只有此 baseline 的完整提交/校验以后，才可对**从该 baseline 起**的当前 lineage 给出 `CONTINUATION`，绝不追溯宣布历史 Continuity Proof PASS。若已有 root/退役 fence，ENROLL 不得覆盖；无管理决议的旧库仍 `UNKNOWN`。
+
+**FORK topology**：decision 绑定 source SoulId/branch、已提交 source Record hash 与 generation、预期 SoulRoot revision、全新 target branchId/InstanceId、fork transition_id、目标数据及管理 authority。Fork Record `operation=FORK`，parent kind 指向完整 source committed Record（绝不用 GENESIS parent），target branch 首代固定 `G1`；source branch 的 Gn 不变。先准备 target data/record，再作**同一 SoulRoot durable CAS**，原子检查 `retirement fence=ABSENT`、`source head=decision.expected_source_head`、`target BranchAnchor=ABSENT`、`root revision=decision.expected_root_revision`，仅增设 target BranchAnchor。故 `fork-branch genesis = expected target anchor ABSENT`，同时在**一个物理 CAS 单位**验证 source/head 与 Soul 退役条件，无需分布式事务。source 在 target commit 前推进，即 CAS_FAIL；停止并给该候选 `UNKNOWN / QUARANTINED`，不得用旧 source 创造合法 fork，亦不得自动改绑新 source 重试。成功后 source branch head、原 active branch 指定**以及 source Registry/Data 指针**保持不变；Fork 后续 activation 只能绑定全新 target Instance/branch 的数据指针，不得把原实例 registry 从 D_source 偷换为 D_target。若现有 registry 不能表示该独立 target binding，则该能力属于 `NEW_PRIMITIVE_REQUIRED`，不得以修改 source pointer 冒充完成。target 持久证据完整时 `Persistence=COMMITTED / Identity=FORK`，但无继承执行权。同一 target branchId 并发创建最多一个胜者。该 SoulRoot 多条件持久 CAS 是新增原语要求，不可用 OS lock + 两次普通文件写模拟。
+
+**SOUL_RETIREMENT** 在同一 SoulRoot CAS 中设置 `authority-domain + SoulId` 的不可回滚终态 fence，并清除任何 active 资格；所有 main/fork/旧 branch、旧备份均被阻断。原 branch head 可保留为只读历史，不能越过 Soul fence。`BRANCH_RETIREMENT = OUT_OF_SCOPE`，不得把退役某个 branch 冒充 Soul 退役。FORK 与 RETIRE 竞争时同一 root CAS 至多一个胜者：退役先赢则 FORK 失败并隔离；FORK 先赢则旧 retirement decision 的 expected root revision 失败，必须重新审视新 branch 并取得新受信 decision，不能自动重基。二者都不能让 fork 在已退役 Soul 下存活。
 
 | 候选 ordering | 崩溃与不一致 | 结论 |
 | --- | --- | --- |
@@ -53,53 +69,53 @@ Anchor 是**唯一 current-head adjudicator**。Anchor CAS 的单个持久状态
 
 ### 选定抽象协议与 linearization point
 
-1. **Admission / lock**：无锁只可读候选输入、计算计划，不可宣告 active 或发权限。`CREATE / ENROLL / RESTORE / FORK / HANDOFF / RETIRE / CONTINUITY GENERATION ADVANCE` 及 recovery activation 均持同一 management lock，必要时依既有顺序再持 instance lock。拿锁后重读当前 Anchor、Record、registry/schema、控制水位、旧/新版本兼容与 decision；预期头或权限变化即停止。锁丢失、超时或进程 crash 后旧进程不得继续写；下一进程重新获取锁并从 durable evidence 读起。OS 锁释放只证明本地互斥，不证明旧进程已被持久 fence；Anchor expected-head CAS 是最终 stale-writer fence。两个 writer 对同一旧头最多一个成功，失败者不得自动改基准重试。
+1. **Admission / lock**：无锁只可读候选输入、计算计划，不可宣告 active 或发权限。`CREATE / ENROLL / RESTORE / FORK / HANDOFF / RETIRE / CONTINUITY GENERATION ADVANCE` 及 recovery activation 均持同一 management lock，必要时依既有顺序再持 instance lock。拿锁后重读 SoulRoot（可为 `ABSENT`）、相关 BranchAnchor、Record、registry/schema、控制水位、旧/新版本兼容与 decision；预期头、root revision 或权限变化即停止。锁丢失、超时或进程 crash 后旧进程不得继续写；下一进程重新获取锁并从 durable evidence 读起。OS 锁释放只证明本地互斥，不证明旧进程已被持久 fence；SoulRoot 的 Anchor expected-head CAS 是最终 stale-writer fence。两个 writer 对同一预期 root/branch 头最多一个成功，失败者不得自动改基准重试。
 2. **Prepare**：先准备并同步目标 DataGeneration/迁移结果、必要的 Memory/Bridge 控制重放及 pause/fence，校验 digest/Schema/Scope；再持久写 immutable Record，绑定同一 `transition_id`、expected head 和精确 data reference。未获新 anchor 前 registry 不得指向新 data；record store 的写入必须是不可见半成品或可检测损坏。任何失败保持旧头、拒绝新执行权。准备期间的候选可以后续谨慎清理，但不能清理已被 anchor 引用的 record/data。
-3. **Commit**：在锁内以 `expected previous anchor + transition_id + candidate record hash` 请求**单次持久化、线性化、单调** Anchor CAS。`CONTINUITY_LINEARIZATION_POINT = Anchor CAS durable commit`。CAS 操作须对读者呈现完整旧值或完整新值；调用方 ACK 丢失时不能凭返回超时推断失败，须 fresh-read anchor。Anchor 不能随 business backup rollback。若底层无法给出这些语义，`NO_SAFE_PROTOCOL_WITH_CURRENT_PRIMITIVES / NEW_PRIMITIVE_REQUIRED`，不得进入写路径。
-4. **Activate**：读回新 Anchor、验证完整链/目标数据、registry 旧值仍是 decision 绑定值，然后幂等激活精确 DataGeneration；激活后再核对 Anchor/registry/Schema，进程可以返回 lineage committed 的收据。已提交但未激活时**不得**向业务/Host 报可运行 `CONTINUATION`；只允许只读 recovery，正常 verdict `UNKNOWN` 且 operational state `QUARANTINED`，直到仅凭已持久候选和原 decision 安全完成激活。若内容、schema、控制、registry 不匹配，必须保持隔离并要求人工治理；不得创建新 transition 代替。
+3. **Commit**：在锁内以 `expected SoulRoot revision + expected branch head（CREATE/ENROLL 为 root ABSENT，FORK 的 target 为 ABSENT 且 source 仍是 decision 绑定头）+ transition_id + candidate record hash` 请求**单次持久化、线性化、单调** Anchor CAS。`CONTINUITY_LINEARIZATION_POINT = Anchor CAS durable commit`；Genesis 的具体条件为 `expected=ABSENT`。CAS 操作须对读者呈现完整旧值或完整新值；调用方 ACK 丢失时不能凭返回超时推断失败，须 fresh-read root/branch anchor。Anchor 不能随 business backup rollback。若底层无法给出这些语义，`NO_SAFE_PROTOCOL_WITH_CURRENT_PRIMITIVES / NEW_PRIMITIVE_REQUIRED`，不得进入写路径。
+4. **Activate**：读回新 Anchor、验证完整链/目标数据、registry 旧值仍是 decision 绑定值，然后幂等激活精确 DataGeneration；激活后再核对 Anchor/registry/Schema，进程可以返回 lineage committed 的收据。已提交但未激活时**不得**向业务/Host 报可运行或获授权；若 identity evidence 完整，verdict 已是普通后继的 `CONTINUATION` 或 fork 的 `FORK`，但 operational state 必须是 `QUARANTINED(reason=ACTIVATION_PENDING)`、execution authority `DENIED`。若内容、schema、控制、registry 不匹配，identity 为 `UNKNOWN`、operational 隔离并要求人工治理；不得创建新 transition 代替。
 
-因此在 linearization point 前 crash，恢复只可用旧 committed head（且新候选不得活跃）；点后 crash，Anchor 可识别已提交 transition，但若验证/激活不完整则 `UNKNOWN / QUARANTINE`，绝不猜测运行资格。`Continuity Commit → Identity Continuity Established` **不等于** `Execution Authority Granted`。Host Binding、Living permit、delivery gate、Session 和 provider 资格仍独立重新授权；`CLAIMED != SENT != ACKNOWLEDGED`，`REAL_SEND = NO`。
+因此在 linearization point 前 crash，恢复只可用旧 committed head（Genesis 前则仍无 Soul protocol baseline），新候选不得活跃；点后 crash，Anchor 识别 `COMMITTED`，identity verdict 另依完整 evidence 判定，activation/authority 再单独判定。完整 evidence 下 `Continuity Commit → Identity Continuity Established` **不等于** `Operational READY`，更不等于 `Execution Authority Granted`；缺证才是 `UNKNOWN / QUARANTINED`。Host Binding、Living permit、delivery gate、Session 和 provider 资格仍独立重新授权；`CLAIMED != SENT != ACKNOWLEDGED`，`REAL_SEND = NO`。
 
 ## 4. Recovery、lost ACK、quarantine 与不可回滚围栏
 
-Recovery 必须在 fresh process 中先进入不可发送/不可写的 admission 状态，获取 management lock，读取并验证协议版本、Anchor 完整性与非回滚域身份、链/hash/父序、decision/transition ID、Record 与 target DataGeneration/控制水位，再看 registry。固定 fixture（相同 bytes、anchor、registry、version）得到同一 classification、verdict、quarantine 结果：`recover(recover(s)) == recover(s)`。重复运行不得仅因次数将 `UNKNOWN` 升为 `CONTINUATION`；变化只能来自新受信 evidence、原 decision 所允许的确定性尾步骤，或新受信 management decision。
+Recovery 必须在 fresh process 中先进入不可发送/不可写的 admission 状态，获取 management lock，读取并验证协议版本、SoulRoot/BranchAnchor 完整性与非回滚域身份、链/hash/父序、decision/transition ID、Record 与 target DataGeneration/控制水位，再看 registry。对**同一持久 fixture**（相同 bytes、root/branch anchor、registry、version），`classify(s)` 的 persistence fact、identity verdict、operational state 必须确定且相同；恢复的持久状态转换须幂等，即 `recover(recover(s)) == recover(s)`。完整已提交证据在 activation 前后 identity verdict 保持一致；若第一次 recovery 按原 decision 完成 activation，registry bytes 已变化，所以 operational state 可以从 `ACTIVATION_PENDING` 变为 `READY`，第二次 recovery 对新持久状态不再写。这不是仅凭 recovery 次数把 `UNKNOWN` 升为 `CONTINUATION`。
 
 | Evidence | 恢复裁决 |
 | --- | --- |
 | 新 Record durable、Anchor 旧、registry 旧 | 新候选未提交；旧头可用（需旧头完整），新候选 `UNKNOWN`，不得激活。相同 transition 可以在重新校验与明确原 decision 仍有效后重试原 CAS；不得制造第二 generation。孤儿清理仅在未被任何 anchor 引用且已证明无执行泄漏时允许。 |
-| Anchor 新、Record/数据完整、registry 旧 | transition 已提交；仅按原 decision、原精确目标幂等完成 activation；完成前 `UNKNOWN / QUARANTINED` 且无执行权。无完整候选则持续隔离，不能回滚 Anchor。 |
+| Anchor 新、Record/数据/decision/控制完整、registry 旧 | persistence `COMMITTED`；普通后继 identity `CONTINUATION`（fork 为 `FORK`）；operational `QUARANTINED(reason=ACTIVATION_PENDING)`、执行权 DENIED。仅按原 decision 幂等完成精确 activation；无完整候选则 identity `UNKNOWN`、持续隔离，不能回滚 Anchor。 |
 | Anchor 新、Record 缺失/损坏或父 hash 错 | `UNKNOWN / QUARANTINED`；禁止从可回滚 backup 猜造 record，人工治理。 |
 | Registry/Data 新、Anchor 旧 | 协议禁止；`UNKNOWN / QUARANTINED`，拒绝旧/新执行权。不可自动选择 registry 或简单回滚（可能存在外部副作用）。 |
-| Anchor/Record/registry 完整一致，且非 retired | 单受信域内可导出 `CONTINUATION`；仍不授予任何 Host/Living/delivery 权限。 |
+| Anchor/Record/registry 完整一致，且 Soul 未 retired | 单受信域内普通后继可导出 `CONTINUATION`，显式 fork target 为 `FORK`；operational 可进入独立权限评估，仍不授予任何 Host/Living/delivery 权限。 |
 
-`commit succeeded / ACK lost`：以原 `transition_id` 查询 Anchor 中已提交 hash；若匹配，返回**同一**结果并完成允许的尾步骤；若 Anchor 仍为 expected old，候选未提交，可在原 decision 未失效且重检后重试**同一个** CAS；Anchor 不可读、出现别的 head、record/目标不匹配时 `UNKNOWN / QUARANTINED`。绝不按墙钟、调用次数或进程重启次数递增 SoulContinuityGeneration。
+`commit succeeded / ACK lost`：以原 `transition_id` 查询 SoulRoot 的对应 BranchAnchor 中已提交 hash；若匹配，返回**同一** persistence fact/identity verdict 并完成允许的尾步骤；若 Anchor 仍为 decision 预期旧值（Genesis/Fork target 为 `ABSENT`），候选未提交，可在原 decision 未失效、source/retirement/root revision 重检后重试**同一个** CAS；Anchor 不可读、出现别的 head、record/目标不匹配时 identity `UNKNOWN`、operational `QUARANTINED`。绝不按墙钟、调用次数或进程重启次数递增 SoulContinuityGeneration。
 
 可幂等重放的仅是同一 `transition_id` 下的只读验证、完整候选准备（内容寻址/严格相等）、Anchor 旧且 decision 有效时的同一 expected-head CAS，以及 Anchor 已新时的精确 registry activation/收据读取。**不可**重放为“新操作”的是 CREATE/enrollment、generation advance、fork/handoff、RETIRE、Host permit consumption、delivery/REAL_SEND 或未知外部副作用；这些必须先查询受信 evidence，必要时由新的 management decision 单独处理。CAS crash 后旧值的读取必须在上一个 writer crash-stop 与存储操作最终落定后进行；若底层可能在读取 `A0` 后再异步落下旧 CAS，该实现不满足 linearizable durable CAS 要求，判 `UNKNOWN / QUARANTINED` 而非安全重试。
 
 Quarantine 进入条件：missing/corrupt/unknown-version anchor，悬空 anchor、断链/哈希错、record/anchor/registry 不匹配、未知或部分 migration、退役冲突、并发/锁丢失歧义、无法判明 CAS durable outcome、业务控制水位冲突。隔离只允许有界只读检查和脱敏诊断；continuity write、执行/Host authority、REAL_SEND 均拒绝。修复须有新受信 evidence 或独立 governance decision，不能自动覆盖锚。`UNKNOWN` 是 verdict，`QUARANTINED` 是运行处理状态；二者分离。
 
-`RETIRE` 使用同一 Prepare→Anchor CAS；线性化点是 Anchor 中不可回滚 retirement fence 的持久提交。fence 是 SoulId/domain 的终态，不可被旧 backup/registry/Host state/permit/Living Attempt 清除；同一 SoulId 不再生成 active successor。旧 binary 若不能理解 fence 必须在部署 admission 层被阻断，不能读取旧 DB 后激活。`G12 → restore G9` 仅得待审数据候选，Anchor 仍 G12；未来获授权的受控 restore 若可行，须由当前头签发新 successor（例如 G13），绝非将 anchor 回退 G9。裸 COPY 即便 DB+Record 一致也无新 authority-domain admission；无共同协调者判 `UNKNOWN`，受信显式 fork record 才得 `FORK`，但不继承原 branch 执行权。
+`RETIRE Soul` 使用同一 Prepare→SoulRoot CAS；线性化点是 SoulRoot 中不可回滚 retirement fence 的持久提交。fence 是 SoulId/domain 的终态，覆盖所有 branch，不可被旧 backup/registry/Host state/permit/Living Attempt 清除；同一 SoulId 不再生成 active successor。`BRANCH_RETIREMENT = OUT_OF_SCOPE`。旧 binary 若不能理解 fence 必须在部署 admission 层被阻断，不能读取旧 DB 后激活。`G12 → restore G9` 仅得待审数据候选，Anchor 仍 G12；未来获授权的受控 restore 若可行，须由当前头签发新 successor（例如 G13），绝非将 anchor 回退 G9。裸 COPY 即便 DB+Record 一致也无新 authority-domain admission；无共同协调者判 `UNKNOWN`，受信显式 fork record 才得 `FORK`，但不继承原 branch 执行权。
 
 ## 5. Migration、legacy binary 与能力边界
 
 Migration 可在 continuity commit 前对**不活动候选**准备/校验，绝不可提前使新 schema/registry active。新 binary 读旧 schema：无已批准 enrollment/升级合同则 paused/read-only/`UNKNOWN`；旧 binary 读新 Anchor/不支持协议：必须由**独立于旧 binary 代码路径的 admission/launcher/release gate**在任何业务写、Host permit 或发送前拒绝。当前 launcher/registry 仅有 data-schema/release 检查，未见已实现的 continuity-protocol gate；单靠新 binary 自检无法防止旧 binary 被直接启动。该兼容围栏是 `NEW_PRIMITIVE_REQUIRED` 的一部分，后续必须给出可验证的部署威胁模型；若无法阻断旧 binary，则不能激活新协议。Migration 成功但 Anchor 旧只留下不活动候选；Anchor 新而 migration/activation 失败为 quarantine，不得用旧 binary 降级绕开。Schema rollback 不得回滚 Anchor 或 retirement fence。
 
-当前 `DATA_SCHEMA = 8`、`SP-005A-living-runtime-v1`、`SP-004K-prompt-v1`、`PROMPT_TEMPLATE_UPGRADE_REQUIRED = YES` 均未改变；`SCHEMA_CHANGE_REQUIRED = YES / SCHEMA_CHANGE_AUTHORIZED = NO`。新原语最小语义是：单受信域单调 durable Anchor CAS、稳定可寻址 immutable Record、以 Anchor 版本约束的所有 active/writable 入口、非回滚退役 fence。它们不授予 Soul 以外真源的写权、不授予 Host/REAL_SEND 权限。`OPEN_QUESTION_01 = ACCEPTED_CAPABILITY_BOUNDARY`：无共同受信跨机器协调者仍 `UNKNOWN / FAIL_CLOSED`，本 Gate 不引入远端服务。`OPEN_QUESTION_02 = DEFERRED_TO_M3_PERSON_IDENTITY_GATE`：这里只能用 opaque/synthetic relationship namespace，不设计真实 PersonRef。
+当前 `DATA_SCHEMA = 8`、`SP-005A-living-runtime-v1`、`SP-004K-prompt-v1`、`PROMPT_TEMPLATE_UPGRADE_REQUIRED = YES` 均未改变；`SCHEMA_CHANGE_REQUIRED = YES / SCHEMA_CHANGE_AUTHORIZED = NO`。新原语最小语义是：单受信域单调 durable SoulRoot/branch-scoped Anchor CAS（含 root/branch expected-ABSENT Genesis 与 source-head+target-ABSENT Fork 条件）、稳定可寻址 immutable Record、以 Anchor 版本约束的所有 active/writable 入口、Soul-level 非回滚退役 fence。它们不授予 Soul 以外真源的写权、不授予 Host/REAL_SEND 权限。`OPEN_QUESTION_01 = ACCEPTED_CAPABILITY_BOUNDARY`：无共同受信跨机器协调者仍 `UNKNOWN / FAIL_CLOSED`，本 Gate 不引入远端服务。`OPEN_QUESTION_02 = DEFERRED_TO_M3_PERSON_IDENTITY_GATE`：这里只能用 opaque/synthetic relationship namespace，不设计真实 PersonRef。
 
 ## 6. Q1–Q16、未决与停止条件
 
 | 问题 | 冻结答案 |
 | --- | --- |
-| Q1–Q2 linearization 与安全性 | Anchor 的 durable expected-head CAS；候选 data/record 先完整持久，单调非回滚锚只指完整 record，前锚旧态、后锚新态或隔离。能力尚待实现/故障注入证明。 |
+| Q1–Q2 linearization 与安全性 | SoulRoot 的 durable expected-head CAS；CREATE/ENROLL 对 root `ABSENT`，FORK 同一 CAS 比对 source head 与 target `ABSENT`，RETIRE 设置 Soul-level fence。候选 data/record 先完整持久，前锚未提交、后锚 COMMITTED 或隔离。能力尚待实现/故障注入证明。 |
 | Q3 Record 新/Anchor 旧 | 未提交，旧头；候选不可激活，只可原 ID 重试或安全清理。 |
 | Q4 Anchor 新/Record 缺 | `UNKNOWN / QUARANTINED`，不能从备份推断。 |
-| Q5 Anchor 新/Data inactive | 验证候选与原 decision 后幂等激活；完成前隔离。 |
+| Q5 Anchor 新/Data inactive | 完整 evidence 下 persistence `COMMITTED`、identity `CONTINUATION`（fork 为 `FORK`）、operational `QUARANTINED(reason=ACTIVATION_PENDING)`、authority DENIED；验证原 decision 后幂等激活。缺证则 identity `UNKNOWN`。 |
 | Q6 Data active/Anchor 旧 | 非法不一致，隔离并人工治理。 |
 | Q7–Q8 lost ACK/重复 retry | `transition_id` 绑定唯一候选；fresh-read Anchor 判同一 commit/未提交/歧义，不增第二代。 |
 | Q9 stale writer | management lock + 锚 expected-head CAS + read guard；失败者停，不能自动换头。 |
 | Q10–Q11 rollback/retirement | Anchor 在业务回滚域外；旧数据不改 current head，终态 fence 不可倒退。 |
 | Q12 legacy binary | 独立 admission/release protocol gate 阻断未知版本；现有实现不足，必须后续实现并证实。 |
-| Q13–Q14 UNKNOWN/quarantine | 缺证、损坏、跨域不唯一、提交歧义等返回 UNKNOWN；持久域/激活不一致同时隔离。两者不是同一 enum。 |
+| Q13–Q14 UNKNOWN/quarantine | 缺证、损坏、跨域不唯一或不可判 CAS 结果等 identity 为 UNKNOWN；完整已提交证据但激活未完成时 identity 仍可 CONTINUATION/FORK，operational 单独隔离。两者不是同一 enum。 |
 | Q15 自动尾步骤 | 仅 Anchor 已提交且 record、原 decision、目标数据、控制水位、旧 registry 预期全部可验证时，重复执行同一 activation。 |
 | Q16 人工治理 | dangling/corrupt anchor、断链、registry 新锚旧、版本不支持、退役冲突、缺候选或跨域全局歧义；不得自动修复。 |
 
