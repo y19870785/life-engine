@@ -1,8 +1,8 @@
-# SP-006S0 — Soul Continuity Implementation Plan V1（Draft）
+# SP-006S0 — Soul Continuity Implementation Plan V1
 
 ## 治理状态与阶段顺序
 
-Execution Base = `5f04caf5050efb4742a8f6cb1f8546544d935b64`，仅表示本规划的审计基线，**不是**未来合并后的永久 canonical main。`SP-006S0 = AUTHORIZED / ARCHITECTURE_ONLY`；本文件是实施计划，不是任何实施授权。`M1 / M1.x / M2 = NOT AUTHORIZED`。Soul Continuity = `ACTIVE_MAINLINE`；Host Integration / Real Delivery = `DEFERRED`；Full Private RP = `FROZEN_EXTERNAL_BLOCKER`。与[架构合同](../architecture/SP-006S0-SOUL-CONTINUITY-ARCHITECTURE.md)和[验证矩阵](SP-006S0-CONTINUITY-VALIDATION-MATRIX.md)一起供独立 Draft Review。
+Execution Base = `5f04caf5050efb4742a8f6cb1f8546544d935b64`，仅表示本规划的审计基线，**不是**未来合并后的永久 canonical main。`Architecture Content = APPROVED_ARCHITECTURE_BASELINE / NOT_IMPLEMENTATION_AUTHORIZATION`；独立 Draft Review 已通过内容审核，SP-006S0 仓库任务只有经 Ready → Squash Merge → exact main push CI → 合并后独立核验，才能判定 DONE，DONE 也不授权 M1。本文件是实施计划，不是实施授权。`M1 / M1.x / M2 = NOT AUTHORIZED`。Soul Continuity = `ACTIVE_MAINLINE`；Host Integration / Real Delivery = `DEFERRED`；Full Private RP = `FROZEN_EXTERNAL_BLOCKER`。合同见[架构文档](../architecture/SP-006S0-SOUL-CONTINUITY-ARCHITECTURE.md)和[验证矩阵](SP-006S0-CONTINUITY-VALIDATION-MATRIX.md)。
 
 正式顺序冻结为 `M0 SP-006S0 → M1 Soul Identity Core V1 → M1.x Continuity Proof / Simulation Gate → M2 Memory Evolution V1 + Read-only Prompt Projection → M3 Relationship / Autobiographical Memory → M4 Soul / Relationship Continuity Evolution + Living Integration → M5 Proactive Life / Routine + Media → M6 Voice + Host Expansion`。`M1.x` 保留为本版显式门禁名称；如需给实现任务编号，须在独立治理任务书冻结，绝不跳过此门。`SP-006S0` Draft PR、CI 或未来合并本身都不授权 M1。
 
@@ -17,14 +17,22 @@ Execution Base = `5f04caf5050efb4742a8f6cb1f8546544d935b64`，仅表示本规划
 | 项 | 冻结计划 |
 | --- | --- |
 | Scope | 在现有 SoulId 上建立创建/不可变 identity、SoulInstance、SoulContinuityGeneration、creation/continuation lineage、timeline/relationship/authority binding；提供只读身份查询、受控创建/退役和导入校验。Character/Agent/World/Session/Model/Host ID 保持异类。不得在此阶段实现 Memory Evolution、Host 实测或真实发送。 |
-| Dependencies | SP-006S0 独立架构审核及单独 M1 实施授权；复用 WorldScope、durable registry/restore fences、Memory/Bridge nonrollback controls；先确定本文件下方的持久化/anchor 决策。 |
+| Dependencies | SP-006S0 完成仓库治理并取得单独 M1 实施授权；复用 WorldScope、durable registry/restore fences、Memory/Bridge nonrollback controls。任何 continuity 持久化写入前必须先完成 M1-P0 及独立审核。 |
 | Schema impact | `SCHEMA_CHANGE_REQUIRED = YES`：需要最小 identity/instance/lineage 元数据与外部非回滚 anchor。Schema 8 不在本 PR 改动；后续独立 Schema/Migration 评审确定版本及 signature。 |
 | Migration impact | 旧库不得仅由既有 `soul_id` 自动获当前 continuation。迁移应分类 legacy identity 为未证明状态，保留原 World/Memory/Story/Living 数据与隔离；生成新记录需要显式受控 enrollment。兼容只读访问，不发旧 permit。 |
 | Test strategy | 隔离 Core 单元/持久化测试：identity 创建唯一性、不可变性、retirement、Scope/cardinality、instance 复制区分、generation 与 data/World/Living/Host 代次分离；迁移前后旧数据只读与失败原子性。无真实 Host/Provider。 |
-| Entry gate | 本架构 Draft 独立核验、合并后 exact main CI，另发 M1 实施任务书；schema/anchor 方案经治理确认。 |
+| Entry gate | SP-006S0 合并后 exact main CI 与独立核验完成，另发 M1 实施任务书。M1 获授权后先执行 M1-P0；其通过之前仅可做经授权的只读设计/审计，不可直接实施 Schema/Anchor/Lineage 写路径。 |
 | Exit gate | 身份/实例/代次可机械读取与比较；创建/退役/恢复不会自动授予执行权；测试覆盖身份映射和 legacy 未证明态。此时仍**不得**宣称 Continuity Proof PASS。 |
 | Stop conditions | 需要改写 World identity、把旧 permit 当身份、旧库自动确权、非文档治理未批准、Schema/Migration 范围超出独立授权。 |
 | Risk / rollback | 新字段与旧库映射不唯一；双写/部分迁移可能造成幽灵实例。未来迁移应先备份、校验、可回退数据路径，但回退数据不得复活任何 authority；旧版本仅安全只读或暂停。 |
+
+### M1-P0 — Continuity Persistence Protocol Freeze（M1 内部前置 Gate）
+
+`OPEN_QUESTION_03 = ACCEPTED_WITH_PRE_M1_WRITE_GATE`：它不阻塞 SP-006S0 架构内容获批，却阻塞 M1 中任何 continuity 持久化写路径。顺序固定为 `M1 独立授权 → M1-P0 合同冻结 → 独立 Gate 审核 → Schema/Migration 实施 → SoulIdentity/Instance/Lineage 写入实施 → M1 验证 → M1 退出`。不得在 M1 授权后直接写 Schema、Anchor 或 Lineage。
+
+M1-P0 必须在设计与故障注入矩阵中冻结：record/anchor 写入顺序、prepare/commit 语义、management lock 边界、record 持久化前崩溃、record 持久化后崩溃、anchor 推进前崩溃、anchor 推进后崩溃、registry/DB/anchor 不一致、幂等恢复、隔离条件、`UNKNOWN` 条件、退役 fence 持久化、回滚行为及 migration 交互。`partial commit != CONTINUATION`；`DB success != anchor success`；`anchor success != execution authority`；`crash ambiguity = UNKNOWN / QUARANTINE`；`Recovery != Authorization`。不得以最后写者/最后启动进程/墙钟/Prompt/模型裁决冲突。
+
+在 M1-P0 独立审核通过前，禁止实现 `SoulContinuityRecord`、`ContinuityAnchor` 的写路径、`ContinuityGeneration` 激活、`SoulInstance` enrollment、restore/fork/handoff/retirement activation，以及任何创建 active continuity state 的 Schema migration。本 Gate 不预选 SQLite 事务、fsync、硬件安全模块、远端协调者或真实 Host 技术；具体实现与故障注入只能由后续 M1 授权和 Gate 结果推进。
 
 ## M1.x — Continuity Proof / Simulation Gate（NOT AUTHORIZED）
 
@@ -58,12 +66,12 @@ Execution Base = `5f04caf5050efb4742a8f6cb1f8546544d935b64`，仅表示本规划
 
 `SCHEMA_CHANGE_REQUIRED = YES`，因为现有 Schema 8 的 `Soul.soul_id`、World/Memory/Story/Living/Host 各自 revision/epoch 不能表达独立的持久 SoulInstance、受控 ContinuityGeneration、创建/延续/fork 关系及非回滚比较锚点。最小新增实体是 `SoulContinuityRecord` 与与可复制数据库分离的 `ContinuityAnchor`；最小字段为 SoulId、InstanceId、lineage/branch ID、continuity generation、parent record hash/ID、状态、Scope/timeline binding 摘要、证据版本、writer authority reference、提交位点/完整性指纹以及 anchor 中的 SoulId、当前 branch/generation、单调序号/撤销位点。完整状态仍归原真源，anchor 不存 Memory/Story 正文。
 
-迁移策略：先升级只读解析与兼容检查，再在单独授权下引入新 schema/存储、建立双侧一致性与 crash-recovery 测试，最后受控 enrollment/激活；旧库导入初始为 `UNKNOWN`，绝不自动签发 authority。回滚风险是旧二进制忽视新 anchor 或读取旧备份后重复激活，因此版本不兼容时必须暂停写入/发送、保留非回滚控制，并要求人工治理裁定。不得在 SP-006S0 修改 `DATA_SCHEMA = 8` 或运行 migration。
+迁移策略：M1 单独授权后先通过 M1-P0 与独立 Gate；其后才可升级只读解析与兼容检查、按独立 Schema/Migration 授权引入新 schema/存储、建立双侧一致性与 crash-recovery 测试，最后受控 enrollment/激活。旧库导入初始为 `UNKNOWN`，绝不自动签发 authority。回滚风险是旧二进制忽视新 anchor 或读取旧备份后重复激活，因此版本不兼容时必须暂停写入/发送、保留非回滚控制，并要求人工治理裁定。不得在 SP-006S0 修改 `DATA_SCHEMA = 8` 或运行 migration。
 
-## 未决决定与交接
+## 已接受的能力边界与后续 Gate
 
-1. `OPEN_QUESTION_01`：跨机器全局唯一 continuation 的协调者与身份由谁提供？当前源码只证明单安装局部门禁。建议 Core 离线 `UNKNOWN`，未来 Host/coordination authority 独立审查；阻塞真实跨 Host 权限，不阻塞离线 M1.x 模拟合同。
-2. `OPEN_QUESTION_02`：跨 World 的 `PersonRef` 如何与既有 Story CharacterInstance/WorldScope 映射并保护隐私？建议独立 Soul↔Person 稳定键与 explicit scope mapping；阻塞 M3 跨 World Relationship 实现，不阻塞 M1.x 离线身份 Gate 或 M2 基础 Memory。
-3. `OPEN_QUESTION_03`：record 与非回滚 anchor 的原子提交、崩溃恢复与迁移介质是什么？建议先设计 fail-closed prepare/commit protocol 与故障注入；阻塞 M1.x 正式落地，需在 M1 Schema 设计前裁定。
+1. `OPEN_QUESTION_01 = ACCEPTED_CAPABILITY_BOUNDARY`：当前 Core 只证明单受信 authority domain 内的 continuation。无共同受信协调者时跨机器全局唯一性为 `UNKNOWN / FAIL_CLOSED`；不阻塞 M1 或离线 M1.x 模拟，阻塞真实跨机器 continuation、Host migration authority 和多节点双活，须独立 Host / Coordination Governance Review。
+2. `OPEN_QUESTION_02 = DEFERRED_TO_M3_PERSON_IDENTITY_GATE`：不阻塞 M1、M1.x identity continuity 或 M2 basic Memory；阻塞 M3 跨 World Relationship Memory、Soul↔Person 合并和跨 World 关系投影。M3 前冻结 PersonRef、identity provenance、explicit Scope mapping、merge/split/correction 与 privacy boundary；禁止名字匹配，Host principal 不自动等于 PersonRef。
+3. `OPEN_QUESTION_03 = ACCEPTED_WITH_PRE_M1_WRITE_GATE`：不阻塞 SP-006S0；M1-P0 及独立审核阻塞 M1 任意 continuity 写入、激活或创建 active state 的 migration。精确生产存储技术留待 M1，绝不把约束推迟到 M1.x 才解决。
 
-三个问题的设计选项、证据和治理决策位置详见[架构文档的 Open Questions 小节](../architecture/SP-006S0-SOUL-CONTINUITY-ARCHITECTURE.md)。任何阶段需新授权；`SP-006S0 = DONE`（将来若达成）也不代表 `M1 = STARTED`。本轮终点仅为 Draft PR 独立审核。
+三个边界的证据及裁定见[架构文档](../architecture/SP-006S0-SOUL-CONTINUITY-ARCHITECTURE.md)。任何阶段需新授权；`SP-006S0 = DONE`（将来若达成）也不代表 `M1 = STARTED`。

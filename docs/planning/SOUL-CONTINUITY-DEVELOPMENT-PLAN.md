@@ -5,7 +5,7 @@
 Roadmap Stage: Soul Continuity Mainline / 已审阶段规划基线。
 Why Now: GOV-SOUL-ROADMAP1 已确立主线，需要将长期目标细化成可验收的身份、连续性证明、记忆、关系与生活体验闭环。
 
-Planning Governance Base 为 `11b5e51ea0033351b6d21cc56a75caa665a8cb4f`（PR #47 的 Squash commit）；它只标识本规划开工前的固定基线，不声明未来合并后的 canonical main。Soul Continuity Plan V2 已通过独立规划审核，状态为 `APPROVED_PLANNING_BASELINE / NOT_EXECUTION_AUTHORIZATION`。**CURRENT override：**`SP-006S0 = AUTHORIZED / ARCHITECTURE_ONLY`，审计基线为 `5f04caf5050efb4742a8f6cb1f8546544d935b64`；其[架构合同](../architecture/SP-006S0-SOUL-CONTINUITY-ARCHITECTURE.md)、[验证矩阵](SP-006S0-CONTINUITY-VALIDATION-MATRIX.md)与[实施计划](SP-006S0-IMPLEMENTATION-PLAN.md)仍待独立审核；M1、M1.x、M2 均 `NOT AUTHORIZED`。Roadmap state != execution authorization。
+Planning Governance Base 为 `11b5e51ea0033351b6d21cc56a75caa665a8cb4f`（PR #47 的 Squash commit）；它只标识本规划开工前的固定基线，不声明未来合并后的 canonical main。Soul Continuity Plan V2 已通过独立规划审核，状态为 `APPROVED_PLANNING_BASELINE / NOT_EXECUTION_AUTHORIZATION`。**CURRENT override：**SP-006S0 的审计基线为 `5f04caf5050efb4742a8f6cb1f8546544d935b64`；其[架构合同](../architecture/SP-006S0-SOUL-CONTINUITY-ARCHITECTURE.md)、[验证矩阵](SP-006S0-CONTINUITY-VALIDATION-MATRIX.md)与[实施计划](SP-006S0-IMPLEMENTATION-PLAN.md)的内容状态为 `APPROVED_ARCHITECTURE_BASELINE / NOT_IMPLEMENTATION_AUTHORIZATION`。仓库任务只有独立完成 Ready、Squash Merge、exact main push CI 与合并后核验，才能判定 DONE；M1、M1.x、M2 均 `NOT AUTHORIZED`。
 
 [GOV-SOUL-ROADMAP1](../architecture/GOV-SOUL-ROADMAP1-SOUL-CONTINUITY-MAINLINE.md)的三轨治理继续有效：Soul Continuity = `ACTIVE_MAINLINE`；Host Integration / Real Delivery = `DEFERRED`；Full Private RP = `FROZEN_EXTERNAL_BLOCKER`。本文补强原规划的 Continuity Proof / Simulation Gate，不覆盖既有 World、Memory、Story、Living、Host authority 或 delivery 安全合同。
 

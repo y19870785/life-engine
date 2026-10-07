@@ -1,8 +1,8 @@
-# SP-006S0 — Soul Continuity Architecture Freeze V1（Draft）
+# SP-006S0 — Soul Continuity Architecture Freeze V1
 
 ## 状态与范围
 
-`SP-006S0 = AUTHORIZED / ARCHITECTURE_ONLY`；Execution Base = `5f04caf5050efb4742a8f6cb1f8546544d935b64`（规划 PR #48 的合并提交，**不是**本 Draft 将来的 post-merge main）。本文件冻结首版设计合同，不宣称功能已经实现或测试 PASS。`M1 / M1.x / M2 = NOT AUTHORIZED`；Host Integration / Real Delivery = `DEFERRED`，Full Private RP = `FROZEN_EXTERNAL_BLOCKER`。Soul Continuity = `ACTIVE_MAINLINE`，规划方向为 `APPROVED_PLANNING_BASELINE / NOT_EXECUTION_AUTHORIZATION`。
+`Architecture Content = APPROVED_ARCHITECTURE_BASELINE / NOT_IMPLEMENTATION_AUTHORIZATION`；Execution Base = `5f04caf5050efb4742a8f6cb1f8546544d935b64`（规划 PR #48 的合并提交，**不是**本 PR 将来的 post-merge main）。独立 Draft Review 已通过架构内容；但 SP-006S0 仓库任务只有经 Ready → Squash Merge → exact main push CI → 合并后独立核验，才能判定 DONE，DONE 也不授权 M1。本文件不宣称功能已实现或测试 PASS。`M1 / M1.x / M2 = NOT AUTHORIZED`；Host Integration / Real Delivery = `DEFERRED`，Full Private RP = `FROZEN_EXTERNAL_BLOCKER`。Soul Continuity = `ACTIVE_MAINLINE`，规划方向为 `APPROVED_PLANNING_BASELINE / NOT_EXECUTION_AUTHORIZATION`。
 
 设计前提：`Soul != Model`、`Soul != Host`、`Soul != Session`、`Soul != Prompt`、`Soul != Character Card`、`Soul != World`。模型是推理引擎，Host 是执行/交付环境。Soul 组织 Identity、Timeline、Experience、Memory、Relationship、Self Narrative、Preferences、Persona / Values、Living State 和最小 Continuity Evidence；它不吞并这些子系统的真源。`Identity Continuity != Execution Authority`、`Recovery != Authorization`、`COPY != CONTINUATION`、`Database Restore != Soul Continuity`、`UNKNOWN = FAIL_CLOSED`。
 
@@ -22,10 +22,10 @@
 | Prompt：[prompt.py](../../runtime/life_engine/prompt.py)、[prompt_runtime.py](../../runtime/life_engine/prompt_runtime.py)、[test_prompt_runtime.py](../../tests/test_prompt_runtime.py) | 不可变只读 PromptSnapshot，typed authority/section、budget、fingerprint 和来源重验；模板 `SP-004K-prompt-v1`。 | `REUSE` 最小投影机制；`EXTEND` 后续 Soul/Relationship section 需独立权限/版本合同；`DO_NOT_REUSE` Prompt 文本作真源/授权。 |
 | Living：[living_runtime.py](../../runtime/life_engine/living_runtime.py)、[living_recovery.py](../../runtime/life_engine/living_recovery.py)、[test_living_runtime.py](../../tests/test_living_runtime.py)、[test_living_recovery.py](../../tests/test_living_recovery.py) | Soul World Scope、durable generation、policy/day/revision、已保留 Intent 与 Attempt；授权先于 receipt，`CLAIMED != SENT != ACKNOWLEDGED`，UNKNOWN 不自动重发。 | `REUSE` Living 状态/发送门禁；`EXTEND` 将可信 Soul/Memory/Relationship 状态作为输入；`DO_NOT_REUSE` Living generation 为 Soul 身份。 |
 | Host Binding：[living_host_binding.py](../../runtime/life_engine/living_host_binding.py)、[living_host_capability.py](../../runtime/life_engine/living_host_capability.py)、[test_living_host_binding.py](../../tests/test_living_host_binding.py) | 安装/Host/session 绑定、authority/plugin epoch、短时 capability/permit、reload 撤销；当前真实 Host plugin/delivery/ACK 未验收。 | `REUSE` 局部执行权门禁；`NEW_CONTRACT_REQUIRED` 未来真实迁移/跨节点协调；`DO_NOT_REUSE` Host epoch、permit 为 continuity proof。 |
-| Schema/迁移：[world_schema.py](../../runtime/life_engine/world_schema.py)、[test_schema8_migration.py](../../tests/test_schema8_migration.py) | 当前 `DATA_SCHEMA = 8`、`SP-005A-living-runtime-v1`；升级只在新 data generation 副本。 | `EXTEND` 未来新增最小 lineage 实体及副本迁移；本 Draft **不改** Schema/迁移。 |
+| Schema/迁移：[world_schema.py](../../runtime/life_engine/world_schema.py)、[test_schema8_migration.py](../../tests/test_schema8_migration.py) | 当前 `DATA_SCHEMA = 8`、`SP-005A-living-runtime-v1`；升级只在新 data generation 副本。 | `EXTEND` 未来新增最小 lineage 实体及副本迁移；本 PR **不改** Schema/迁移。 |
 | 跨机器协调与跨 World Person identity：当前代码/测试无共同受信协调者或稳定 PersonRef 真源 | 单安装的 World/Host fence 不能外推为全局唯一，Story 同 Scope CharacterInstance 不能外推为现实 Person。 | `UNRESOLVED`：真实跨 Host 唯一性与 PersonRef 确权分别进入 `OPEN_QUESTION_01/02`；不能以名称、时间戳或本地文件假定答案。 |
 
-审计结论：现有 `soul_id` 能标记归属，但缺少不可回滚的合法 continuation 链、copy/fork 判别及退役状态。现有 Host Binding 解决单安装当前调用权限，不证明跨机器唯一性。该缺口可通过**新增有界合同**处理，不需要改写 World/Bridge/Host Safety 真源；`ARCHITECTURE_CHANGE_REQUIRED = NO`。如果实现审计发现必须改变这些冻结语义，立即 `STOP / ARCHITECTURE_CHANGE_REQUIRED`，不得以本文件作为默许。
+审计结论：现有 `soul_id` 能标记归属，但缺少不可回滚的合法 continuation 链、copy/fork 判别及退役状态。现有 Host Binding 解决单安装当前调用权限，不证明跨机器唯一性。该缺口可通过**新增有界合同**处理，不需要改写 World/Bridge/Host Safety 真源；`ARCHITECTURE_CHANGE_REQUIRED = NO`。跨机器全局唯一性为 `OPEN_QUESTION_01 = ACCEPTED_CAPABILITY_BOUNDARY`：无共同受信协调者时 `UNKNOWN / FAIL_CLOSED`，不阻塞 M1 或离线 M1.x 模拟，但阻塞真实跨机器 continuation/Host 迁移与多节点双活。若实施审计发现必须改变冻结语义，立即 `STOP / ARCHITECTURE_CHANGE_REQUIRED`，不得以本文件作为默许。
 
 ## Soul Identity、Instance 与代次
 
@@ -70,7 +70,7 @@
 
 **决定 AD-01：需要最小 `SoulContinuityRecord` + 不随业务备份回退的 `ContinuityAnchor`；不建 Memory/Story/Living 的超级账本。** Record 只存 `format/version, SoulId, Owner/authority-domain ID, InstanceId, branch ID, continuity generation, parent record hash, operation, SoulTimeline binding, optional relationship namespace/version digest, source/target data-generation reference, issuer/decision ID, monotonic sequence, evidence digest, state (candidate/active/fork/retired), record hash`。不存聊天、Memory 正文、Story payload、关系正文、Prompt 或模型输出。`ContinuityProof` 是对当前 chain/anchor/来源校验的只读派生报告，不是新真源或 bearer token。
 
-受信 Owner/安装管理 authority 才能写 creation、restore、fork、handoff、retire record；普通 Runtime、模型、Host 文本只可提交候选输入，不能签发。Reader 可在 Core 内验证精确 Soul/Instance/branch/anchor/版本后得到 verdict；Host 只收窄后的只读判断，不读取敏感内容。Append-only，禁止就地改 parent、序号或判决；新的纠错/退役为后继记录。Anchor 持当前 head/sequence/hash/retirement fence，存于业务备份恢复域之外，写入顺序采用受信 management barrier 的预备记录→持久校验→候选激活；崩溃造成 DB/anchor/registry 不一致时隔离并 `UNKNOWN`，绝不猜测成功。实现阶段须以故障注入冻结精确提交协议。
+受信 Owner/安装管理 authority 才能写 creation、restore、fork、handoff、retire record；普通 Runtime、模型、Host 文本只可提交候选输入，不能签发。Reader 可在 Core 内验证精确 Soul/Instance/branch/anchor/版本后得到 verdict；Host 只收窄后的只读判断，不读取敏感内容。Append-only，禁止就地改 parent、序号或判决；新的纠错/退役为后继记录。Anchor 持当前 head/sequence/hash/retirement fence，存于业务备份恢复域之外。`OPEN_QUESTION_03 = ACCEPTED_WITH_PRE_M1_WRITE_GATE`：M1 获独立授权后，必须先完成 [M1-P0 Continuity Persistence Protocol Freeze](../planning/SP-006S0-IMPLEMENTATION-PLAN.md)，经独立 gate 审核，才可实现任何 continuity record/anchor 写路径、激活或 active-state migration。M1-P0 须冻结受信 management lock、record/anchor prepare→commit 顺序、DB/registry/anchor 崩溃不一致的隔离与幂等恢复；在此之前不预定生产存储技术。部分提交不等于 continuation，DB 成功不等于 anchor 成功，anchor 成功不等于执行权；崩溃歧义返回 `UNKNOWN / QUARANTINE`，绝不猜测成功。
 
 现有 Memory deletion control 与 Bridge revoke control 可作为**模式**但不是同一 authority：它们的安装身份/序列/哈希不能替 Soul 决定 lineage。未经认证的本地文件、备份内复制的 anchor 或仅有 HMAC 不证明对抗同 OS 用户恶意复制；V1 的可信边界是受信安装管理域与离线模拟权威。跨机器全局唯一性、真实 Host 权限另需协调/外部 authority；缺失时 `UNKNOWN`。损坏、缺字段、未知版本、断链、序号回退、锚缺失/不匹配均 fail-closed 并保留脱敏诊断。业务备份不得覆盖当前 anchor；退役不可被旧备份复活。
 
@@ -114,7 +114,7 @@ Consolidation、Deduplication、Conflict Resolution、Supersession、Importance�
 
 ## Minimal Prompt Projection 与 Living
 
-M0 仅冻结：`projection authority = 受信 Core/适配器`；输入各自有 Scope/viewer/来源/版本；section ownership 明确，顺序为 Runtime control → Soul identity（必需结构化、非模型自称）→ Character presentation → Story → Lore → Memory → Relationship/Living（未来获授权后）→ Bridge → Conversation；预算按完整 item `PREFIX/SUFFIX` 与必需项硬失败，记录诊断；read-only、确定性 fingerprint/integrity 与 token；任何 Soul lineage/Instance、World/Memory/Story/Bridge/Living/Session、generation 或删除控制版本变化使旧快照 stale。未来新 section 的精确优先级和 byte budget 须在 M2 实施任务独立冻结，不在本 Draft 修改模板。`Prompt != Truth Source`，`Prompt declaration != Authority`；legacy prependContext、普通 tool output 不能冒充正式 Soul Projection。现有 `SP-004K-prompt-v1` 保持不变，`PROMPT_TEMPLATE_UPGRADE_REQUIRED = YES`。
+M0 仅冻结：`projection authority = 受信 Core/适配器`；输入各自有 Scope/viewer/来源/版本；section ownership 明确，顺序为 Runtime control → Soul identity（必需结构化、非模型自称）→ Character presentation → Story → Lore → Memory → Relationship/Living（未来获授权后）→ Bridge → Conversation；预算按完整 item `PREFIX/SUFFIX` 与必需项硬失败，记录诊断；read-only、确定性 fingerprint/integrity 与 token；任何 Soul lineage/Instance、World/Memory/Story/Bridge/Living/Session、generation 或删除控制版本变化使旧快照 stale。未来新 section 的精确优先级和 byte budget 须在 M2 实施任务独立冻结，不在本 PR 修改模板。`Prompt != Truth Source`，`Prompt declaration != Authority`；legacy prependContext、普通 tool output 不能冒充正式 Soul Projection。现有 `SP-004K-prompt-v1` 保持不变，`PROMPT_TEMPLATE_UPGRADE_REQUIRED = YES`。
 
 Living Runtime 继续拥有日程、活动、意图、预算与 Attempt。未来只消费经验证的 SoulIdentity、Memory、Relationship、Living State 的有界投影；不另立人格真源。主动联系仍经原 quota、session/generation/Host authority 与 delivery gate；continuity verdict 不授予 REAL_SEND。`CLAIMED != SENT != ACKNOWLEDGED`、`UNKNOWN != permission`、`UNKNOWN != automatic resend`。
 
@@ -124,14 +124,14 @@ Living Runtime 继续拥有日程、活动、意图、预算与 Attempt。未来
 
 架构决定：`AD-01` 最小 record+anchor，`AD-02` 四值 verdict，`AD-03` copy/concurrent fail-closed，`AD-04` restore 不继承权限，`AD-05` 现有 World/Memory/Story/Living/Host 真源与 Scope 原样保留，`AD-06` M1 → **M1.x Continuity Proof / Simulation Gate** → M2，不得跳过。重要决定已在本文写明理由和替代边界；若独立审核要求单独 ADR，可在同一文档阶段补，但 ADR 批准不等于实现授权。
 
-`SCHEMA_CHANGE_REQUIRED = YES`：M1/M1.x 需要最小 SoulInstance/lineage record 与业务备份外 anchor；不是 Schema 8 已存在实体。最小字段、迁移/兼容/回滚风险见[实施计划](../planning/SP-006S0-IMPLEMENTATION-PLAN.md)。本 PR 不改 `DATA_SCHEMA = 8`、`SP-005A-living-runtime-v1`、`SP-004K-prompt-v1`，不执行迁移。
+`SCHEMA_CHANGE_REQUIRED = YES / SCHEMA_CHANGE_AUTHORIZED = NO`：M1/M1.x 需要最小 SoulInstance/lineage record 与业务备份外 anchor；不是 Schema 8 已存在实体。最小字段、迁移/兼容/回滚风险见[实施计划](../planning/SP-006S0-IMPLEMENTATION-PLAN.md)。本 PR 不改 `DATA_SCHEMA = 8`、`SP-005A-living-runtime-v1`、`SP-004K-prompt-v1`，不执行迁移。
 
-### Open Questions（不强行推断）
+### Open Questions 的审核裁定与后续 Gate
 
 | ID / blocking | 缺失证据、影响与推荐决策阶段 |
 | --- | --- |
-| `OPEN_QUESTION_01`：跨机器全局唯一性；**对真实 Host 迁移阻塞，对离线 M1.x 模拟不阻塞** | 现有代码无共同可信协调者，两个完整拷贝可各自持本地 anchor。选项 A：未来受信协调服务/硬件锚；B：仅显式人工 handoff；C：允许双活（拒绝）。建议 M1.x 用合成单 authority 模拟并对无协调场景 `UNKNOWN`，真实迁移前由 ChatGPT / 小雪独立治理。 |
-| `OPEN_QUESTION_02`：跨 World `Person`/Relationship identity；**对 M3 阻塞，对 M1.x 身份 Gate 不阻塞** | 当前 Story 关系只含同 Scope CharacterInstance，Memory Subject 不授予身份确权。选项 A：Owner 确认的稳定 PersonRef；B：Host principal 映射；C：名字匹配（拒绝）。建议 M3 前冻结受信 PersonRef 与纠错/合并合同，未确认实体不合并。 |
-| `OPEN_QUESTION_03`：持久 anchor 与业务库/registry 的崩溃原子协议；**对 M1 实施阻塞，不阻塞本架构草案** | 现有 Memory/Bridge 控制账本展示 fail-closed 模式，但不提供 Soul lineage 的现成事务。选项 A：管理锁下 intent/commit + quarantine；B：同库（随备份回退，拒绝）。建议 A，在 M1 的故障注入与迁移设计中冻结精确写序/恢复算法。 |
+| `OPEN_QUESTION_01 = ACCEPTED_CAPABILITY_BOUNDARY`；**不阻塞 M1 或离线 M1.x，阻塞真实跨机器/Host continuation 与多节点双活** | 现有代码无共同可信协调者，两个完整拷贝可各自持本地 anchor。无共同协调者 → `UNKNOWN / FAIL_CLOSED`；未来真实能力须独立 Host / Coordination Governance Review，不能以本地模拟冒充。 |
+| `OPEN_QUESTION_02 = DEFERRED_TO_M3_PERSON_IDENTITY_GATE`；**不阻塞 M1、M1.x 或 M2 basic Memory，阻塞 M3 跨 World Relationship** | 当前 Story 关系只含同 Scope CharacterInstance，Memory Subject 不授予身份确权。M3 前须冻结 PersonRef、identity provenance、explicit Scope mapping、merge/split/correction 与 privacy boundary；名字匹配禁止，Host principal 不自动等于 PersonRef。 |
+| `OPEN_QUESTION_03 = ACCEPTED_WITH_PRE_M1_WRITE_GATE`；**不阻塞 SP-006S0，阻塞 M1 任意 continuity 持久化写路径** | 现有 Memory/Bridge 控制账本仅提供 fail-closed 模式，不提供 Soul lineage 的现成事务。M1 授权后先完成 M1-P0 与独立审核，再实现 record/anchor、SoulInstance enrollment、generation/restore/fork/handoff/retirement activation 或创建 active state 的 Schema migration；不在 SP-006S0 选择生产存储技术。 |
 
-未决项由 ChatGPT / 小雪在相应阶段裁定；本 Draft 不以 `UNKNOWN` 伪装架构 PASS，也不因这些局限重写既有 World/Bridge/Host Safety 合同。
+上述裁定冻结能力边界与实施顺序，具体生产协调者、PersonRef 与持久化技术留待各自 Gate；不以 `UNKNOWN` 伪装能力 PASS，也不因这些局限重写既有 World/Bridge/Host Safety 合同。

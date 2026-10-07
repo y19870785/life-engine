@@ -1,8 +1,8 @@
 # 给本机 Hermes / OpenClaw 的接入任务
 
-> **CURRENT — Soul Continuity Plan V2 = APPROVED_PLANNING_BASELINE / NOT_EXECUTION_AUTHORIZATION**：[后续开发计划](docs/planning/SOUL-CONTINUITY-DEVELOPMENT-PLAN.md)已通过独立规划审核。`SP-006S0 = AUTHORIZED / ARCHITECTURE_ONLY`，[架构合同草案](docs/architecture/SP-006S0-SOUL-CONTINUITY-ARCHITECTURE.md)正在编制；M1、M1.x、M2 仍 `NOT AUTHORIZED`，不改变下文 Host 操作门禁。
+> **CURRENT — Soul Continuity Plan V2 = APPROVED_PLANNING_BASELINE / NOT_EXECUTION_AUTHORIZATION**：[后续开发计划](docs/planning/SOUL-CONTINUITY-DEVELOPMENT-PLAN.md)已通过独立规划审核。[SP-006S0 架构合同](docs/architecture/SP-006S0-SOUL-CONTINUITY-ARCHITECTURE.md)的内容状态为 `APPROVED_ARCHITECTURE_BASELINE / NOT_IMPLEMENTATION_AUTHORIZATION`；M1、M1.x、M2 仍 `NOT AUTHORIZED`，不改变下文 Host 操作门禁。
 
-> **CURRENT — SP-006S0**：Soul Continuity 是 `ACTIVE_MAINLINE`，SP-006S0 仅限源码只读审计与架构文档，Draft 不代表 DONE。受控 Host Sandbox = `TESTABLE / EXPLICIT_AUTHORIZATION_REQUIRED`；Real Delivery Host Integration（A2 retry、HLV4-B）= `DEFERRED / NOT AUTHORIZED`；Full Private RP = `FROZEN_EXTERNAL_BLOCKER / NOT FOR PRODUCTION`。下列接入步骤只有取得单独 Host 操作授权才能执行，本任务不授权安装、Gateway 或发送。
+> **CURRENT — Soul Continuity 主线**：Soul Continuity 是 `ACTIVE_MAINLINE`。SP-006S0 架构内容已审；仓库任务只有经 Ready → Squash Merge → exact main push CI → 合并后独立核验，才能判定 DONE；DONE 也不授权 M1。受控 Host Sandbox = `TESTABLE / EXPLICIT_AUTHORIZATION_REQUIRED`；Real Delivery Host Integration（A2 retry、HLV4-B）= `DEFERRED / NOT AUTHORIZED`；Full Private RP = `FROZEN_EXTERNAL_BLOCKER / NOT FOR PRODUCTION`。下列接入步骤只有取得单独 Host 操作授权才能执行，本任务不授权安装、Gateway 或发送。
 
 ## 当前模式门禁（先读）
 
