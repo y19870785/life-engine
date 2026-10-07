@@ -2,10 +2,10 @@
 
 ## 地位、基线与授权
 
-Roadmap Stage: Soul Continuity Mainline / 阶段拆分提案。
+Roadmap Stage: Soul Continuity Mainline / 已审阶段规划基线。
 Why Now: GOV-SOUL-ROADMAP1 已确立主线，需要将长期目标细化成可验收的身份、连续性证明、记忆、关系与生活体验闭环。
 
-Planning Governance Base 为 `11b5e51ea0033351b6d21cc56a75caa665a8cb4f`（PR #47 的 Squash commit）；它只标识本规划开工前的固定基线，不声明未来合并后的 canonical main。本文为 `PROPOSED / PENDING_INDEPENDENT_REVIEW`，本轮只授权文档和 Draft PR。Roadmap state != execution authorization；SP-006S0 及其后续实施均须独立授权。
+Planning Governance Base 为 `11b5e51ea0033351b6d21cc56a75caa665a8cb4f`（PR #47 的 Squash commit）；它只标识本规划开工前的固定基线，不声明未来合并后的 canonical main。Soul Continuity Plan V2 已通过独立规划审核，状态为 `APPROVED_PLANNING_BASELINE / NOT_EXECUTION_AUTHORIZATION`。Roadmap state != execution authorization；`SP-006S0 = NEXT / NOT AUTHORIZED`，其后续实施也须独立授权。
 
 [GOV-SOUL-ROADMAP1](../architecture/GOV-SOUL-ROADMAP1-SOUL-CONTINUITY-MAINLINE.md)的三轨治理继续有效：Soul Continuity = `ACTIVE_MAINLINE`；Host Integration / Real Delivery = `DEFERRED`；Full Private RP = `FROZEN_EXTERNAL_BLOCKER`。本文补强原规划的 Continuity Proof / Simulation Gate，不覆盖既有 World、Memory、Story、Living、Host authority 或 delivery 安全合同。
 
@@ -19,7 +19,7 @@ Host-neutral 方向保持为 `Life Engine → Host Adapter Contract → Hermes /
 
 ## 建议阶段与完成门
 
-M0～M6 是规划语义标签，不是新 SP 编号或执行授权。`M1.x` 仅表示 M1 与 M2 之间不可跳过的 Gate；正式编号由 SP-006S0 Architecture Freeze 冻结，本提案不预定 M1.5、SP-006S1 或 SP-006S2。当前唯一 NEXT 候选仍是 `SP-006S0 = NEXT / NOT AUTHORIZED`。
+M0～M6 是规划语义标签，不是新 SP 编号或执行授权。`M1.x` 仅表示 M1 与 M2 之间不可跳过的 Gate；正式编号由 SP-006S0 Architecture Freeze 冻结，本规划基线不预定 M1.5、SP-006S1 或 SP-006S2。当前唯一 NEXT 候选仍是 `SP-006S0 = NEXT / NOT AUTHORIZED`。
 
 | 里程碑 | 工作范围与依赖 | 必须交付的能力或证据 |
 | --- | --- | --- |

@@ -1,6 +1,6 @@
 # Life Engine 后续开发路线 — 2026-09
 
-> **Soul Continuity 规划细化（待独立审核）**：当前主线的后续阶段与 M1.x Continuity Proof / Simulation Gate 见[开发计划](SOUL-CONTINUITY-DEVELOPMENT-PLAN.md)，SP-006S0 的设计范围见[架构冻结任务书候选](SP-006S0-ARCHITECTURE-FREEZE-TASK.md)。本页 2026-09 历史顺序与证据保持原时点语义；本提案不授权 SP-006S0 或 Host 操作。
+> **Soul Continuity Plan V2 = APPROVED_PLANNING_BASELINE / NOT_EXECUTION_AUTHORIZATION（已通过独立规划审核）**：当前主线的后续阶段与 M1.x Continuity Proof / Simulation Gate 见[开发计划](SOUL-CONTINUITY-DEVELOPMENT-PLAN.md)，SP-006S0 的设计范围见[架构冻结任务书候选](SP-006S0-ARCHITECTURE-FREEZE-TASK.md)。本页 2026-09 历史顺序与证据保持原时点语义；`SP-006S0 = NEXT / NOT AUTHORIZED`，本规划不授权 Host 操作。
 
 ## CURRENT GOVERNANCE OVERRIDE — GOV-SOUL-ROADMAP1
 

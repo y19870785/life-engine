@@ -1,6 +1,6 @@
 # Life Engine
 
-> **Soul Continuity 规划细化（待独立审核）**：[后续开发计划](docs/planning/SOUL-CONTINUITY-DEVELOPMENT-PLAN.md)与[SP-006S0 架构冻结任务书候选](docs/planning/SP-006S0-ARCHITECTURE-FREEZE-TASK.md)已编制。新计划在 Soul Identity Core V1 与 Memory Evolution V1 之间明确 Continuity Proof / Simulation Gate；这只是规划提案，`SP-006S0 = NEXT / NOT AUTHORIZED`，不授予 Runtime、Host 或真实发送权限。
+> **Soul Continuity Plan V2 = APPROVED_PLANNING_BASELINE / NOT_EXECUTION_AUTHORIZATION（已通过独立规划审核）**：[后续开发计划](docs/planning/SOUL-CONTINUITY-DEVELOPMENT-PLAN.md)与[SP-006S0 架构冻结任务书候选](docs/planning/SP-006S0-ARCHITECTURE-FREEZE-TASK.md)已编制。规划在 Soul Identity Core V1 与 Memory Evolution V1 之间明确 Continuity Proof / Simulation Gate；`SP-006S0 = NEXT / NOT AUTHORIZED`，不授予 Runtime、Host 或真实发送权限。
 
 **让同一个 Agent 跨会话、重启、长期关系和未来 Host 迁移，持续生活在同一时间线中。**
 
@@ -28,7 +28,7 @@ ACK_VALIDATOR = HOST_GAP；Hermes Living只读/生命周期/fake dry-run已确�
 - GOV-SOUL-ROADMAP1 Governance Base: `a552a2d0846ff024b930d0d802228b863a6da74f`（治理 PR 开工时的 canonical main）
 - Next: SP-006S0 Soul Continuity Architecture Freeze = NEXT / NOT AUTHORIZED
 - Long-term Roadmap: [长期路线与阶段治理](docs/planning/LIFE-ENGINE-DEVELOPMENT-ROADMAP.md)
-- Soul Continuity 规划提案：[后续开发计划](docs/planning/SOUL-CONTINUITY-DEVELOPMENT-PLAN.md)（M1 与 M2 之间的 Continuity Proof / Simulation Gate 待独立审核）
+- Soul Continuity 已审规划基线：[后续开发计划](docs/planning/SOUL-CONTINUITY-DEVELOPMENT-PLAN.md)（M1 与 M2 之间的 Continuity Proof / Simulation Gate；`NOT_EXECUTION_AUTHORIZATION`）
 
 Roadmap state != execution authorization。本轮只修改文档，NO_REAL_HOST_OPERATION = true、NO_REAL_SEND = true。P1 已重排但未授权；Memory Evolution V1 属 Soul Continuity 主线、PLANNED / NOT AUTHORIZED；具体顺序由 SP-006S0 评审。DATA_SCHEMA=8、Schema Signature=SP-005A-living-runtime-v1、Prompt Template=SP-004K-prompt-v1、PROMPT_TEMPLATE_UPGRADE_REQUIRED=YES 保持不变。
 
