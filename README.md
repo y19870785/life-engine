@@ -4,7 +4,7 @@
 
 Life Engine 是 Host-neutral 的长期 Personal Agent Runtime。当前开发主线是 Soul Continuity：使同一个 Agent 的身份、经历、记忆、关系、自我叙事和生活状态跨会话与进程重启保持可验证的连续性，并为未来模型变化和 Host 迁移建立可靠边界。已有 Hermes / OpenClaw 接入与世界、记忆、故事、主动行为能力继续保留。
 
-> **v0.3 开发预览 · CURRENT — GOV-SOUL-ROADMAP1**：Soul Continuity = **ACTIVE_MAINLINE**；Host Integration / Real Delivery = **DEFERRED**；Full Private RP = **FROZEN_EXTERNAL_BLOCKER**。唯一下一阶段候选是 **SP-006S0 Soul Continuity Architecture Freeze**，尚未授权执行。A2-R1 本地 provider transport 已 DONE（canonical main `a552a2d0846ff024b930d0d802228b863a6da74f`）；真实 Host plugin load、delivery、SENT 与 ACK 仍未取得，`REAL_SEND = NO`。见[新治理记录](docs/architecture/GOV-SOUL-ROADMAP1-SOUL-CONTINUITY-MAINLINE.md)。
+> **v0.3 开发预览 · CURRENT — GOV-SOUL-ROADMAP1**：Soul Continuity = **ACTIVE_MAINLINE**；Host Integration / Real Delivery = **DEFERRED**；Full Private RP = **FROZEN_EXTERNAL_BLOCKER**。唯一下一阶段候选是 **SP-006S0 Soul Continuity Architecture Freeze**，尚未授权执行。A2-R1 本地 provider transport 已 DONE（A2-R1 canonical implementation commit `a552a2d0846ff024b930d0d802228b863a6da74f`）；真实 Host plugin load、delivery、SENT 与 ACK 仍未取得，`REAL_SEND = NO`。见[新治理记录](docs/architecture/GOV-SOUL-ROADMAP1-SOUL-CONTINUITY-MAINLINE.md)。
 
 | 能力 | 当前状态 |
 | --- | --- |
@@ -23,7 +23,7 @@ ACK_VALIDATOR = HOST_GAP；Hermes Living只读/生命周期/fake dry-run已确�
 
 - Current Phase: GOV-SOUL-ROADMAP1；Soul Continuity = ACTIVE_MAINLINE
 - Current Completed Gate: HLV0～HLV3、HLV4-R0/R1/A0/A1/A2-R0/A2-R1 = DONE
-- Canonical Base: `a552a2d0846ff024b930d0d802228b863a6da74f`
+- GOV-SOUL-ROADMAP1 Governance Base: `a552a2d0846ff024b930d0d802228b863a6da74f`（治理 PR 开工时的 canonical main）
 - Next: SP-006S0 Soul Continuity Architecture Freeze = NEXT / NOT AUTHORIZED
 - Long-term Roadmap: [长期路线与阶段治理](docs/planning/LIFE-ENGINE-DEVELOPMENT-ROADMAP.md)
 

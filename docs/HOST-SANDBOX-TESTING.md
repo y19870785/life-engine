@@ -4,7 +4,7 @@
 
 [Soul Continuity 主线](architecture/GOV-SOUL-ROADMAP1-SOUL-CONTINUITY-MAINLINE.md)已设为 `ACTIVE_MAINLINE`；Soul Continuity Sandbox 仍可在**单独明确授权**下受控测试，本治理任务不授权任何 Host 操作。A2 retry / HLV4-B 已转入 `DEFERRED Host Integration Track / NOT AUTHORIZED`，不再是默认下一阶段。Full Private RP = `FROZEN_EXTERNAL_BLOCKER / NOT FOR PRODUCTION`；其 Core RP Runtime 保留。
 
-canonical main = `a552a2d0846ff024b930d0d802228b863a6da74f`；`SP-005A4-HLV4-A2-R1 = DONE` 只确认本地 provider transport 实现。`REAL_HOST_PLUGIN_LOAD / REAL_HOST_DELIVERY_BOUNDARY_PASS / REAL_HOST_SENT / ACKNOWLEDGED = NOT_ACQUIRED`，`ACK_VALIDATOR = HOST_GAP`，`REAL_SEND = NO`。本指南后续旧步骤不构成 Gateway、credential、inbound 或发送授权。
+A2-R1 canonical implementation commit = `a552a2d0846ff024b930d0d802228b863a6da74f`；`SP-005A4-HLV4-A2-R1 = DONE` 只确认本地 provider transport 实现。`REAL_HOST_PLUGIN_LOAD / REAL_HOST_DELIVERY_BOUNDARY_PASS / REAL_HOST_SENT / ACKNOWLEDGED = NOT_ACQUIRED`，`ACK_VALIDATOR = HOST_GAP`，`REAL_SEND = NO`。本指南后续旧步骤不构成 Gateway、credential、inbound 或发送授权。
 
 ## HISTORICAL — Post-HLV3 / GOV-ARCHGATE1 当前状态快照（2026-10-03）
 

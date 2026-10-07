@@ -2,7 +2,7 @@
 
 ## 决定与依据
 
-本记录以 canonical main `a552a2d0846ff024b930d0d802228b863a6da74f` 为 Base，取代 [GOV-ARCHGATE1](GOV-ARCHGATE1-POST-HLV3-REVIEW.md) 确定的后续局部执行顺序。GOV-SOUL-ROADMAP1 是治理与文档任务；本记录不修改 Runtime、Schema、Prompt、Host Adapter 或 provider transport，不授予任何后续实施或真实发送权限。
+GOV-SOUL-ROADMAP1 governance Base = `a552a2d0846ff024b930d0d802228b863a6da74f`。该 SHA 是本治理 PR 开工时的 canonical main，不是合并后的 canonical main。本记录取代 [GOV-ARCHGATE1](GOV-ARCHGATE1-POST-HLV3-REVIEW.md) 确定的后续局部执行顺序。GOV-SOUL-ROADMAP1 是治理与文档任务；本记录不修改 Runtime、Schema、Prompt、Host Adapter 或 provider transport，不授予任何后续实施或真实发送权限。
 
 此前顺序为 A2-R1 → A2 retry → HLV4-B → Hermes Living Adapter Stabilization → SP-005A2-P1 → Memory Evolution V1。A2-R1 已完成可审计的本地 provider transport 实现；真实 Host plugin load、delivery boundary、SENT 与 ACK 仍未取得。Full Private RP 仍受官方 Host capability 阻塞。让单一 Host 的边界长期锁住项目主线，已不符合 Life Engine 的核心目标：同一个 Agent 跨会话、重启、关系发展、模型变化与未来 Host 迁移持续生活在同一时间线中。
 

@@ -2,7 +2,7 @@
 
 ## CURRENT — GOV-SOUL-ROADMAP1 / Soul Continuity Mainline
 
-[本次治理记录](../architecture/GOV-SOUL-ROADMAP1-SOUL-CONTINUITY-MAINLINE.md)以 canonical main `a552a2d0846ff024b930d0d802228b863a6da74f` 为 Base，正式取代此前 HLV4 后续局部顺序。三轨状态：Soul Continuity = `ACTIVE_MAINLINE`；Host Integration / Real Delivery = `DEFERRED`；Full Private RP = `FROZEN_EXTERNAL_BLOCKER`。A2-R1 = DONE；真实 Host plugin load、delivery boundary、SENT、ACK 未取得。下文旧 CURRENT 均为 `SUPERSEDED CURRENT SNAPSHOT`，原技术合同与历史证据保留。
+[本次治理记录](../architecture/GOV-SOUL-ROADMAP1-SOUL-CONTINUITY-MAINLINE.md)以 GOV-SOUL-ROADMAP1 governance Base `a552a2d0846ff024b930d0d802228b863a6da74f` 开工，正式取代此前 HLV4 后续局部顺序。三轨状态：Soul Continuity = `ACTIVE_MAINLINE`；Host Integration / Real Delivery = `DEFERRED`；Full Private RP = `FROZEN_EXTERNAL_BLOCKER`。A2-R1 = DONE；真实 Host plugin load、delivery boundary、SENT、ACK 未取得。下文旧 CURRENT 均为 `SUPERSEDED CURRENT SNAPSHOT`，原技术合同与历史证据保留。
 
 当前高层顺序：GOV-SOUL-ROADMAP1 → **SP-006S0 Soul Continuity Architecture Freeze** → Soul Identity / Continuity Core V1 → Prompt Projection Integration → Memory Evolution V1 → Relationship Memory → Autobiographical Memory → Soul / Relationship Continuity Evolution → Living Integration → Proactive Life / Routine → Media Runtime → Voice Runtime。`SP-006S0 = NEXT / NOT AUTHORIZED`；其余阶段也未授权。P1 = `RESEQUENCED_UNDER_SOUL_CONTINUITY_MAINLINE / NOT AUTHORIZED`；Memory Evolution V1 = `SOUL_CONTINUITY_MAINLINE / PLANNED / NOT AUTHORIZED`。Prompt Projection 与 Memory 的具体接口和先后关系留待 SP-006S0。
 

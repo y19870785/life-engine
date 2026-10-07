@@ -2,7 +2,7 @@
 
 ## CURRENT CANONICAL STATE — GOV-SOUL-ROADMAP1
 
-canonical main = `a552a2d0846ff024b930d0d802228b863a6da74f`。[PR #46](https://github.com/y19870785/life-engine/pull/46) Squash Merge 后，[exact main push CI #37297156541](https://github.com/y19870785/life-engine/actions/runs/37297156541) 的有效 attempt 3 为 `push / main / exact SHA / completed / success`，Ubuntu、Windows × Python 3.11、3.12 全部 SUCCESS；`SP-005A4-HLV4-A2-R1 = DONE`。attempt 1、2 均 CANCELLED；attempt 2 后继续执行 attempt 3 构成 `CI_RECOVERY_GOVERNANCE_DEVIATION = YES`，详见[治理记录](architecture/GOV-SOUL-ROADMAP1-SOUL-CONTINUITY-MAINLINE.md)。技术证据未失效，但该偏差不抹去。
+A2-R1 canonical implementation commit = `a552a2d0846ff024b930d0d802228b863a6da74f`。[PR #46](https://github.com/y19870785/life-engine/pull/46) Squash Merge 后，[exact main push CI #37297156541](https://github.com/y19870785/life-engine/actions/runs/37297156541) 的有效 attempt 3 为 `push / main / exact SHA / completed / success`，Ubuntu、Windows × Python 3.11、3.12 全部 SUCCESS；`SP-005A4-HLV4-A2-R1 = DONE`。attempt 1、2 均 CANCELLED；attempt 2 后继续执行 attempt 3 构成 `CI_RECOVERY_GOVERNANCE_DEVIATION = YES`，详见[治理记录](architecture/GOV-SOUL-ROADMAP1-SOUL-CONTINUITY-MAINLINE.md)。技术证据未失效，但该偏差不抹去。
 
 Soul Continuity = `ACTIVE_MAINLINE`；Host Integration = `DEFERRED`；Full Private RP = `FROZEN_EXTERNAL_BLOCKER`。下一阶段 `SP-006S0 Soul Continuity Architecture Freeze = NEXT / NOT AUTHORIZED`。A2 retry、HLV4-B 与真实发送均未授权；`REAL_HOST_PLUGIN_LOAD / REAL_HOST_DELIVERY_BOUNDARY_PASS / REAL_HOST_SENT / ACKNOWLEDGED = NOT_ACQUIRED`，`ACK_VALIDATOR = HOST_GAP`，`REAL_SEND = NO`。
 

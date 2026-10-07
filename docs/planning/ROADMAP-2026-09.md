@@ -2,7 +2,7 @@
 
 ## CURRENT GOVERNANCE OVERRIDE — GOV-SOUL-ROADMAP1
 
-本页是 2026-09 阶段规划的历史记录；当前治理以 [GOV-SOUL-ROADMAP1](../architecture/GOV-SOUL-ROADMAP1-SOUL-CONTINUITY-MAINLINE.md) 为准。canonical main = `a552a2d0846ff024b930d0d802228b863a6da74f`，A2-R1 = DONE。Soul Continuity = `ACTIVE_MAINLINE`，唯一 NEXT 为 `SP-006S0 Soul Continuity Architecture Freeze / NOT AUTHORIZED`；Host Integration = `DEFERRED`，Full Private RP = `FROZEN_EXTERNAL_BLOCKER`。旧 HLV4 → Adapter Stabilization → P1 → Memory Evolution 顺序已被取代，下面表格及说明只表达当时计划，不构成当前执行顺序或授权。
+本页是 2026-09 阶段规划的历史记录；当前治理以 [GOV-SOUL-ROADMAP1](../architecture/GOV-SOUL-ROADMAP1-SOUL-CONTINUITY-MAINLINE.md) 为准。A2-R1 canonical implementation commit = `a552a2d0846ff024b930d0d802228b863a6da74f`，A2-R1 = DONE。Soul Continuity = `ACTIVE_MAINLINE`，唯一 NEXT 为 `SP-006S0 Soul Continuity Architecture Freeze / NOT AUTHORIZED`；Host Integration = `DEFERRED`，Full Private RP = `FROZEN_EXTERNAL_BLOCKER`。旧 HLV4 → Adapter Stabilization → P1 → Memory Evolution 顺序已被取代，下面表格及说明只表达当时计划，不构成当前执行顺序或授权。
 
 `SP-005A2-P1 = RESEQUENCED_UNDER_SOUL_CONTINUITY_MAINLINE / NOT AUTHORIZED`；Memory Evolution V1 = `SOUL_CONTINUITY_MAINLINE / PLANNED / NOT AUTHORIZED`，具体依赖由 SP-006S0 评审。`REAL_HOST_SENT / ACKNOWLEDGED = NOT_ACQUIRED`，`ACK_VALIDATOR = HOST_GAP`，`REAL_SEND = NO`。
 
