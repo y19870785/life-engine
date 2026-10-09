@@ -1,5 +1,11 @@
 # Life Engine 长期开发路线与阶段治理
 
+## 阶段内自主开发治理切换（条件生效）
+
+[阶段自主开发方案 R2](CODEX-STAGE-AUTONOMY-PLAN.md)及[独立规划复审记录](CODEX-STAGE-AUTONOMY-R2-REVIEW.md)拟将未来**明确授权的阶段内部**工作改为 Codex 自主拆任务、实施、测试、独立 Agent 审核、修复和证据验证；ChatGPT 编写/审核阶段任务书并负责阶段终审，用户定义目标与授权范围。R2 的 `PLANNING_PASS` 不等于治理 PR 已完成，也不等于 M1-A 或任何 Runtime 实施获权。
+
+承载本段的治理 PR 仍遵守下文 §18 的逐次 Draft / Ready / Squash Merge / exact main CI / 独立核验旧流程。只有该 PR 完成独立合并后收口，且后续阶段合同单独生效时，才依 R2 §10 映射适用新流程。首轮 M1-A 建议保留人工 Ready/Merge；未来自动合并如无法证明服务端 Base 竞争控制，降级人工。M1-P0 独立 DONE、协调保护实现、M1-A 存储/Schema 评审与实施权限仍是各自准入门。原主线顺序、Host/发送与 Full Private RP 门禁均不改变。
+
 ## Soul Continuity Plan V2 — APPROVED_PLANNING_BASELINE / NOT_EXECUTION_AUTHORIZATION
 
 [后续开发计划](SOUL-CONTINUITY-DEVELOPMENT-PLAN.md)保留当前三轨方向，并把顺序细化为 M0 架构冻结 → M1 Soul Identity Core V1 → **M1.x Continuity Proof / Simulation Gate** → M2 Memory Evolution V1 + Read-only Prompt Projection → M3 Relationship + Autobiographical Memory → M4 Soul / Relationship Continuity Evolution + Living Integration → M5 Proactive Life / Routine + Media → M6 Voice + Host Expansion。`M1.x` 是显式门禁，后续实施任务编号仍须独立冻结；[SP-006S0 架构合同](../architecture/SP-006S0-SOUL-CONTINUITY-ARCHITECTURE.md)内容状态为 `APPROVED_ARCHITECTURE_BASELINE / NOT_IMPLEMENTATION_AUTHORIZATION`，M1/M1.x/M2 均未获实施授权。

@@ -68,4 +68,6 @@ Full Private RP 保持 `FROZEN_EXTERNAL_BLOCKER`；H1/H2 blocker、RP Core 与�
 
 每个实施切片写清固定 Base、实际体验、依赖、范围、禁止范围、验证证据、停止条件及可回滚边界，按可验收结果推进，不预设完成日期。流程保持 Draft PR → 独立审核 → 明确授权 Ready → 轻量终审 → 明确授权 Squash Merge → exact main push CI → 独立核验 → DONE。作者自检、PR CI、Merge 均不自动升级下一阶段授权；失败或取消的 CI 重试需当次明确授权。
 
+**治理流程调整（条件生效）：** [阶段自主开发方案](CODEX-STAGE-AUTONOMY-PLAN.md) R2 已获规划复审 PASS；[审核记录](CODEX-STAGE-AUTONOMY-R2-REVIEW.md)只确认方案完整。承载本段的治理 PR 自身继续执行上段旧流程；只有该 PR 合并、exact main CI 与独立收口后，且未来切片取得明确有效的阶段授权合同，才可在合同内由 Codex 自主拆解、实施、测试、独立审核、修复及使用预授权 CI 重试额度。指定独立审核者可以重新裁定提交变化后的审核适用性，不必逐轮交还 ChatGPT；阶段终审仍由 ChatGPT / 用户进行。首轮 M1-A 实施建议停在 `REVIEW_COMPLETE_AWAITING_HUMAN_GATE`，PR 保持 Draft；后续条件式 Ready/Squash Merge 需要在阶段合同中单列，且须满足 Base 竞争控制和独立合并后核验。未被合同列明的动作默认拒绝，M1.x/M2、Host/发送及架构 Gate 不因本流程获授权。
+
 [SP-006S0 架构冻结任务书候选](SP-006S0-ARCHITECTURE-FREEZE-TASK.md)记录本规划获批时的历史候选状态；后续独立授权已指定架构任务 Execution Base `5f04caf5050efb4742a8f6cb1f8546544d935b64`，不沿用本规划编制 Base，也不授权 M1 实施。
