@@ -1,5 +1,7 @@
 # M1-P0 — Implementation Admission Gate
 
+> **流程治理切换（条件生效）：** [阶段自主开发方案 R2](CODEX-STAGE-AUTONOMY-PLAN.md)允许用户在后续有效阶段合同中逐项列明 M1-A–E 的内部权限和自主续片条件。承载本段的治理 PR 自身仍沿用旧流程；其合并后独立收口前，本段不生效。R2 规划 PASS、协议 PR 合并或 `M1 = ACTIVE_STAGE` 均不授权当前任何切片。下文的 M1-A 存储/Schema 与 admission 门槛、M1-C 独立写路径许可、M1-D 每种 transition 审核、M1.x/M2 阶段隔离保持。未被有效合同逐项纳入的切片仍按下文“每片均需独立授权”执行。
+
 > 本文只冻结**后续独立授权所需条件**，不是实施任务书。`SP-006S0 = DONE`；`M1 = ACTIVE_STAGE` 仅表示阶段已进入；本次 `M1-P0 = AUTHORIZED / PROTOCOL_FREEZE_ONLY`。M1-A/B/C/D/E、Schema、Migration、SoulIdentity Runtime、Record/Anchor write、M1.x、M2、Host/Provider/REAL_SEND 均 `NOT AUTHORIZED`。协议见[架构合同](../architecture/M1-P0-CONTINUITY-PERSISTENCE-PROTOCOL.md)，C01–C20、G01–G06、FK01–FK08 见[崩溃矩阵](M1-P0-CRASH-RECOVERY-MATRIX.md)。
 
 ## 1. 本 Gate 冻结的选择与阻断条件
