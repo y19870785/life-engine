@@ -33,14 +33,14 @@
 
 ## Genesis CREATE 专项（G01–G06）
 
-`CREATE` 初态是 `SoulRoot=ABSENT`，不是 C01–C20 的 `P/A0/R0`。受信 decision 固定 SoulId、main branch B0、`G1`、InstanceId、target DataGeneration Dg 与 `Tg`；Genesis Record 的 `parent kind=GENESIS / hash=NONE`。单个 durable SoulRoot CAS `expected=ABSENT → A_genesis(B0/G1/Rg)` 是 Genesis linearization point。以下 `CONTINUATION` 只证明从新 Genesis 起的合法 identity baseline，绝不证明 Host/执行许可。G 行中 `DENIED` 覆盖所有 Host/Living/delivery/REAL_SEND；均为 `PROTOCOL_SCENARIO`。
+`CREATE` 初态是 `SoulRoot=ABSENT`，不是 C01–C20 的 `P/A0/R0`。受信 decision 固定 SoulId、main branch B0、`G0`、InstanceId、target DataGeneration Dg 与 `Tg`；Genesis Record 的 `parent kind=GENESIS / hash=NONE`。单个 durable SoulRoot CAS `expected=ABSENT → A_genesis(B0/G0/Rg)` 是 Genesis linearization point。以下 `CONTINUATION` 只证明从新 Genesis 起的合法 identity baseline，绝不证明 Host/执行许可。G 行中 `DENIED` 覆盖所有 Host/Living/delivery/REAL_SEND；均为 `PROTOCOL_SCENARIO`。
 
 | ID / 故障点 | Record | Anchor / SoulRoot | Registry/Data | Persistence Fact | Identity Verdict | Operational State / recovery | 重试规则 | Authority |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | G01 decision 已签发、候选准备前 crash | 无 Rg | ABSENT | 无 Dg active | ABSENT | UNKNOWN（无 baseline） | QUARANTINED(NO_BASELINE)；不得加载为 current Soul | 仅同 Tg、原 decision 仍有效并重检 root ABSENT 后重做 prepare | DENIED |
 | G02 Rg durable、Anchor 仍 ABSENT crash | Rg 完整，parent=GENESIS/NONE | ABSENT | Dg candidate，不活动 | PREPARED，未提交 | UNKNOWN | QUARANTINED(PREPARED_ONLY)；不得激活 | 同 Tg 重新验证 decision/Dg/root 后 CAS；未引用候选可审慎清理 | DENIED |
 | G03 Genesis CAS outcome unknown crash | Rg 完整 | ABSENT 或 A_genesis 或不可读 | Dg candidate | ABSENT→PREPARED；A_genesis→COMMITTED；不可读→INDETERMINATE | ABSENT/不可读→UNKNOWN；A_genesis 且证据全→CONTINUATION | A_genesis→QUARANTINED(ACTIVATION_PENDING)；不可读→QUARANTINED(EVIDENCE_CONFLICT) | 仅证明 ABSENT 且先前 CAS 已终结后同 Tg 重试；否则查询或停 | DENIED |
-| G04 A_genesis 已提交、registry/data 未激活 crash | Rg 完整 | A_genesis | Dg candidate、registry 无新 active | COMMITTED | 完整证据下 CONTINUATION | QUARANTINED(ACTIVATION_PENDING)；按原 Tg 幂等激活，缺证改 UNKNOWN/EVIDENCE_CONFLICT | 同 Tg 仅尾步骤，绝不再 CAS 出 G2 | DENIED |
+| G04 A_genesis 已提交、registry/data 未激活 crash | Rg 完整 | A_genesis | Dg candidate、registry 无新 active | COMMITTED | 完整证据下 CONTINUATION | QUARANTINED(ACTIVATION_PENDING)；按原 Tg 幂等激活，缺证改 UNKNOWN/EVIDENCE_CONFLICT | 同 Tg 仅尾步骤，不得再次 CAS 推进代次 | DENIED |
 | G05 A_genesis 与 Dg activation 完成、ACK 丢失 | Rg 完整 | A_genesis | Dg active 且匹配 | COMMITTED | CONTINUATION | READY 只用于独立权限评估 | 同 Tg 读取已有结果，不增新 Soul/Instance/G | DENIED |
 | G06 两个 CREATE 均以 SoulRoot ABSENT 竞争同 domain+SoulId | Rga/Rgb 候选 | 最多一个 A_genesis | 仅胜者 Dg 可激活 | 胜者 COMMITTED；败者 PREPARED/CAS_FAIL | 胜者证据全→CONTINUATION；败者 UNKNOWN | 败者停止/候选隔离；如双赢则 EVIDENCE_CONFLICT | 败者不得换 SoulId、选号或自动重基；需新受信 decision | DENIED |
 
@@ -48,7 +48,7 @@
 
 ## FORK 专项（FK01–FK08）
 
-初态：SoulRoot 未退休，source `B0/Gn/As→Rs` 完整，target branch `B1=ABSENT`；受信 fork decision 绑定 expected root revision、source head/hash/generation、target branchId/InstanceId、`Tf` 与目标 Df。Fork Record 的 parent 指向 source committed Rs，target branch 首代 `G1`（不是普通 Genesis parent）。唯一提交点是**同一 SoulRoot CAS**，同时验证 source head 仍预期、target BranchAnchor 仍 ABSENT、retirement fence 缺席，只新增 target branch head；B0/head、active branch 指定及 source Registry/Data 指针保持不变。目标激活只可写全新 target Instance/branch 指针；若现有 registry 无法表达，停止并标 `NEW_PRIMITIVE_REQUIRED`，不能覆盖 source。以下均为 `PROTOCOL_SCENARIO`，Authority 均 `DENIED`。
+初态：SoulRoot 未退休，source `B0/Gn/As→Rs` 完整，target branch `B1=ABSENT`；受信 fork decision 绑定 expected root revision、source head/hash/generation、target branchId/InstanceId、`Tf` 与目标 Df。Fork Record 的 parent 指向 source committed Rs，target branch 首代 `G0`（不是普通 Genesis parent）。唯一提交点是**同一 SoulRoot CAS**，同时验证 source head 仍预期、target BranchAnchor 仍 ABSENT、retirement fence 缺席，只新增 target branch head；B0/head、active branch 指定及 source Registry/Data 指针保持不变。目标激活只可写全新 target Instance/branch 指针；若现有 registry 无法表达，停止并标 `NEW_PRIMITIVE_REQUIRED`，不能覆盖 source。以下均为 `PROTOCOL_SCENARIO`，Authority 均 `DENIED`。
 
 | ID / 故障点 | Record | Source / Target Anchor 与 SoulRoot | Registry/Data | Persistence Fact | Identity Verdict | Operational State / recovery | 重试规则 | Authority |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
