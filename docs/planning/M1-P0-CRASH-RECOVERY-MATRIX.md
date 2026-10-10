@@ -40,7 +40,7 @@
 | G01 decision 已签发、候选准备前 crash | 无 Rg | ABSENT | 无 Dg active | ABSENT | UNKNOWN（无 baseline） | QUARANTINED(NO_BASELINE)；不得加载为 current Soul | 仅同 Tg、原 decision 仍有效并重检 root ABSENT 后重做 prepare | DENIED |
 | G02 Rg durable、Anchor 仍 ABSENT crash | Rg 完整，parent=GENESIS/NONE | ABSENT | Dg candidate，不活动 | PREPARED，未提交 | UNKNOWN | QUARANTINED(PREPARED_ONLY)；不得激活 | 同 Tg 重新验证 decision/Dg/root 后 CAS；未引用候选可审慎清理 | DENIED |
 | G03 Genesis CAS outcome unknown crash | Rg 完整 | ABSENT 或 A_genesis 或不可读 | Dg candidate | ABSENT→PREPARED；A_genesis→COMMITTED；不可读→INDETERMINATE | ABSENT/不可读→UNKNOWN；A_genesis 且证据全→CONTINUATION | A_genesis→QUARANTINED(ACTIVATION_PENDING)；不可读→QUARANTINED(EVIDENCE_CONFLICT) | 仅证明 ABSENT 且先前 CAS 已终结后同 Tg 重试；否则查询或停 | DENIED |
-| G04 A_genesis 已提交、registry/data 未激活 crash | Rg 完整 | A_genesis | Dg candidate、registry 无新 active | COMMITTED | 完整证据下 CONTINUATION | QUARANTINED(ACTIVATION_PENDING)；按原 Tg 幂等激活，缺证改 UNKNOWN/EVIDENCE_CONFLICT | 同 Tg 仅尾步骤，绝不再 CAS 出 G2 | DENIED |
+| G04 A_genesis 已提交、registry/data 未激活 crash | Rg 完整 | A_genesis | Dg candidate、registry 无新 active | COMMITTED | 完整证据下 CONTINUATION | QUARANTINED(ACTIVATION_PENDING)；按原 Tg 幂等激活，缺证改 UNKNOWN/EVIDENCE_CONFLICT | 同 Tg 仅尾步骤，不得再次 CAS 推进代次 | DENIED |
 | G05 A_genesis 与 Dg activation 完成、ACK 丢失 | Rg 完整 | A_genesis | Dg active 且匹配 | COMMITTED | CONTINUATION | READY 只用于独立权限评估 | 同 Tg 读取已有结果，不增新 Soul/Instance/G | DENIED |
 | G06 两个 CREATE 均以 SoulRoot ABSENT 竞争同 domain+SoulId | Rga/Rgb 候选 | 最多一个 A_genesis | 仅胜者 Dg 可激活 | 胜者 COMMITTED；败者 PREPARED/CAS_FAIL | 胜者证据全→CONTINUATION；败者 UNKNOWN | 败者停止/候选隔离；如双赢则 EVIDENCE_CONFLICT | 败者不得换 SoulId、选号或自动重基；需新受信 decision | DENIED |
 
