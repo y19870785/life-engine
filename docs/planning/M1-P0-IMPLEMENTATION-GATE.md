@@ -25,7 +25,7 @@
 ## 3. M1-A 之前的决策与证据门槛
 
 1. **Authority/admission**：所有可能写业务数据、发 Host permit、触发 delivery 的新/旧 binary 入口必须经过受信协议版本门。已运行旧进程也要在管理 barrier 与可验证 fence 下失效；若可绕过，新协议不得激活。OS management lock 只在本地安装内有效，不能冒充全球协调。
-2. **Persistence**：给出 target-platform 的 durable CAS 证据，证明断电/进程 crash 下 SoulRoot 读者只见旧或新完整值，root `ABSENT` 只能一个 CREATE/ENROLL 获胜，FORK 的 source-head、target-ABSENT 与 retirement 条件同点原子比较，退役 fence 对所有 branch 单调不回滚；Anchor 不随业务备份/Schema rollback 恢复。Record 被 Anchor 引用前已 durable、之后可稳定寻址且不会被清理。普通 successor 不得使用 GENESIS parent；Genesis B0/G1 与 ENROLL baseline 的专用 parent 必须可区分。
+2. **Persistence**：给出 target-platform 的 durable CAS 证据，证明断电/进程 crash 下 SoulRoot 读者只见旧或新完整值，root `ABSENT` 只能一个 CREATE/ENROLL 获胜，FORK 的 source-head、target-ABSENT 与 retirement 条件同点原子比较，退役 fence 对所有 branch 单调不回滚；Anchor 不随业务备份/Schema rollback 恢复。Record 被 Anchor 引用前已 durable、之后可稳定寻址且不会被清理。普通 successor 不得使用 GENESIS parent；Genesis B0/G0 与 ENROLL baseline 的专用 parent 必须可区分。
 3. **Data/registry**：D1 在锚前准备/校验，registry 只在锚后激活；激活前任何旧/新业务入口均不能取得执行权。Anchor 已新/registry 旧可凭完整候选与原 decision 幂等完成；registry 已新/Anchor 旧必须隔离，不可猜测回滚。FORK target 激活不得改 source branch 的 registry/data 指针；如现有 registry 无独立 target binding，必须先在 M1-A 冻结新增最小合同，不得伪装可复用。
 4. **Recovery/retirement**：`transition_id` 同一 decision 重试不产生第二 generation；C01–C20、G01–G06、FK01–FK08 均有故障注入、fresh-process、原始证据检查与 persistence/verdict/operational/authority 分列断言。ENROLL baseline 不证明旧历史；Soul RETIRE fence 已提交后所有 branch、旧 backup、旧 permit、旧 Host/Living state 永不复活。`BRANCH_RETIREMENT = OUT_OF_SCOPE`。
 5. **Safety boundary**：World revision、Memory/Story/Living truth、Controlled Bridge grant、Host Binding authority 原样归各 owner。ContinuityProof 是派生只读报告，不是 bearer token。`UNKNOWN = FAIL_CLOSED`；`CONTINUATION` 也不自动赋予 execution authority。无共同协调者的真实跨机器/Host 迁移保持 `UNKNOWN`。

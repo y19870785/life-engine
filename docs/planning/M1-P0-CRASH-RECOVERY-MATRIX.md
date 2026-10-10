@@ -33,7 +33,7 @@
 
 ## Genesis CREATE 专项（G01–G06）
 
-`CREATE` 初态是 `SoulRoot=ABSENT`，不是 C01–C20 的 `P/A0/R0`。受信 decision 固定 SoulId、main branch B0、`G1`、InstanceId、target DataGeneration Dg 与 `Tg`；Genesis Record 的 `parent kind=GENESIS / hash=NONE`。单个 durable SoulRoot CAS `expected=ABSENT → A_genesis(B0/G1/Rg)` 是 Genesis linearization point。以下 `CONTINUATION` 只证明从新 Genesis 起的合法 identity baseline，绝不证明 Host/执行许可。G 行中 `DENIED` 覆盖所有 Host/Living/delivery/REAL_SEND；均为 `PROTOCOL_SCENARIO`。
+`CREATE` 初态是 `SoulRoot=ABSENT`，不是 C01–C20 的 `P/A0/R0`。受信 decision 固定 SoulId、main branch B0、`G0`、InstanceId、target DataGeneration Dg 与 `Tg`；Genesis Record 的 `parent kind=GENESIS / hash=NONE`。单个 durable SoulRoot CAS `expected=ABSENT → A_genesis(B0/G0/Rg)` 是 Genesis linearization point。以下 `CONTINUATION` 只证明从新 Genesis 起的合法 identity baseline，绝不证明 Host/执行许可。G 行中 `DENIED` 覆盖所有 Host/Living/delivery/REAL_SEND；均为 `PROTOCOL_SCENARIO`。
 
 | ID / 故障点 | Record | Anchor / SoulRoot | Registry/Data | Persistence Fact | Identity Verdict | Operational State / recovery | 重试规则 | Authority |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -48,7 +48,7 @@
 
 ## FORK 专项（FK01–FK08）
 
-初态：SoulRoot 未退休，source `B0/Gn/As→Rs` 完整，target branch `B1=ABSENT`；受信 fork decision 绑定 expected root revision、source head/hash/generation、target branchId/InstanceId、`Tf` 与目标 Df。Fork Record 的 parent 指向 source committed Rs，target branch 首代 `G1`（不是普通 Genesis parent）。唯一提交点是**同一 SoulRoot CAS**，同时验证 source head 仍预期、target BranchAnchor 仍 ABSENT、retirement fence 缺席，只新增 target branch head；B0/head、active branch 指定及 source Registry/Data 指针保持不变。目标激活只可写全新 target Instance/branch 指针；若现有 registry 无法表达，停止并标 `NEW_PRIMITIVE_REQUIRED`，不能覆盖 source。以下均为 `PROTOCOL_SCENARIO`，Authority 均 `DENIED`。
+初态：SoulRoot 未退休，source `B0/Gn/As→Rs` 完整，target branch `B1=ABSENT`；受信 fork decision 绑定 expected root revision、source head/hash/generation、target branchId/InstanceId、`Tf` 与目标 Df。Fork Record 的 parent 指向 source committed Rs，target branch 首代 `G0`（不是普通 Genesis parent）。唯一提交点是**同一 SoulRoot CAS**，同时验证 source head 仍预期、target BranchAnchor 仍 ABSENT、retirement fence 缺席，只新增 target branch head；B0/head、active branch 指定及 source Registry/Data 指针保持不变。目标激活只可写全新 target Instance/branch 指针；若现有 registry 无法表达，停止并标 `NEW_PRIMITIVE_REQUIRED`，不能覆盖 source。以下均为 `PROTOCOL_SCENARIO`，Authority 均 `DENIED`。
 
 | ID / 故障点 | Record | Source / Target Anchor 与 SoulRoot | Registry/Data | Persistence Fact | Identity Verdict | Operational State / recovery | 重试规则 | Authority |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
