@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import sys
 import zipfile
 
@@ -21,15 +21,27 @@ def pack(directory: Path) -> dict:
     manifest_path = directory / "run-manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     listed = {item["path"]: item["sha256"] for item in manifest["files"]}
+    for name in listed:
+        relative = PurePosixPath(name)
+        if relative.is_absolute() or ".." in relative.parts or "\\" in name or name != relative.as_posix():
+            raise RuntimeError(f"unsafe manifest path: {name}")
     actual = {p.relative_to(directory).as_posix() for p in directory.rglob("*") if p.is_file()}
+    for path in directory.rglob("*"):
+        if path.is_symlink() or (hasattr(path, "is_junction") and path.is_junction()):
+            raise RuntimeError(f"linked evidence entry: {path}")
+        if not path.resolve().is_relative_to(directory.resolve()):
+            raise RuntimeError(f"escaped evidence entry: {path}")
     if actual != set(listed) | {"run-manifest.json"}:
         raise RuntimeError(f"unlisted evidence files: {directory.name}")
     for name, expected in listed.items():
         if sha((directory / name).read_bytes()) != expected:
             raise RuntimeError(f"source checksum mismatch: {name}")
     archive = ROOT / f"{directory.name}.zip"
-    if archive.exists():
+    if archive.exists() or archive.is_symlink():
         raise RuntimeError(f"archive already exists: {archive}")
+    external = ROOT / f"{directory.name}.manifest.json"
+    if external.exists() or external.is_symlink():
+        raise RuntimeError(f"manifest already exists: {external}")
     with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as output:
         for name in sorted(actual):
             output.write(directory / name, arcname=name)
@@ -41,7 +53,6 @@ def pack(directory: Path) -> dict:
                 raise RuntimeError(f"archive checksum mismatch: {name}")
         if check.read("run-manifest.json") != manifest_path.read_bytes():
             raise RuntimeError("manifest bytes mismatch")
-    external = ROOT / f"{directory.name}.manifest.json"
     external.write_bytes(manifest_path.read_bytes())
     return {"run": directory.name, "archive": archive.name, "sha256": sha(archive.read_bytes()),
             "entries": len(actual), "verified": True}

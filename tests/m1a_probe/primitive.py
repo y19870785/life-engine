@@ -7,12 +7,13 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
 from contextlib import contextmanager
 from pathlib import Path
 import sqlite3
 import sys
 import time
+
+from isolation import fixture_path
 
 
 def canonical(value: dict) -> bytes:
@@ -25,6 +26,9 @@ def digest(value: bytes) -> str:
 
 @contextmanager
 def connect(path: Path):
+    path = fixture_path(path)
+    if path.name != "continuity.sqlite":
+        raise ValueError("NON_SYNTHETIC_DATABASE_PATH")
     db = sqlite3.connect(path, timeout=2.0, isolation_level=None)
     db.row_factory = sqlite3.Row
     try:
@@ -89,8 +93,10 @@ def root_value(db: sqlite3.Connection, domain: str = "synthetic", soul: str = "S
     if row is None:
         return None
     value = json.loads(row["value"])
-    if value["revision"] != row["revision"]:
-        raise ValueError("ROOT_REVISION_MISMATCH")
+    if value["revision"] != row["revision"] or value["protocol"] != 1:
+        raise ValueError("ROOT_REVISION_OR_PROTOCOL_MISMATCH")
+    if not isinstance(value["branches"], dict) or "B0" not in value["branches"]:
+        raise ValueError("ROOT_BRANCHES_INVALID")
     return value
 
 
@@ -98,7 +104,11 @@ def _valid_record(db: sqlite3.Connection, record_hash: str) -> dict:
     row = db.execute("SELECT bytes FROM record WHERE hash=?", (record_hash,)).fetchone()
     if row is None or digest(row[0]) != record_hash:
         raise ValueError("RECORD_MISSING_OR_CORRUPT")
-    return json.loads(row[0])
+    value = json.loads(row[0])
+    expected_payload = digest(canonical({k: v for k, v in value.items() if k != "payload_hash"}))
+    if value["protocol"] != 1 or expected_payload != value["payload_hash"]:
+        raise ValueError("RECORD_PROTOCOL_OR_PAYLOAD_INVALID")
+    return value
 
 
 def cas(db: sqlite3.Connection, *, operation: str, expected_revision: int | None,
@@ -110,7 +120,7 @@ def cas(db: sqlite3.Connection, *, operation: str, expected_revision: int | None
         row = db.execute(
             "SELECT revision,value FROM soul_root WHERE domain=? AND soul=?", (domain, soul)
         ).fetchone()
-        root = json.loads(row["value"]) if row else None
+        root = root_value(db, domain, soul) if row else None
         record = _valid_record(db, record_hash)
         okay = record["operation"] == operation and record["domain"] == domain and record["soul"] == soul
         okay &= record["expected_revision"] == expected_revision
@@ -121,7 +131,7 @@ def cas(db: sqlite3.Connection, *, operation: str, expected_revision: int | None
             okay &= record["parent_kind"] == ("GENESIS" if operation == "CREATE" else "ENROLL_BASELINE")
             okay &= record["parent_hash"] is None
             if okay:
-                new = {"revision": 0, "retired": False, "active": "B0",
+                new = {"protocol": 1, "revision": 0, "retired": False, "active": "B0",
                        "branches": {"B0": {"record": record_hash, "generation": 0,
                                             "instance": record["instance"], "data": record["data"]}}}
                 db.execute("INSERT INTO soul_root VALUES(?,?,?,?)", (domain, soul, 0, canonical(new)))
@@ -131,6 +141,9 @@ def cas(db: sqlite3.Connection, *, operation: str, expected_revision: int | None
             okay &= root is not None and target not in root["branches"]
             okay &= root is not None and root["branches"]["B0"]["record"] == expected_source
             okay &= record["parent_kind"] == "FORK" and record["parent_hash"] == expected_source
+            if root is not None:
+                source_record = _valid_record(db, root["branches"]["B0"]["record"])
+                okay &= source_record["domain"] == domain and source_record["soul"] == soul
             okay &= root is not None and all(
                 branch["instance"] != record["instance"] for branch in root["branches"].values()
             )
@@ -138,6 +151,22 @@ def cas(db: sqlite3.Connection, *, operation: str, expected_revision: int | None
                 root["revision"] += 1
                 root["branches"][target] = {"record": record_hash, "generation": 0,
                                             "instance": record["instance"], "data": record["data"]}
+                db.execute("UPDATE soul_root SET revision=?,value=? WHERE domain=? AND soul=? AND revision=?",
+                           (root["revision"], canonical(root), domain, soul, expected_revision))
+                okay &= db.execute("SELECT changes()").fetchone()[0] == 1
+        elif operation == "ADVANCE":
+            okay &= row is not None and row["revision"] == expected_revision
+            okay &= root is not None and not root["retired"]
+            okay &= root is not None and root["branches"]["B0"]["record"] == expected_source
+            okay &= record["parent_kind"] == "ADVANCE" and record["parent_hash"] == expected_source
+            if root is not None:
+                _valid_record(db, expected_source)
+            if okay:
+                root["revision"] += 1
+                root["branches"]["B0"] = {"record": record_hash,
+                                             "generation": root["branches"]["B0"]["generation"] + 1,
+                                             "instance": root["branches"]["B0"]["instance"],
+                                             "data": record["data"]}
                 db.execute("UPDATE soul_root SET revision=?,value=? WHERE domain=? AND soul=? AND revision=?",
                            (root["revision"], canonical(root), domain, soul, expected_revision))
                 okay &= db.execute("SELECT changes()").fetchone()[0] == 1
@@ -163,7 +192,8 @@ def cas(db: sqlite3.Connection, *, operation: str, expected_revision: int | None
 def record(operation: str, transition_id: str, *, expected_revision: int | None = None,
            expected_source: str | None = None, target: str = "B0",
            instance: str = "I0", data: str = "D0", parent_hash: str | None = None) -> dict:
-    parent_kind = {"CREATE": "GENESIS", "ENROLL": "ENROLL_BASELINE", "FORK": "FORK", "RETIRE": "RETIRE"}[operation]
+    parent_kind = {"CREATE": "GENESIS", "ENROLL": "ENROLL_BASELINE", "FORK": "FORK",
+                   "ADVANCE": "ADVANCE", "RETIRE": "RETIRE"}[operation]
     item = {"protocol": 1, "domain": "synthetic", "soul": "S", "operation": operation,
             "transition_id": transition_id, "expected_revision": expected_revision,
             "expected_source": expected_source, "target": target, "instance": instance,
@@ -189,23 +219,32 @@ def classify(db: sqlite3.Connection, *, target: str = "B0", registry_data: str |
         if item["operation"] == "FORK":
             _valid_record(db, item["parent_hash"])
     except (ValueError, KeyError, TypeError):
-        return "INDETERMINATE", "UNKNOWN", "QUARANTINED(EVIDENCE_CONFLICT)", "DENIED"
+        return "COMMITTED", "UNKNOWN", "QUARANTINED(EVIDENCE_CONFLICT)", "DENIED"
     if root["retired"]:
-        return "SOUL_RETIRED", "MISMATCH", "RETIRED", "DENIED"
+        return "COMMITTED", "MISMATCH", "RETIRED", "DENIED"
     verdict = "FORK" if item["operation"] == "FORK" else "CONTINUATION"
-    state = "READY" if registry_data == branch["data"] else "QUARANTINED(ACTIVATION_PENDING)"
+    if registry_data == branch["data"]:
+        state = "READY"
+    elif registry_data is None:
+        state = "QUARANTINED(ACTIVATION_PENDING)"
+    else:
+        return "COMMITTED", "UNKNOWN", "QUARANTINED(EVIDENCE_CONFLICT)", "DENIED"
     return "COMMITTED", verdict, state, "DENIED"
 
 
 def worker(path: Path, mode: str, operation: str, transition_id: str,
            start: Path, ready: Path, result: Path) -> None:
+    path = fixture_path(path)
+    start, ready, result = (fixture_path(p) for p in (start, ready, result))
+    if any(p.parent != path.parent for p in (start, ready, result)):
+        raise ValueError("WORKER_CONTROL_PATH_DENIED")
     with connect(path) as db:
         if operation == "CREATE":
             item = record("CREATE", transition_id, instance=transition_id)
             expected = None
             source = None
             target = "B0"
-        else:
+        elif operation == "FORK":
             root = root_value(db)
             source = root["branches"]["B0"]["record"]
             expected = root["revision"]
@@ -213,6 +252,21 @@ def worker(path: Path, mode: str, operation: str, transition_id: str,
             item = record("FORK", transition_id, expected_revision=expected,
                           expected_source=source, target=target, instance=transition_id, data=transition_id,
                           parent_hash=source)
+        elif operation == "ADVANCE":
+            root = root_value(db)
+            source = root["branches"]["B0"]["record"]
+            expected = root["revision"]
+            target = "B0"
+            item = record("ADVANCE", transition_id, expected_revision=expected,
+                          expected_source=source, target=target, data=transition_id, parent_hash=source)
+        elif operation == "RETIRE":
+            root = root_value(db)
+            source = None
+            expected = root["revision"]
+            target = "B0"
+            item = record("RETIRE", transition_id, expected_revision=expected)
+        else:
+            raise ValueError(operation)
         prepared = prepare(db, item)
         ready.write_text(json.dumps({"expected_revision": expected,
                                      "expected_source": source,

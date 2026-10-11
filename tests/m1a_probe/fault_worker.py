@@ -4,9 +4,10 @@ from pathlib import Path
 import sys
 
 from primitive import cas, connect, prepare, record, root_value
+from isolation import fixture_path
 
 
-path = Path(sys.argv[1])
+path = fixture_path(Path(sys.argv[1]))
 hook = sys.argv[2]
 with connect(path) as db:
     if hook == "record_mid":
@@ -31,4 +32,10 @@ with connect(path) as db:
                    target="B0", record_hash=prepared) == "COMMITTED"
         assert root_value(db) is not None
         os._exit(42)
+    if hook == "ack_lost":
+        item = record("CREATE", "lost-ack-fresh")
+        prepared = prepare(db, item)
+        assert cas(db, operation="CREATE", expected_revision=None, expected_source=None,
+                   target="B0", record_hash=prepared) == "COMMITTED"
+        os._exit(42)  # Commit occurred; caller receives no response.
     raise ValueError(hook)
