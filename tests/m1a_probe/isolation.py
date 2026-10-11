@@ -18,8 +18,6 @@ def _no_links(path: Path, stop: Path) -> None:
     while True:
         if current.is_symlink() or (hasattr(current, "is_junction") and current.is_junction()):
             raise ValueError("LINK_OR_JUNCTION_DENIED")
-        if current.exists() and current.resolve() != current.absolute():
-            raise ValueError("PATH_ALIAS_DENIED")
         if current == stop:
             break
         if current == current.parent:
@@ -29,9 +27,11 @@ def _no_links(path: Path, stop: Path) -> None:
 
 def register_fixture(root: Path) -> None:
     root = root.absolute()
+    _no_links(root, Path(root.anchor))
+    root = root.resolve()
     if root.parent != TEMP or not root.name.startswith("m1a-synthetic-"):
         raise ValueError("NOT_EXCLUSIVE_TEMP_FIXTURE")
-    _no_links(root, TEMP)
+    _no_links(root, Path(root.anchor))
     marker = root / MARKER
     if not root.is_dir() or any(root.iterdir()):
         raise ValueError("FIXTURE_ALREADY_REGISTERED")
@@ -41,6 +41,8 @@ def register_fixture(root: Path) -> None:
 
 def fixture_path(path: Path, *, expected_run_id: str | None = None) -> Path:
     path = path.absolute()
+    _no_links(path, Path(path.anchor))
+    path = path.resolve()
     candidate = path
     while candidate != TEMP and candidate != candidate.parent:
         if candidate.parent == TEMP and candidate.name.startswith("m1a-synthetic-"):
@@ -63,11 +65,13 @@ def fixture_path(path: Path, *, expected_run_id: str | None = None) -> Path:
 def guard_evidence_root(root: Path = EVIDENCE) -> Path:
     root = root.absolute()
     _no_links(root, Path(root.anchor))
-    return root
+    return root.resolve()
 
 
 def evidence_sink(path: Path) -> Path:
     path = path.absolute()
+    _no_links(path, Path(path.anchor))
+    path = path.resolve()
     root = guard_evidence_root()
     if path.parent != root or not path.name.startswith("run-"):
         raise ValueError("EVIDENCE_DESTINATION_DENIED")

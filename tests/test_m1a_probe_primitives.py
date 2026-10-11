@@ -26,17 +26,16 @@ class ProbeTests(unittest.TestCase):
         self.assertTrue(self.root.is_absolute())
         self.assertFalse(self.root.is_symlink())
         self.assertFalse(self.root.is_junction() if hasattr(self.root, "is_junction") else False)
-        self.assertEqual(self.root.resolve(), self.root.absolute())
         self.assertNotIn(str(Path(__file__).resolve().parents[1]).lower(), str(self.root.resolve()).lower())
         register_fixture(self.root)
+        self.root = self.root.resolve()
         requested_sink = os.environ.get("M1A_PROBE_EVIDENCE_ROOT")
         if requested_sink:
             self.evidence_root = evidence_sink(Path(requested_sink))
             self.evidence_grade = "COLLECTOR_REVIEWABLE"
         else:
-            self.evidence_root = Path(tempfile.mkdtemp(prefix="m1a-evidence-transient-"))
+            self.evidence_root = Path(tempfile.mkdtemp(prefix="m1a-evidence-transient-")).resolve()
             self.evidence_grade = "TRANSIENT_REGRESSION_ONLY"
-            self.assertEqual(self.evidence_root.resolve(), self.evidence_root.absolute())
         self.run_id = os.environ.get("M1A_PROBE_RUN_ID", "TRANSIENT")
         ledger = self.evidence_root / "worker-ledger.jsonl"
         if requested_sink and not ledger.is_file():
@@ -572,9 +571,14 @@ class ProbeTests(unittest.TestCase):
             guard_evidence_root(link)
         with self.assertRaises(ValueError):
             guard_evidence_root(link / "M1-A-PROBE")
+        with self.assertRaisesRegex(ValueError, "LINK_OR_JUNCTION_DENIED"):
+            register_fixture(link)
+        with self.assertRaisesRegex(ValueError, "LINK_OR_JUNCTION_DENIED"):
+            fixture_path(link / "continuity.sqlite")
         self.assertEqual(list(outside.iterdir()), [])
         self.observations.append({"linked_root": "DENIED_BEFORE_WRITE",
-                                  "linked_ancestor": "DENIED_BEFORE_WRITE"})
+                                  "linked_ancestor": "DENIED_BEFORE_WRITE",
+                                  "linked_fixture": "DENIED_BEFORE_WRITE"})
 
     def test_collector_live_worker_blocks_raw_copy_without_terminating_it(self):
         target = self.evidence_root
