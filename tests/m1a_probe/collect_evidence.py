@@ -71,24 +71,84 @@ def preserve_leftovers(target: Path, before: set[Path], run_id: str) -> list[str
     return copied
 
 
-def live_registered_workers(target: Path) -> list[int]:
+def process_identity(pid: int) -> dict | None:
+    """Read process identity and liveness without signaling or terminating it."""
+    if os.name == "nt":
+        import ctypes
+        from ctypes import wintypes
+
+        class FileTime(ctypes.Structure):
+            _fields_ = [("low", wintypes.DWORD), ("high", wintypes.DWORD)]
+
+        kernel = ctypes.WinDLL("kernel32", use_last_error=True)
+        kernel.OpenProcess.argtypes = (wintypes.DWORD, wintypes.BOOL, wintypes.DWORD)
+        kernel.OpenProcess.restype = wintypes.HANDLE
+        kernel.GetProcessTimes.argtypes = (wintypes.HANDLE, ctypes.POINTER(FileTime),
+                                           ctypes.POINTER(FileTime), ctypes.POINTER(FileTime),
+                                           ctypes.POINTER(FileTime))
+        kernel.GetProcessTimes.restype = wintypes.BOOL
+        kernel.GetExitCodeProcess.argtypes = (wintypes.HANDLE, ctypes.POINTER(wintypes.DWORD))
+        kernel.GetExitCodeProcess.restype = wintypes.BOOL
+        kernel.QueryFullProcessImageNameW.argtypes = (wintypes.HANDLE, wintypes.DWORD,
+                                                      wintypes.LPWSTR, ctypes.POINTER(wintypes.DWORD))
+        kernel.QueryFullProcessImageNameW.restype = wintypes.BOOL
+        kernel.CloseHandle.argtypes = (wintypes.HANDLE,)
+        kernel.CloseHandle.restype = wintypes.BOOL
+        handle = kernel.OpenProcess(0x1000, False, pid)  # PROCESS_QUERY_LIMITED_INFORMATION
+        if not handle:
+            code = ctypes.get_last_error()
+            if code in (87, 1168):  # INVALID_PARAMETER / NOT_FOUND: the PID has exited.
+                return None
+            raise OSError(code, f"OpenProcess({pid}) failed")
+        try:
+            created = FileTime()
+            discarded = [FileTime() for _ in range(3)]
+            if not kernel.GetProcessTimes(handle, ctypes.byref(created),
+                                          *(ctypes.byref(x) for x in discarded)):
+                raise OSError(ctypes.get_last_error(), "GetProcessTimes failed")
+            exit_code = wintypes.DWORD()
+            if not kernel.GetExitCodeProcess(handle, ctypes.byref(exit_code)):
+                raise OSError(ctypes.get_last_error(), "GetExitCodeProcess failed")
+            image = ctypes.create_unicode_buffer(32768)
+            size = wintypes.DWORD(len(image))
+            if not kernel.QueryFullProcessImageNameW(handle, 0, image, ctypes.byref(size)):
+                raise OSError(ctypes.get_last_error(), "QueryFullProcessImageNameW failed")
+            return {"pid": pid, "created": (created.high << 32) | created.low,
+                    "image": image.value.casefold(), "active": exit_code.value == 259}
+        finally:
+            kernel.CloseHandle(handle)
+    stat_path = Path("/proc") / str(pid) / "stat"
+    try:
+        stat = stat_path.read_text(encoding="ascii")
+        image = os.readlink(Path("/proc") / str(pid) / "exe")
+    except FileNotFoundError:
+        return None
+    fields = stat.rsplit(")", 1)[1].strip().split()
+    return {"pid": pid, "created": fields[19], "image": image,
+            "active": fields[0] not in ("Z", "X")}
+
+
+def live_registered_workers(target: Path, run_id: str) -> list[int]:
     live = []
-    for ledger in target.rglob("worker-pids.jsonl"):
-        for line in ledger.read_text(encoding="utf-8").splitlines():
-            pid = int(json.loads(line)["pid"])
-            try:
-                os.kill(pid, 0)
-            except ProcessLookupError:
-                continue
-            except PermissionError:
-                live.append(pid)
-            except OSError as exc:
-                if os.name == "nt" and getattr(exc, "winerror", None) == 87:
-                    continue  # Windows reports an exited PID as ERROR_INVALID_PARAMETER.
-                raise
-            else:
-                live.append(pid)
+    ledger = target / "worker-ledger.jsonl"
+    if not ledger.exists():
+        return live
+    for line in ledger.read_text(encoding="utf-8").splitlines():
+        record = json.loads(line)
+        if record["run_id"] != run_id or not record["identity"]:
+            raise ValueError("WORKER_LEDGER_IDENTITY_MISMATCH")
+        current = process_identity(int(record["identity"]["pid"]))
+        if current is not None and current["active"] and all(
+                current[key] == record["identity"][key] for key in ("pid", "created", "image")):
+            live.append(current["pid"])
     return sorted(set(live))
+
+
+def settle_and_preserve(target: Path, before: set[Path], run_id: str,
+                        runner_stopped: bool) -> tuple[list[str], list[int], bool]:
+    live = live_registered_workers(target, run_id)
+    settled = runner_stopped and not live
+    return (preserve_leftovers(target, before, run_id) if settled else []), live, settled
 
 
 def main() -> int:
@@ -141,10 +201,7 @@ def main() -> int:
         if process is not None and process.poll() is None:
             stopped = False
         try:
-            leftovers = preserve_leftovers(target, before, run_id) if stopped else []
-            live_workers = live_registered_workers(target)
-            if live_workers:
-                stopped = False
+            leftovers, live_workers, stopped = settle_and_preserve(target, before, run_id, stopped)
         except BaseException as exc:
             leftovers = []
             live_workers = []

@@ -16,6 +16,7 @@ PROBE = Path(__file__).parent / "m1a_probe"
 sys.path.insert(0, str(PROBE))
 from primitive import cas, classify, connect, initialise, prepare, record, root_value  # noqa: E402
 from isolation import evidence_sink, fixture_path, guard_evidence_root, register_fixture  # noqa: E402
+from collect_evidence import live_registered_workers, process_identity, settle_and_preserve  # noqa: E402
 
 
 class ProbeTests(unittest.TestCase):
@@ -65,8 +66,17 @@ class ProbeTests(unittest.TestCase):
         return database
 
     def track_worker(self, process):
-        with (self.root / "worker-pids.jsonl").open("a", encoding="utf-8") as ledger:
-            ledger.write(json.dumps({"pid": process.pid, "started": time.time()}) + "\n")
+        identity = process_identity(process.pid)
+        if identity is None or not identity["active"]:
+            process.kill()
+            process.communicate(timeout=2)
+            raise RuntimeError("WORKER_IDENTITY_UNAVAILABLE")
+        entry = {"run_id": os.environ.get("M1A_PROBE_RUN_ID", "TRANSIENT"),
+                 "identity": identity}
+        with (self.evidence_root / "worker-ledger.jsonl").open("a", encoding="utf-8") as ledger:
+            ledger.write(json.dumps(entry, sort_keys=True) + "\n")
+            ledger.flush()
+            os.fsync(ledger.fileno())
         return process
 
     def genesis(self, path, transition="genesis"):
@@ -536,6 +546,31 @@ class ProbeTests(unittest.TestCase):
         self.assertEqual(list(outside.iterdir()), [])
         self.observations.append({"linked_root": "DENIED_BEFORE_WRITE",
                                   "linked_ancestor": "DENIED_BEFORE_WRITE"})
+
+    def test_collector_live_worker_blocks_raw_copy_without_terminating_it(self):
+        target = self.root / "collector-negative"
+        target.mkdir()
+        run_id = os.environ.get("M1A_PROBE_RUN_ID", "TRANSIENT")
+        worker = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(20)"],
+                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        try:
+            identity = process_identity(worker.pid)
+            self.assertIsNotNone(identity)
+            self.assertTrue(identity["active"])
+            (target / "worker-ledger.jsonl").write_text(
+                json.dumps({"run_id": run_id, "identity": identity}) + "\n", encoding="utf-8")
+            self.assertEqual(live_registered_workers(target, run_id), [worker.pid])
+            self.assertIsNone(worker.poll(), "read-only liveness query must not terminate worker")
+            copied, live, settled = settle_and_preserve(target, set(), run_id, True)
+            self.assertEqual((copied, live, settled), ([], [worker.pid], False))
+            self.assertFalse((target / "timeout-raw").exists())
+            self.assertIsNone(worker.poll(), "settlement check must not terminate worker")
+            self.observations.append({"live_worker": worker.pid, "raw_copy": "DENIED",
+                                      "worker_survived_identity_checks": True})
+        finally:
+            if worker.poll() is None:
+                worker.terminate()
+            worker.communicate(timeout=5)
 
     def test_p07_fork_target_pending_and_parent_loss(self):
         for mode in ("WAL", "DELETE"):
