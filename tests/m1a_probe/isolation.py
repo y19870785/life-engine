@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
+import stat
 import tempfile
 
 
@@ -16,13 +17,41 @@ EVIDENCE = REPO / "docs" / "planning" / "evidence" / "M1-A-PROBE"
 def _no_links(path: Path, stop: Path) -> None:
     current = path
     while True:
-        if current.is_symlink() or (hasattr(current, "is_junction") and current.is_junction()):
+        try:
+            metadata = os.lstat(current)
+        except FileNotFoundError:
+            metadata = None
+        if metadata is not None and (
+            stat.S_ISLNK(metadata.st_mode)
+            or (os.name == "nt" and getattr(metadata, "st_file_attributes", 0)
+                & stat.FILE_ATTRIBUTE_REPARSE_POINT)
+        ):
             raise ValueError("LINK_OR_JUNCTION_DENIED")
+        if os.name == "nt" and metadata is not None and not hasattr(metadata, "st_file_attributes"):
+            raise ValueError("REPARSE_STATUS_UNKNOWN")
         if current == stop:
             break
         if current == current.parent:
             raise ValueError("PATH_OUTSIDE_ALLOWED_ROOT")
         current = current.parent
+
+
+def guarded_files(root: Path) -> list[Path]:
+    """Inspect each entry before descending into a disposable evidence tree."""
+    root = root.absolute()
+    _no_links(root, Path(root.anchor))
+    files = []
+    pending = [root]
+    while pending:
+        current = pending.pop()
+        _no_links(current, root)
+        if current.is_dir():
+            pending.extend(current.iterdir())
+        elif current.is_file():
+            files.append(current)
+        else:
+            raise ValueError("UNSUPPORTED_EVIDENCE_ENTRY")
+    return files
 
 
 def register_fixture(root: Path) -> None:

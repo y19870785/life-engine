@@ -14,7 +14,7 @@ import subprocess
 import sys
 import uuid
 
-from isolation import TEMP, evidence_sink, fixture_path, guard_evidence_root
+from isolation import TEMP, evidence_sink, fixture_path, guard_evidence_root, guarded_files
 
 REPO = Path(__file__).resolve().parents[2]
 EVIDENCE = REPO / "docs" / "planning" / "evidence" / "M1-A-PROBE"
@@ -62,8 +62,9 @@ def preserve_leftovers(target: Path, before: set[Path], run_id: str) -> list[str
             fixture_path(candidate / ".m1a-probe-owned.json", expected_run_id=run_id)
         except (ValueError, OSError, KeyError):
             continue
-        if any(p.is_symlink() or (hasattr(p, "is_junction") and p.is_junction())
-               for p in candidate.rglob("*")):
+        try:
+            guarded_files(candidate)
+        except (ValueError, OSError):
             continue
         destination = target / "timeout-raw" / candidate.name
         shutil.copytree(candidate, destination, symlinks=False)

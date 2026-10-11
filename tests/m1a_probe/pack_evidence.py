@@ -7,7 +7,7 @@ from pathlib import Path, PurePosixPath
 import sys
 import zipfile
 
-from isolation import evidence_sink, guard_evidence_root
+from isolation import evidence_sink, guard_evidence_root, guarded_files
 
 
 ROOT = Path(__file__).resolve().parents[2] / "docs" / "planning" / "evidence" / "M1-A-PROBE"
@@ -29,10 +29,9 @@ def pack(directory: Path) -> dict:
         relative = PurePosixPath(name)
         if relative.is_absolute() or ".." in relative.parts or "\\" in name or name != relative.as_posix():
             raise RuntimeError(f"unsafe manifest path: {name}")
-    actual = {p.relative_to(directory).as_posix() for p in directory.rglob("*") if p.is_file()}
-    for path in directory.rglob("*"):
-        if path.is_symlink() or (hasattr(path, "is_junction") and path.is_junction()):
-            raise RuntimeError(f"linked evidence entry: {path}")
+    files = guarded_files(directory)
+    actual = {p.relative_to(directory).as_posix() for p in files}
+    for path in files:
         if not path.resolve().is_relative_to(directory.resolve()):
             raise RuntimeError(f"escaped evidence entry: {path}")
     if actual != set(listed) | {"run-manifest.json"}:

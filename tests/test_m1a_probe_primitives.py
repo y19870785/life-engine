@@ -16,7 +16,7 @@ import uuid
 PROBE = Path(__file__).parent / "m1a_probe"
 sys.path.insert(0, str(PROBE))
 from primitive import cas, classify, connect, initialise, prepare, record, root_value  # noqa: E402
-from isolation import evidence_sink, fixture_path, guard_evidence_root, register_fixture  # noqa: E402
+from isolation import evidence_sink, fixture_path, guard_evidence_root, guarded_files, register_fixture  # noqa: E402
 from collect_evidence import live_registered_workers, process_identity, settle_and_preserve  # noqa: E402
 
 
@@ -579,6 +579,27 @@ class ProbeTests(unittest.TestCase):
         self.observations.append({"linked_root": "DENIED_BEFORE_WRITE",
                                   "linked_ancestor": "DENIED_BEFORE_WRITE",
                                   "linked_fixture": "DENIED_BEFORE_WRITE"})
+
+    def test_windows_junction_root_and_ancestor_denied(self):
+        if os.name != "nt":
+            self.skipTest("Windows junction only")
+        outside = self.root / "junction-target"
+        outside.mkdir()
+        link = self.root / "junction-root"
+        created = self.run_worker(["cmd", "/c", "mklink", "/J", str(link), str(outside)])
+        self.assertEqual(created.returncode, 0, created.stderr)
+        for candidate in (link, link / "nested"):
+            with self.assertRaisesRegex(ValueError, "LINK_OR_JUNCTION_DENIED"):
+                guard_evidence_root(candidate)
+        with self.assertRaisesRegex(ValueError, "LINK_OR_JUNCTION_DENIED"):
+            register_fixture(link)
+        with self.assertRaisesRegex(ValueError, "LINK_OR_JUNCTION_DENIED"):
+            fixture_path(link / "continuity.sqlite")
+        with self.assertRaisesRegex(ValueError, "LINK_OR_JUNCTION_DENIED"):
+            guarded_files(self.root)
+        self.assertEqual(list(outside.iterdir()), [])
+        self.observations.append({"junction_root": "DENIED_BEFORE_WRITE",
+                                  "junction_ancestor": "DENIED_BEFORE_WRITE"})
 
     def test_collector_live_worker_blocks_raw_copy_without_terminating_it(self):
         target = self.evidence_root
