@@ -111,6 +111,33 @@ def _valid_record(db: sqlite3.Connection, record_hash: str) -> dict:
     return value
 
 
+def _valid_lineage(db: sqlite3.Connection, head_hash: str) -> dict:
+    """Validate the complete immutable parent chain, not only its head."""
+    seen: set[str] = set()
+    current = head_hash
+    head = None
+    identity = None
+    while current is not None:
+        if current in seen:
+            raise ValueError("RECORD_PARENT_CYCLE")
+        seen.add(current)
+        item = _valid_record(db, current)
+        if head is None:
+            head = item
+            identity = (item["domain"], item["soul"])
+        if (item["domain"], item["soul"]) != identity:
+            raise ValueError("RECORD_PARENT_IDENTITY_MISMATCH")
+        operation = item["operation"]
+        if operation in ("CREATE", "ENROLL"):
+            if item["parent_hash"] is not None:
+                raise ValueError("BASELINE_PARENT_INVALID")
+            return head
+        if operation not in ("ADVANCE", "FORK") or not item["parent_hash"]:
+            raise ValueError("RECORD_PARENT_INVALID")
+        current = item["parent_hash"]
+    raise ValueError("RECORD_PARENT_MISSING")
+
+
 def cas(db: sqlite3.Connection, *, operation: str, expected_revision: int | None,
         expected_source: str | None, target: str, record_hash: str,
         domain: str = "synthetic", soul: str = "S") -> str:
@@ -142,7 +169,7 @@ def cas(db: sqlite3.Connection, *, operation: str, expected_revision: int | None
             okay &= root is not None and root["branches"]["B0"]["record"] == expected_source
             okay &= record["parent_kind"] == "FORK" and record["parent_hash"] == expected_source
             if root is not None:
-                source_record = _valid_record(db, root["branches"]["B0"]["record"])
+                source_record = _valid_lineage(db, root["branches"]["B0"]["record"])
                 okay &= source_record["domain"] == domain and source_record["soul"] == soul
             okay &= root is not None and all(
                 branch["instance"] != record["instance"] for branch in root["branches"].values()
@@ -160,7 +187,7 @@ def cas(db: sqlite3.Connection, *, operation: str, expected_revision: int | None
             okay &= root is not None and root["branches"]["B0"]["record"] == expected_source
             okay &= record["parent_kind"] == "ADVANCE" and record["parent_hash"] == expected_source
             if root is not None:
-                _valid_record(db, expected_source)
+                _valid_lineage(db, expected_source)
             if okay:
                 root["revision"] += 1
                 root["branches"]["B0"] = {"record": record_hash,
@@ -213,11 +240,9 @@ def classify(db: sqlite3.Connection, *, target: str = "B0", registry_data: str |
         return "ABSENT", "UNKNOWN", "QUARANTINED(NO_BASELINE)", "DENIED"
     branch = root["branches"][target]
     try:
-        item = _valid_record(db, branch["record"])
+        item = _valid_lineage(db, branch["record"])
         if not known_version or item["protocol"] != 1 or item["data"] != branch["data"]:
             raise ValueError("MISSING_EVIDENCE")
-        if item["operation"] == "FORK":
-            _valid_record(db, item["parent_hash"])
     except (ValueError, KeyError, TypeError):
         return "COMMITTED", "UNKNOWN", "QUARANTINED(EVIDENCE_CONFLICT)", "DENIED"
     if root["retired"]:

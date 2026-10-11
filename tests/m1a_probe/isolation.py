@@ -33,12 +33,13 @@ def register_fixture(root: Path) -> None:
         raise ValueError("NOT_EXCLUSIVE_TEMP_FIXTURE")
     _no_links(root, TEMP)
     marker = root / MARKER
-    if marker.exists():
+    if not root.is_dir() or any(root.iterdir()):
         raise ValueError("FIXTURE_ALREADY_REGISTERED")
-    marker.write_text(json.dumps({"kind": "M1A_SYNTHETIC_V1", "root": str(root)}), encoding="utf-8")
+    marker.write_text(json.dumps({"kind": "M1A_SYNTHETIC_V1", "root": str(root),
+                                  "run_id": os.environ.get("M1A_PROBE_RUN_ID", "TRANSIENT")}), encoding="utf-8")
 
 
-def fixture_path(path: Path) -> Path:
+def fixture_path(path: Path, *, expected_run_id: str | None = None) -> Path:
     path = path.absolute()
     candidate = path
     while candidate != TEMP and candidate != candidate.parent:
@@ -53,16 +54,21 @@ def fixture_path(path: Path) -> Path:
     if not marker.is_file() or marker.is_symlink():
         raise ValueError("UNREGISTERED_FIXTURE")
     data = json.loads(marker.read_text(encoding="utf-8"))
-    if data != {"kind": "M1A_SYNTHETIC_V1", "root": str(root)}:
+    if data != {"kind": "M1A_SYNTHETIC_V1", "root": str(root),
+                "run_id": expected_run_id or os.environ.get("M1A_PROBE_RUN_ID", "TRANSIENT")}:
         raise ValueError("INVALID_FIXTURE_MARKER")
     return path
 
 
+def guard_evidence_root(root: Path = EVIDENCE) -> Path:
+    root = root.absolute()
+    _no_links(root, Path(root.anchor))
+    return root
+
+
 def evidence_sink(path: Path) -> Path:
     path = path.absolute()
-    root = EVIDENCE.absolute()
-    if root.exists() and root.resolve() != root:
-        raise ValueError("EVIDENCE_ROOT_ALIAS_DENIED")
+    root = guard_evidence_root()
     if path.parent != root or not path.name.startswith("run-"):
         raise ValueError("EVIDENCE_DESTINATION_DENIED")
     _no_links(path, root)

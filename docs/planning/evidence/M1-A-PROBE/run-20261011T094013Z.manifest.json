@@ -1,0 +1,130 @@
+{
+  "kind": "M1-A_SYNTHETIC_E0_ONLY",
+  "base": "ca16d19e33bc274b0d3ac984c9761abb5a60e946",
+  "worktree_head_before_commit": "a2b2410e2fdc2967feb620bbd14b1d5b462eb064",
+  "working_tree_clean": false,
+  "run_id": "a70e964135ac4e81b54a4b8d3e64a16b",
+  "utc": "2026-10-11T09:40:15.507451+00:00",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "python": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+  "sqlite": "3.49.1",
+  "sqlite_vfs": "default sqlite3 VFS; exact VFS name not exposed",
+  "filesystem": "local temporary directory; physical filesystem not established",
+  "program": [
+    "C:\\Users\\hechao\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+    "-B",
+    "-X",
+    "utf8",
+    "-m",
+    "unittest",
+    "discover",
+    "-s",
+    "tests",
+    "-p",
+    "test_m1a_probe_*.py",
+    "-v"
+  ],
+  "runner_timeout_seconds": 2,
+  "exit_code": 1,
+  "timed_out": true,
+  "worker_tree_stopped": false,
+  "live_registered_workers": [],
+  "leftover_fixture_copies": [],
+  "error": null,
+  "source_sha256_before": {
+    "tests/m1a_probe/__init__.py": "c7aca695bf37225c3cf588873a596885e60ef7d09f7426bd71d20a752392eddc",
+    "tests/m1a_probe/collect_evidence.py": "2ff9c25047787c0df58a01d3e8616aa98e240f36fc83a1520d0b3bd867dce57d",
+    "tests/m1a_probe/fault_worker.py": "5820232592eb51ad9145e0b8f4a61c8ea8b5b1018f8364372b0ba62ded759af2",
+    "tests/m1a_probe/gate_worker.py": "803b9243a1ffd8247c310cc30ec45fa007f208e69203f074a695a428ac71b56a",
+    "tests/m1a_probe/isolation.py": "d059ee5c2fd094940489f5d15fdb53090126a3422ead8f73c94c57a2454779de",
+    "tests/m1a_probe/pack_evidence.py": "4fdcb0c30cec18925be3afaa48448bc4c61307dd77b3b30de51335faa9dbccb6",
+    "tests/m1a_probe/primitive.py": "67ab651e9df887a1b4d8799150accf2d37df52bac0ce3c7749496773536871b6",
+    "tests/m1a_probe/query_worker.py": "f262bb2b3c4cd37535a35c34662adeb54d46c2cef1a76104432706477b6d73fc",
+    "tests/test_m1a_probe_primitives.py": "71e6c2a0bdf67580120f12ba714bee19b9c2237b8c2d5327268d83d380810120"
+  },
+  "source_sha256_after": {
+    "tests/m1a_probe/__init__.py": "c7aca695bf37225c3cf588873a596885e60ef7d09f7426bd71d20a752392eddc",
+    "tests/m1a_probe/collect_evidence.py": "2ff9c25047787c0df58a01d3e8616aa98e240f36fc83a1520d0b3bd867dce57d",
+    "tests/m1a_probe/fault_worker.py": "5820232592eb51ad9145e0b8f4a61c8ea8b5b1018f8364372b0ba62ded759af2",
+    "tests/m1a_probe/gate_worker.py": "803b9243a1ffd8247c310cc30ec45fa007f208e69203f074a695a428ac71b56a",
+    "tests/m1a_probe/isolation.py": "d059ee5c2fd094940489f5d15fdb53090126a3422ead8f73c94c57a2454779de",
+    "tests/m1a_probe/pack_evidence.py": "4fdcb0c30cec18925be3afaa48448bc4c61307dd77b3b30de51335faa9dbccb6",
+    "tests/m1a_probe/primitive.py": "67ab651e9df887a1b4d8799150accf2d37df52bac0ce3c7749496773536871b6",
+    "tests/m1a_probe/query_worker.py": "f262bb2b3c4cd37535a35c34662adeb54d46c2cef1a76104432706477b6d73fc",
+    "tests/test_m1a_probe_primitives.py": "71e6c2a0bdf67580120f12ba714bee19b9c2237b8c2d5327268d83d380810120"
+  },
+  "source_unchanged": true,
+  "files": [
+    {
+      "path": "stderr.txt",
+      "sha256": "d2809fff6872be8d0b5bf9ce070093b06cdd954c3aadd201f5ecc6bf35269c5f",
+      "size": 920
+    },
+    {
+      "path": "stdout.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size": 0
+    },
+    {
+      "path": "test_evidence_root_links_rejected_before_write/.m1a-probe-owned.json",
+      "sha256": "5621aaa1423c800946be344f492a947341a9745a68e6a9fbede383396a5a850e",
+      "size": 149
+    },
+    {
+      "path": "test_evidence_root_links_rejected_before_write/manifest.json",
+      "sha256": "862449e12149f60ccda0267023f4a89e2afb3d5bb21d9aab21aaa16ed462b9d9",
+      "size": 375
+    },
+    {
+      "path": "test_isolation_denies_unregistered_paths/.m1a-probe-owned.json",
+      "sha256": "7f3ccf2fbcc21ad6c1a30ebdfed3003646c01b2ce3adbb2550c91e573e9996d2",
+      "size": 149
+    },
+    {
+      "path": "test_isolation_denies_unregistered_paths/manifest.json",
+      "sha256": "65ff5603441db9f58bc0af664ce7b1f334bf303113c296cc7727d73d44bda70c",
+      "size": 442
+    },
+    {
+      "path": "test_p01_enroll_has_separate_baseline/.m1a-probe-owned.json",
+      "sha256": "10b506661f482a6f2c4cb753a14f5aea8e36912f68161e0e5a720da13c417604",
+      "size": 149
+    },
+    {
+      "path": "test_p01_enroll_has_separate_baseline/DELETE/continuity.sqlite",
+      "sha256": "b54664190107633e0e71159dc555a896826738061d45c7d72a52048a0ad51908",
+      "size": 24576
+    },
+    {
+      "path": "test_p01_enroll_has_separate_baseline/manifest.json",
+      "sha256": "a82fbbc4ddfcacf3d267fb3ec881f975fd540461212c989e2bf20e26d7acadc6",
+      "size": 1501
+    },
+    {
+      "path": "test_p01_enroll_has_separate_baseline/WAL/continuity.sqlite",
+      "sha256": "87e118836ea45be7823e79d925e33ea5a1aee664fb59c32323e590ff8a758dde",
+      "size": 24576
+    },
+    {
+      "path": "test_p01_p02_each_cas_condition_rejects/.m1a-probe-owned.json",
+      "sha256": "7571710762424a59ccde116efacde3091454e6d0dc498690500ce0e8e98d2a47",
+      "size": 149
+    },
+    {
+      "path": "test_p01_p02_each_cas_condition_rejects/DELETE/continuity.sqlite",
+      "sha256": "6e1b43922695dc51af6c3c7f92c54b5c46022ba9038a16e8b21692a51adf5c8f",
+      "size": 24576
+    },
+    {
+      "path": "test_p01_p02_each_cas_condition_rejects/manifest.json",
+      "sha256": "5d0c5faa3ebf08cf8b2f9e8b1978111f65b48e913e1aed8c844bdb8b6638ca96",
+      "size": 969
+    },
+    {
+      "path": "test_p01_p02_each_cas_condition_rejects/WAL/continuity.sqlite",
+      "sha256": "631651a0f8c173cf6fa9f31b94e7ca8ea1694078bee12e180582ecade64ecc6f",
+      "size": 24576
+    }
+  ],
+  "claim_limit": "E0 process behavior only; E1/E2/E3 and real admission NOT_PROVEN"
+}

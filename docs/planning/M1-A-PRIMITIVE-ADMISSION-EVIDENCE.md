@@ -4,13 +4,15 @@
 
 ## 环境与可复核原件
 
-本地 E0 运行原件：[最终运行清单](evidence/M1-A-PROBE/run-20261011T092808Z.manifest.json) 与[原始文件归档](evidence/M1-A-PROBE/run-20261011T092808Z.zip)，归档 SHA-256 `747e7527b1d105099e1d11bba3156c63a52217d3d650556c26d823d99a0beeb7`。平台为 Windows `10.0.26200`、Python `3.12.10`、SQLite `3.49.1`，默认 Python sqlite3 VFS；具名机器、底层文件系统/磁盘型号与真实 VFS 名称未取得，因此不作设备级保证。探针用新建的系统临时目录，合成 `domain=synthetic, soul=S`，不导入产品 Runtime，不接触 Host Home 或真实 `soul_id`。每个连接分别设 `WAL + synchronous=FULL` 或 `DELETE + synchronous=EXTRA`；不使用网络文件系统。run manifest 给出版本、程序、平台、退出码及每个保全文件的 SHA-256；归档中各测试子目录的 manifest 给出操作观察、原始 SQLite DB、进程结果文件和损坏 fixture。进程故障的 DB/WAL/journal 文件集在**首次恢复读回之前**复制到 `crash-raw-before-reopen`，全部原件在测试清理临时目录之前保全；打包时逐文件比对归档解出的 bytes 与清单 SHA-256。先前调整中的原件也保留为同目录中的归档和清单，但不作为以下最终断言依据。
+本地 E0 运行原件：[最终运行清单](evidence/M1-A-PROBE/run-20261011T094036Z.manifest.json) 与[原始文件归档](evidence/M1-A-PROBE/run-20261011T094036Z.zip)，归档 SHA-256 `dbcb8c9822a9382adac6ddf0d7e81be5bbc8f52b320082300ce9fd27bf4dff5e`。平台为 Windows `10.0.26200`、Python `3.12.10`、SQLite `3.49.1`，默认 Python sqlite3 VFS；具名机器、底层文件系统/磁盘型号与真实 VFS 名称未取得，因此不作设备级保证。探针用新建的系统临时目录，合成 `domain=synthetic, soul=S`，不导入产品 Runtime，不接触 Host Home 或真实 `soul_id`。每个连接分别设 `WAL + synchronous=FULL` 或 `DELETE + synchronous=EXTRA`；不使用网络文件系统。run manifest 给出版本、程序、平台、退出码及每个保全文件的 SHA-256；归档中各测试子目录的 manifest 给出操作观察、原始 SQLite DB、进程结果文件和损坏 fixture。进程故障的 DB/WAL/journal 文件集在**首次恢复读回之前**复制到 `crash-raw-before-reopen`，全部原件在测试清理临时目录之前保全；打包时逐文件比对归档解出的 bytes 与清单 SHA-256。先前调整中的原件也保留为同目录中的归档和清单，但不作为以下最终断言依据。
 
-本地 `unittest` 16 项通过；`P01/P02` 在每种 journal 配置分别进行了 10 次独立双进程 CREATE 和 10 次 FORK 竞争，另有各 3 次 FORK 对 source ADVANCE、RETIRE 的同 revision 竞争。worker 先准备 Record、记录共同预期 root，再同时放行 CAS；每次均单赢家、败者 `CAS_FAIL`。`P03` 四个进程退出 hook 在两种配置下各重复三次。单个 worker 总时限约 10 秒；这仍只是 E0 进程故障，`before_commit` 是 **COMMIT 前退出**，不是原子提交期间断电。`BEGIN IMMEDIATE BUSY` 在两种配置用真实连接锁竞争触发；`COMMIT BUSY` 在 `DELETE` 配置以在途 reader 触发并确认事务仍未决。WAL 的 `COMMIT BUSY` 未证明。`SQLITE_INTERRUPT` 用真实 progress handler 触发；`IOERR`/测试 VFS 注入未执行，标 `NOT_DEMONSTRATED`，不混同真实 SQLite 返回与 mock。
+本地 `unittest` 18 项通过（1 项 Windows symlink 创建权限不足而跳过）；`P01/P02` 在每种 journal 配置分别进行了 10 次独立双进程 CREATE 和 10 次 FORK 竞争，另有各 3 次 FORK 对 source ADVANCE、RETIRE 的同 revision 竞争。worker 先准备 Record、记录共同预期 root，再同时放行 CAS；每次均单赢家、败者 `CAS_FAIL`。`P03` 四个进程退出 hook 在两种配置下各重复三次。单个 worker 总时限约 10 秒；这仍只是 E0 进程故障，`before_commit` 是 **COMMIT 前退出**，不是原子提交期间断电。`BEGIN IMMEDIATE BUSY` 在两种配置用真实连接锁竞争触发；`COMMIT BUSY` 在 `DELETE` 配置以在途 reader 触发并确认事务仍未决。WAL 的 `COMMIT BUSY` 未证明。`SQLITE_INTERRUPT` 用真实 progress handler 触发；`IOERR`/测试 VFS 注入未执行，标 `NOT_DEMONSTRATED`，不混同真实 SQLite 返回与 mock。
 
-最终 run manifest 逐文件记录运行前后相同的探针源码 SHA-256、退出码 0、`timed_out=false`，并明确 `working_tree_clean=false`。其中 `worktree_head_before_commit=af7d2c48311c307924fb18593e4f0ee5ae1cd9f0` 是首轮待修复提交，不能误读为本轮源码已进入该提交。归档为 488 个校验通过的条目。取证器限制目的地为本仓库约定目录，并在超时后终止进程树、记录失败清单及可保全的隔离 fixture；打包器拒绝越界路径和链接。正常测试的数据库、故障前后快照及进程结果均在独占临时 fixture 清理前复制。
+最终 run manifest 逐文件记录运行前后相同的探针源码 SHA-256、退出码 0、`timed_out=false`、`worker_tree_stopped=true` 与无存活登记 worker，并明确 `working_tree_clean=false`。其中 `worktree_head_before_commit=a2b2410e2fdc2967feb620bbd14b1d5b462eb064` 是第二轮待修复提交，不能误读为本轮源码已进入该提交。归档为 507 个校验通过的条目。取证器在建立目录前检查证据根及所有祖先的链接/别名，限制目的地为本仓库约定目录；打包器共用此检查并拒绝内部逃逸。正常测试的数据库、故障前后快照及进程结果均在独占临时 fixture 清理前复制。
 
-仓库全量回归在 Windows 本地 Python 3.12 运行 `606 tests / OK (skipped=1)`，用时 948.885 秒；随后仅将部分四轴测试从局部比较收紧为完整元组比较，最终采证运行的 16 项定向测试再次通过。默认 Python 3.10 的试跑报出既有仓库使用 `hashlib.file_digest` 等 3.11+ API 的版本不兼容，且试跑期间 worker 接口还在修订，故该次失败不计最终验证；本机登记的 3.11 临时解释器不可启动。正式 3.11 与 Linux 结果留待精确 Head 的 CI，不能从本地 3.12 推断。
+另以 2 秒上限有意触发取证器超时：[失败清单](evidence/M1-A-PROBE/run-20261011T094013Z.manifest.json)与[失败运行归档](evidence/M1-A-PROBE/run-20261011T094013Z.zip)，归档 SHA-256 `4115edd14e8778190f3daff9d7b4aca0559952daa0624d7ec949d4f720afa9db`。清单记录 `timed_out=true`、`worker_tree_stopped=false`、`exit_code=1`；因此该运行**不作为静止原件或正面原语证据**，没有复制未确认收敛的临时 fixture，也没有按成功清理。测试后另查系统进程列表未见探针 worker，但不倒填当时的收敛证明。此负例只证明失败清单能够落盘并保守标记未知。
+
+仓库全量回归在 Windows 本地 Python 3.12 运行 `608 tests / OK (skipped=2)`，用时 653.985 秒；其中本轮新增 symlink 负例因当前 Windows 账号缺创建权限而跳过，另一项为仓库既有跳过。最终采证的 18 项定向测试同样 `OK (skipped=1)`。默认 Python 3.10 的试跑报出既有仓库使用 `hashlib.file_digest` 等 3.11+ API 的版本不兼容，且试跑期间 worker 接口还在修订，故该次失败不计最终验证；本机登记的 3.11 临时解释器不可启动。正式 3.11 与 Linux 结果留待精确 Head 的 CI，不能从本地 3.12 推断。
 
 ## P01–P07 原语裁定
 
@@ -19,10 +21,10 @@
 | P01 Genesis/ENROLL | `expected=ABSENT` 双进程单赢家；ENROLL 独立 `ENROLL_BASELINE/NONE` parent；旧历史仅 `UNKNOWN`。 | 未验证产品 decision 签发、真实历史或物理断电；不得 active enrollment。 |
 | P02 Fork 多条件 CAS | 同一 root 行比较 revision、source Record、target ABSENT、retirement；损坏 root 或缺 source Record 时拒绝 CAS；逐项负例 root 不变；十轮双进程 target 单赢家；与 source ADVANCE、RETIRE 各三轮同 revision 竞速均单赢家。 | 真实 Registry target binding、产品 writer 与断电未验证；不得产品 FORK。 |
 | P03 Record 顺序/GC | Record 写中退出回滚；已准备未锚定 Record 留存；COMMIT 前退出 root 未出现；锚后未激活仍可读。探针没有 GC。 | 未证明 Record/root 断电持久性、真实数据候选/parent 闭包与运维清理围栏。 |
-| P04 未决事务/重放 | 真实 `BEGIN BUSY`、适用配置真实 `COMMIT BUSY`、真实 `INTERRUPT`；未决事务时合成 gate 保持 `DENIED`；`ack_lost` hook 在 COMMIT 后、回应前退出，独立新进程按同 ID 核对 Record/payload/root，三轮均只见一个锚；异 payload 拒绝。 | `IOERR`/WAL `COMMIT BUSY`、COMMIT 临界区不可知结果及产品尾步骤未证明。 |
-| P05 旧入口围栏 | 跨进程 SQLite SHARED/EXCLUSIVE 合成 gate 中，业务事务持共享锁时 transition 被阻塞；放行或杀死 owner 后 transition 才获排他锁。另证实同一 OS 身份可绕开 gate 直接修改合成 root DB，属**准入缺口**；损坏 root 读出 `UNKNOWN / QUARANTINED / DENIED`。 | 真旧 binary/句柄/CLI、媒体、Host permit/delivery、产品入口接 gate、故障后真实 fencing 均未验证；所有入口默认拒绝。 |
+| P04 未决事务/重放 | 真实 `BEGIN BUSY`、适用配置真实 `COMMIT BUSY`、真实 `INTERRUPT`；DELETE 中业务 `COMMIT BUSY` 期间共享 gate 未释放，排他 transition 不能越过，收敛后重读 root 再 CAS；`ack_lost` hook 在 COMMIT 后、回应前退出，独立新进程按同 ID 核对 Record/payload/root，三轮均只见一个锚；异 payload 拒绝。 | `IOERR`/WAL `COMMIT BUSY`、COMMIT 临界区不可知结果及产品尾步骤未证明。 |
+| P05 旧入口围栏 | 跨进程 SQLite SHARED/EXCLUSIVE 合成 gate 中，业务持锁后重读 root 并提交业务事务；transition 被阻塞，放行或杀死 owner 后才获排他锁、重读 root 并作退休 CAS。另证实同一 OS 身份可绕开 gate 直接修改合成 root DB，属**准入缺口**。 | 真旧 binary/句柄/CLI、媒体、Host permit/delivery、产品入口接 gate、故障后真实 fencing 均未验证；所有入口默认拒绝。 |
 | P06 备份域/nonrollback | 业务 fixture 恢复不改变 continuity DB；同一身份用旧 DB 文件覆盖可令 root 版本回退，说明合成目录不构成 nonrollback 域。 | 真实 Windows/Linux authority 身份、ACL、备份清单、恢复演练及审计原件缺失；E3 `NOT_PROVEN`。 |
-| P07 Fork target/四轴 | target 独立 Instance/Data 引用，锚已提交但 Registry 未激活为 `COMMITTED / FORK / QUARANTINED(ACTIVATION_PENDING) / DENIED`；retired 后 persistence 仍为 `COMMITTED`；Registry 第三值、parent 缺失、Record 损坏、未知版本隔离，损坏前后 DB 分别保全。 | 合成 read model 不等于 M1-D 产品 verdict，未完成全矩阵 failure injection。 |
+| P07 Fork target/四轴 | target 独立 Instance/Data 引用，锚已提交但 Registry 未激活为 `COMMITTED / FORK / QUARANTINED(ACTIVATION_PENDING) / DENIED`；retired 后 persistence 仍为 `COMMITTED`；Registry 第三值、parent 缺失、Record 损坏、未知版本隔离。ADVANCE 后删除 Genesis parent 时，完整 parent 闭包检查使 read verdict 隔离、后续 FORK CAS 拒绝；损坏前后 DB 分别保全。 | 合成 read model 不等于 M1-D 产品 verdict，未完成全矩阵 failure injection。 |
 
 ## 入口准入盘点
 
@@ -44,8 +46,8 @@
 | ID | M1-A 责任 → 探针 | 本轮 E0 | 未执行部分 / 阻断动作 |
 | --- | --- | --- | --- |
 | C01 | 锁前准入 → P05 | 缺口 | 真旧进程/锁释放未执行；DENIED |
-| C02 | 锁后重检 → P05 | 部分 | 合成 gate 的跨进程锁/owner 死亡已执行；产品重检未执行；DENIED |
-| C03 | 重检后准备 → P05 | 部分 | 合成业务事务持共享锁已执行；产品事务 TOCTOU 未执行；DENIED |
+| C02 | 锁后重检 → P05 | 部分 | 合成 gate 跨进程锁/owner 死亡及持锁 root 重检已执行；产品重检未执行；DENIED |
+| C03 | 重检后准备 → P05 | 部分 | 合成业务事务持共享锁、COMMIT 未决阻挡排他切换已执行；产品事务 TOCTOU 未执行；DENIED |
 | C04 | Record 写中 → P03 | 部分 | 仅进程退出，断电与产品候选未执行；DENIED |
 | C05 | Record 已存、锚旧 → P03 | 部分 | 产品重试/断电未执行；DENIED |
 | C06 | CAS outcome unknown → P02/P04 | 部分 | COMMIT 临界区、损坏旧/新三分支未执行；DENIED |
@@ -54,7 +56,7 @@
 | C09 | Data 偷跑 → P05/P07 | 缺口 | 真实 Registry 绕过未执行；DENIED |
 | C10 | 锚指缺 Record → P03/P07 | 部分 | 合成 root 所指 Record 缺失时仍判锚已提交、证据冲突隔离；产品隔离未执行；DENIED |
 | C11 | 锚指损坏 Record → P03/P07 | 部分 | 合成 hash 损坏；产品隔离未执行；DENIED |
-| C12 | parent 错误 → P03/P07 | 部分 | 合成 parent 缺失；完整异 parent 决策未执行；DENIED |
+| C12 | parent 错误 → P03/P07 | 部分 | 合成 parent 缺失/ADVANCE 断链时隔离且拒绝后继 CAS；异 parent 决策未执行；DENIED |
 | C13 | 未引用高序候选 → P03 | 缺口 | 高序拒绝/parent 闭包未执行；DENIED |
 | C14 | 旧 Record 对当前锚 → P02/P05 | 部分 | 旧进程 stale writer 未执行；DENIED |
 | C15 | 同 ID 重放/冲突 → P04 | 部分 | 合成同 ID 冲突；产品尾步骤未执行；DENIED |

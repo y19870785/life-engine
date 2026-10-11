@@ -7,6 +7,8 @@ from pathlib import Path, PurePosixPath
 import sys
 import zipfile
 
+from isolation import evidence_sink, guard_evidence_root
+
 
 ROOT = Path(__file__).resolve().parents[2] / "docs" / "planning" / "evidence" / "M1-A-PROBE"
 
@@ -16,7 +18,9 @@ def sha(raw: bytes) -> str:
 
 
 def pack(directory: Path) -> dict:
-    if directory.is_symlink() or directory.parent.resolve() != ROOT.resolve():
+    guard_evidence_root()
+    directory = evidence_sink(directory)
+    if directory.is_symlink() or directory.parent != ROOT.absolute():
         raise RuntimeError("outside evidence root")
     manifest_path = directory / "run-manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))

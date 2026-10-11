@@ -15,7 +15,7 @@ import unittest
 PROBE = Path(__file__).parent / "m1a_probe"
 sys.path.insert(0, str(PROBE))
 from primitive import cas, classify, connect, initialise, prepare, record, root_value  # noqa: E402
-from isolation import evidence_sink, fixture_path, register_fixture  # noqa: E402
+from isolation import evidence_sink, fixture_path, guard_evidence_root, register_fixture  # noqa: E402
 
 
 class ProbeTests(unittest.TestCase):
@@ -64,6 +64,11 @@ class ProbeTests(unittest.TestCase):
         self.paths.append(database)
         return database
 
+    def track_worker(self, process):
+        with (self.root / "worker-pids.jsonl").open("a", encoding="utf-8") as ledger:
+            ledger.write(json.dumps({"pid": process.pid, "started": time.time()}) + "\n")
+        return process
+
     def genesis(self, path, transition="genesis"):
         with connect(path) as db:
             h = prepare(db, record("CREATE", transition))
@@ -99,10 +104,10 @@ class ProbeTests(unittest.TestCase):
         started = []
         for i in range(2):
             started.append(time.monotonic())
-            processes.append(subprocess.Popen([sys.executable, "-X", "utf8", str(PROBE / "primitive.py"),
+            processes.append(self.track_worker(subprocess.Popen([sys.executable, "-X", "utf8", str(PROBE / "primitive.py"),
                                                str(path), mode, operations[i], f"{operations[i]}-{index}-{i}",
                                                str(start), str(ready[i]), str(output[i])], stdout=subprocess.PIPE,
-                                              stderr=subprocess.PIPE, text=True))
+                                              stderr=subprocess.PIPE, text=True)))
         try:
             deadline = min(started) + 8
             while not all(item.exists() for item in ready) and time.monotonic() < deadline:
@@ -252,23 +257,51 @@ class ProbeTests(unittest.TestCase):
 
     def test_p04_delete_commit_busy_gate_stays_closed(self):
         path = self.db("DELETE", "delete-commit-busy")
-        with connect(path) as reader, connect(path) as writer:
+        self.genesis(path)
+        fixture = path.parent
+        gate_path = fixture / "gate.sqlite"
+        business_path = fixture / "business.sqlite"
+        with closing(sqlite3.connect(gate_path)) as setup:
+            setup.execute("PRAGMA journal_mode=DELETE")
+            setup.execute("CREATE TABLE gate(epoch INTEGER)")
+            setup.execute("INSERT INTO gate VALUES(0)")
+            setup.commit()
+        with closing(sqlite3.connect(business_path)) as setup:
+            setup.execute("CREATE TABLE business(value TEXT)")
+        with connect(path) as authority:
+            retirement = prepare(authority, record("RETIRE", "commit-busy-retire", expected_revision=0))
+        with closing(sqlite3.connect(gate_path, isolation_level=None)) as shared, \
+                closing(sqlite3.connect(gate_path, isolation_level=None, timeout=0.02)) as transition, \
+                closing(sqlite3.connect(business_path, isolation_level=None)) as reader, \
+                closing(sqlite3.connect(business_path, isolation_level=None, timeout=0.02)) as writer:
+            shared.execute("BEGIN")
+            shared.execute("SELECT epoch FROM gate").fetchone()
+            with connect(path) as authority:
+                self.assertEqual(root_value(authority)["revision"], 0)
             reader.execute("BEGIN")
-            self.assertEqual(reader.execute("SELECT count(*) FROM soul_root").fetchone()[0], 0)
+            reader.execute("SELECT count(*) FROM business").fetchone()
             writer.execute("PRAGMA busy_timeout=20")
             writer.execute("BEGIN IMMEDIATE")
-            writer.execute("INSERT INTO soul_root VALUES(?,?,?,?)", ("synthetic", "S", 0, b"{}"))
+            writer.execute("INSERT INTO business VALUES('pending')")
             with self.assertRaises(sqlite3.OperationalError) as raised:
                 writer.execute("COMMIT")
             self.assertIn("locked", str(raised.exception).lower())
             self.assertTrue(writer.in_transaction)
-            gate = "DENIED_PENDING_TRANSACTION" if writer.in_transaction else "UNKNOWN"
-            self.assertEqual(gate, "DENIED_PENDING_TRANSACTION")
+            with self.assertRaises(sqlite3.OperationalError):
+                transition.execute("BEGIN EXCLUSIVE")
             reader.execute("ROLLBACK")
             writer.execute("COMMIT")
             self.assertFalse(writer.in_transaction)
+            shared.execute("COMMIT")
+            transition.execute("BEGIN EXCLUSIVE")
+            with connect(path) as authority:
+                self.assertEqual(root_value(authority)["revision"], 0)
+                self.assertEqual(cas(authority, operation="RETIRE", expected_revision=0,
+                                     expected_source=None, target="B0", record_hash=retirement), "COMMITTED")
+            transition.execute("COMMIT")
             self.observations.append({"mode": "DELETE", "commit_busy": str(raised.exception),
-                                      "pending_gate": gate, "after_writer_drain": self.fresh(path)})
+                                      "exclusive_blocked_until_commit_drain": True,
+                                      "after_writer_drain": self.fresh(path)})
 
     def test_p04_real_sqlite_interrupt(self):
         for mode in ("WAL", "DELETE"):
@@ -358,24 +391,26 @@ class ProbeTests(unittest.TestCase):
             self.fresh(path)
 
     def test_p05_cross_process_gate_wait_and_owner_death(self):
-        fixture = self.root / "gate-fixture"
-        fixture.mkdir()
-        gate = fixture / "gate.sqlite"
-        business = fixture / "business.sqlite"
-        with closing(sqlite3.connect(gate)) as db:
-            db.execute("PRAGMA journal_mode=DELETE")
-            db.execute("CREATE TABLE gate(epoch INTEGER NOT NULL)")
-            db.execute("INSERT INTO gate VALUES(0)")
-            db.commit()
-        with closing(sqlite3.connect(business)) as db:
-            db.execute("CREATE TABLE business(value TEXT)")
-
         for index, action in enumerate(("release", "kill")):
+            continuity = self.db("DELETE", f"gate-{index}")
+            self.genesis(continuity)
+            fixture = continuity.parent
+            gate = fixture / "gate.sqlite"
+            business = fixture / "business.sqlite"
+            with closing(sqlite3.connect(gate)) as db:
+                db.execute("PRAGMA journal_mode=DELETE")
+                db.execute("CREATE TABLE gate(epoch INTEGER NOT NULL)")
+                db.execute("INSERT INTO gate VALUES(0)")
+                db.commit()
+            with closing(sqlite3.connect(business)) as db:
+                db.execute("CREATE TABLE business(value TEXT)")
+            with connect(continuity) as db:
+                retirement = prepare(db, record("RETIRE", f"gate-retire-{index}", expected_revision=0))
             ready = fixture / f"ready-{index}"
             release = fixture / f"release-{index}"
-            worker = subprocess.Popen([sys.executable, "-X", "utf8", str(PROBE / "gate_worker.py"),
-                                       str(gate), str(business), str(ready), str(release)],
-                                      stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            worker = self.track_worker(subprocess.Popen([sys.executable, "-X", "utf8", str(PROBE / "gate_worker.py"),
+                                       str(gate), str(continuity), str(business), str(ready), str(release)],
+                                      stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True))
             worker_deadline = time.monotonic() + 10
             try:
                 deadline = worker_deadline - 2
@@ -398,11 +433,17 @@ class ProbeTests(unittest.TestCase):
                     self.assertNotEqual(worker.returncode, 0)
                 with closing(sqlite3.connect(gate, isolation_level=None, timeout=1)) as transition:
                     transition.execute("BEGIN EXCLUSIVE")
+                    with connect(continuity) as authority:
+                        self.assertEqual(root_value(authority)["revision"], 0)
+                        self.assertEqual(cas(authority, operation="RETIRE", expected_revision=0,
+                                             expected_source=None, target="B0", record_hash=retirement), "COMMITTED")
                     transition.execute("UPDATE gate SET epoch=epoch+1")
                     transition.execute("COMMIT")
                 with closing(sqlite3.connect(business)) as data:
                     count = data.execute("SELECT count(*) FROM business").fetchone()[0]
-                self.assertEqual(count, 1)  # Killed writer's second insert rolled back.
+                self.assertEqual(count, 1 if action == "release" else 0)
+                with connect(continuity) as authority:
+                    self.assertTrue(root_value(authority)["retired"])
                 self.observations.append({"gate_case": action, "exclusive_after_drain": True,
                                           "business_committed_rows": count,
                                           "worker_exit": worker.returncode})
@@ -480,6 +521,22 @@ class ProbeTests(unittest.TestCase):
             fixture_path(self.root.parent / "not-owned" / "result")
         self.observations.append({"path_guards": "UNREGISTERED_OR_OUTSIDE_DENIED"})
 
+    def test_evidence_root_links_rejected_before_write(self):
+        outside = self.root / "outside"
+        outside.mkdir()
+        link = self.root / "linked-evidence"
+        try:
+            link.symlink_to(outside, target_is_directory=True)
+        except OSError as exc:
+            self.skipTest(f"symlink creation unavailable: {exc}")
+        with self.assertRaises(ValueError):
+            guard_evidence_root(link)
+        with self.assertRaises(ValueError):
+            guard_evidence_root(link / "M1-A-PROBE")
+        self.assertEqual(list(outside.iterdir()), [])
+        self.observations.append({"linked_root": "DENIED_BEFORE_WRITE",
+                                  "linked_ancestor": "DENIED_BEFORE_WRITE"})
+
     def test_p07_fork_target_pending_and_parent_loss(self):
         for mode in ("WAL", "DELETE"):
             path = self.db(mode, mode)
@@ -503,6 +560,39 @@ class ProbeTests(unittest.TestCase):
                                  ("COMMITTED", "UNKNOWN", "QUARANTINED(EVIDENCE_CONFLICT)", "DENIED"))
                 self.observations.append({"mode": mode, "target_parent_missing": classify(db, target="B1"),
                                           "fresh": self.fresh(path)})
+
+    def test_p07_advance_parent_closure_blocks_verdict_and_fork(self):
+        for mode in ("WAL", "DELETE"):
+            path = self.db(mode, mode)
+            genesis_hash = self.genesis(path)
+            with connect(path) as db:
+                advance = record("ADVANCE", "advance-lineage", expected_revision=0,
+                                 expected_source=genesis_hash, data="D1", parent_hash=genesis_hash)
+                advance_hash = prepare(db, advance)
+                self.assertEqual(cas(db, operation="ADVANCE", expected_revision=0,
+                                     expected_source=genesis_hash, target="B0", record_hash=advance_hash),
+                                 "COMMITTED")
+                self.assertEqual(classify(db, registry_data="D1"),
+                                 ("COMMITTED", "CONTINUATION", "READY", "DENIED"))
+                fork = record("FORK", "fork-broken-lineage", expected_revision=1,
+                              expected_source=advance_hash, target="B1", instance="I1",
+                              parent_hash=advance_hash)
+                fork_hash = prepare(db, fork)
+                with closing(sqlite3.connect(path.parent / "before-lineage-loss.sqlite")) as snapshot:
+                    db.backup(snapshot)
+                db.execute("DELETE FROM record WHERE hash=?", (genesis_hash,))
+                with closing(sqlite3.connect(path.parent / "after-lineage-loss.sqlite")) as snapshot:
+                    db.backup(snapshot)
+                before = root_value(db)
+                self.assertEqual(classify(db, registry_data="D1"),
+                                 ("COMMITTED", "UNKNOWN", "QUARANTINED(EVIDENCE_CONFLICT)", "DENIED"))
+                with self.assertRaisesRegex(ValueError, "RECORD_MISSING_OR_CORRUPT"):
+                    cas(db, operation="FORK", expected_revision=1, expected_source=advance_hash,
+                        target="B1", record_hash=fork_hash)
+                self.assertEqual(root_value(db), before)
+                self.observations.append({"mode": mode, "advance_parent_deleted": genesis_hash,
+                                          "classification": classify(db, registry_data="D1"),
+                                          "fork_rejected": True})
 
 
 if __name__ == "__main__":
