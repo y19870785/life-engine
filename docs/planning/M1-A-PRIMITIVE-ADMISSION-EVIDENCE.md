@@ -1,0 +1,79 @@
+# M1-A — Primitive / Admission Probe 证据与缺口
+
+状态：`E0_SYNTHETIC_PARTIAL / M1-A_PRIMITIVE_GATE_PENDING / EXECUTION_AUTHORITY_DENIED`。授权来源：用户在看到本地确定任务书 `M1-A-PRIMITIVE-ADMISSION-PROBE-TASK-DRAFT.md`、SHA-256 `8BFC43EBA6E87373791BC957D651B4B640ADDC5EFF55E9DFE6E0CAF9D68DA027` 与固定 Base `ca16d19e33bc274b0d3ac984c9761abb5a60e946` 后回复“可以”。任务书保留在本地授权记录，不作为本探针 PR 的文件范围。本文只记录该合同的隔离合成探针，不是产品 writer、完整 M1-A 原语 PASS 或任何 Host 许可。
+
+## 环境与可复核原件
+
+本地 E0 运行原件：[最终运行清单](evidence/M1-A-PROBE/run-20261011T054739Z.manifest.json) 与[原始文件归档](evidence/M1-A-PROBE/run-20261011T054739Z.zip)，归档 SHA-256 `e71ea923c059e17ccb6b62492373fad996dc38b1f1dd6796dee3faf1a1a41c31`。平台为 Windows `10.0.26200`、Python `3.10.9`、SQLite `3.39.4`，默认 Python sqlite3 VFS；具名机器、底层文件系统/磁盘型号与真实 VFS 名称未取得，因此不作设备级保证。探针用新建的系统临时目录，合成 `domain=synthetic, soul=S`，不导入产品 Runtime，不接触 Host Home 或真实 `soul_id`。每个连接分别设 `WAL + synchronous=FULL` 或 `DELETE + synchronous=EXTRA`；不使用网络文件系统。run manifest 给出版本、程序、平台、退出码及每个保全文件的 SHA-256；归档中各测试子目录的 manifest 给出操作观察、原始 SQLite DB、进程结果文件和损坏 fixture。进程故障的 DB/WAL/journal 文件集在**首次恢复读回之前**复制到 `crash-raw-before-reopen`，全部原件在测试清理临时目录之前保全；打包时逐文件比对归档解出的 bytes 与清单 SHA-256。先前调整中的原件也保留为同目录中的归档和清单，但不作为以下最终断言依据。
+
+本地 `unittest` 11 项通过；`P01/P02` 在每种 journal 配置分别进行了 10 次独立双进程 CREATE 和 10 次 FORK 竞争。每轮两个 worker 先准备各自 Record，确认预期 root 相同后才同时放行 CAS；每次均单赢家、败者 `CAS_FAIL`。`P03` 四个进程退出 hook 在两种配置下各重复三次。进程超时上限 10 秒；这仍只是 E0 进程故障，`before_commit` 是 **COMMIT 前退出**，不是原子提交期间断电。`BEGIN IMMEDIATE BUSY` 在两种配置用真实连接锁竞争触发；`COMMIT BUSY` 在 `DELETE` 配置以在途 reader 触发并确认事务仍未决。WAL 的 `COMMIT BUSY` 未证明。`SQLITE_INTERRUPT` 用真实 progress handler 触发；`IOERR`/测试 VFS 注入未执行，标 `NOT_DEMONSTRATED`，不混同真实 SQLite 返回与 mock。
+
+本轮最终探针代码的 Git blob：`primitive.py`=`8ec6056060c53cabc43868f823b1961b63bb87b1`、`fault_worker.py`=`eb097a7552fbd50c94f69ac8ea2fa16e06475727`、`test_m1a_probe_primitives.py`=`7605a18b6a1377978e56cbad6f36363424be769e`。这些是本地待提交代码对象；运行清单中 `worktree_head_before_commit` 仍是 Base，不能误读为探针已在该 Base 提交。
+
+仓库全量回归在 Windows 本地 Python 3.12 运行 `601 tests / OK (skipped=1)`，用时 650.481 秒。默认 Python 3.10 的试跑报出既有仓库使用 `hashlib.file_digest` 等 3.11+ API 的版本不兼容，且试跑期间 worker 接口还在修订，故该次失败不计最终验证；本机登记的 3.11 临时解释器不可启动。正式 3.11 与 Linux 结果留待精确 Head 的 CI，不能从本地 3.12 推断。
+
+## P01–P07 原语裁定
+
+| 探针 | 本轮实际观察 | 仍缺的证据 / 阻断 |
+| --- | --- | --- |
+| P01 Genesis/ENROLL | `expected=ABSENT` 双进程单赢家；ENROLL 独立 `ENROLL_BASELINE/NONE` parent；旧历史仅 `UNKNOWN`。 | 未验证产品 decision 签发、真实历史或物理断电；不得 active enrollment。 |
+| P02 Fork 多条件 CAS | 同一 root 行比较 revision、source Record、target ABSENT、retirement；逐项负例 root 不变；十轮双进程 target 单赢家；source 的合成引用不变。 | 实际 source 前进与 retirement 同时竞速、真实 Registry target binding 未验证；不得产品 FORK。 |
+| P03 Record 顺序/GC | Record 写中退出回滚；已准备未锚定 Record 留存；COMMIT 前退出 root 未出现；锚后未激活仍可读。探针没有 GC。 | 未证明 Record/root 断电持久性、真实数据候选/parent 闭包与运维清理围栏。 |
+| P04 未决事务/重放 | 真实 `BEGIN BUSY`、适用配置真实 `COMMIT BUSY`、真实 `INTERRUPT`；未决事务时合成 gate 保持 `DENIED`；失 ACK 后同 ID 查已有 root，不生成第二 root；异 payload 拒绝。 | `IOERR`/WAL `COMMIT BUSY`、COMMIT 临界区不可知结果及产品尾步骤未证明。合成 gate 字符串不等于真实跨进程 admission。 |
+| P05 旧入口围栏 | 同一 OS 身份可直接修改合成 root DB，说明仅靠进程内 broker 的围栏可绕过，观察为**准入缺口**；读路径对列/内容 revision 不一致返回 `UNKNOWN / QUARANTINED / DENIED`。 | 旧 binary/旧持久句柄/CLI、媒体、Host permit/delivery、真实共享/排他 gate、故障后 fencing 均未验证；所有入口默认拒绝。 |
+| P06 备份域/nonrollback | 业务 fixture 恢复不改变 continuity DB；同一身份用旧 DB 文件覆盖可令 root 版本回退，说明合成目录不构成 nonrollback 域。 | 真实 Windows/Linux authority 身份、ACL、备份清单、恢复演练及审计原件缺失；E3 `NOT_PROVEN`。 |
+| P07 Fork target/四轴 | target 独立 Instance/Data 引用，锚已提交但 Registry 未激活为 `COMMITTED / FORK / QUARANTINED(ACTIVATION_PENDING) / DENIED`；parent 缺失、Record 损坏、未知版本隔离。 | 合成 read model 不等于 M1-D 产品 verdict，未完成全矩阵 failure injection。 |
+
+## 故障等级与平台
+
+| 维度 | Windows 本地 | Linux / 其他 | 最强结论 |
+| --- | --- | --- | --- |
+| E0 逻辑与进程 | 上述 SQLite 合成观察及原始文件；部分原语/反例已触达 | 当前无带原始 DB 的独立 Linux 证据；后续 CI 测试结果单列 | `E0_SYNTHETIC_PARTIAL` |
+| E1 OS/VM crash | 未执行 | 未执行 | `PENDING`；普通进程退出不能代替 |
+| E2 物理断电/flush | 未执行 | 未执行 | `NOT_PROVEN`；需独立目标硬件、电源切断方法、保护方案、重复 raw file/日志与恢复读回授权 |
+| E3 管理域不回滚 | 同身份覆盖旧 DB 成功，是负例 | 真实部署未执行 | `NOT_PROVEN`；需管理主体、ACL、完整 DB/WAL/journal/目录及备份域证明 |
+
+## C/G/FK 逐 ID 责任台账
+
+下表的“部分”只指该行关联的 **M1-A 合成原语**已有 E0 观察，**不是**该协议场景已执行。原 [故障矩阵](M1-P0-CRASH-RECOVERY-MATRIX.md) 的 34 行全部仍为 `PROTOCOL_SCENARIO`；M1-C 的 writer failure injection、M1-D 的完整 transition/verdict 均 `NOT_EXECUTED`。所有行缺 E1/E2/E3 与真实 admission，统一阻断 active Soul 写入、自动恢复和执行许可。
+
+| ID | M1-A 责任 → 探针 | 本轮 E0 | 未执行部分 / 阻断动作 |
+| --- | --- | --- | --- |
+| C01 | 锁前准入 → P05 | 缺口 | 真旧进程/锁释放未执行；DENIED |
+| C02 | 锁后重检 → P05 | 缺口 | 真实 gate/进程死亡未执行；DENIED |
+| C03 | 重检后准备 → P05 | 缺口 | 真实事务 TOCTOU 未执行；DENIED |
+| C04 | Record 写中 → P03 | 部分 | 仅进程退出，断电与产品候选未执行；DENIED |
+| C05 | Record 已存、锚旧 → P03 | 部分 | 产品重试/断电未执行；DENIED |
+| C06 | CAS outcome unknown → P02/P04 | 部分 | COMMIT 临界区、损坏旧/新三分支未执行；DENIED |
+| C07 | 锚新、ACK 丢失 → P04/P07 | 部分 | 产品幂等激活未执行；DENIED |
+| C08 | 锚新、激活未完 → P03/P07 | 部分 | Registry 旧/新/第三值真实切换未执行；DENIED |
+| C09 | Data 偷跑 → P05/P07 | 缺口 | 真实 Registry 绕过未执行；DENIED |
+| C10 | 锚指缺 Record → P03/P07 | 部分 | 合成 parent 缺失；产品隔离未执行；DENIED |
+| C11 | 锚指损坏 Record → P03/P07 | 部分 | 合成 hash 损坏；产品隔离未执行；DENIED |
+| C12 | parent 错误 → P03/P07 | 部分 | 合成 parent 缺失；完整异 parent 决策未执行；DENIED |
+| C13 | 未引用高序候选 → P03 | 缺口 | 高序拒绝/parent 闭包未执行；DENIED |
+| C14 | 旧 Record 对当前锚 → P02/P05 | 部分 | 旧进程 stale writer 未执行；DENIED |
+| C15 | 同 ID 重放/冲突 → P04 | 部分 | 合成同 ID 冲突；产品尾步骤未执行；DENIED |
+| C16 | 双 writer → P01/P02 | 部分 | 合成双进程单赢家；产品 writer 未执行；DENIED |
+| C17 | stale writer → P02/P05 | 部分 | revision/source 单独拒绝；真旧句柄未执行；DENIED |
+| C18 | 旧业务备份 → P06 | 部分 | 合成业务 restore；部署隔离未执行；DENIED |
+| C19 | 退休后旧备份 → P02/P06 | 部分 | 合成退休 fence；真旧备份/全入口未执行；DENIED |
+| C20 | 已完成、回应前死亡 → P04/P07 | 缺口 | 真尾步骤/回应边界未执行；DENIED |
+| G01 | Genesis 准备前 → P01/P03 | 缺口 | 精确故障点未执行；DENIED |
+| G02 | Genesis Record 后、锚前 → P01/P03 | 部分 | 合成 prepared 存留；断电未执行；DENIED |
+| G03 | Genesis CAS 不确定 → P01/P04 | 部分 | COMMIT 临界区未执行；DENIED |
+| G04 | Genesis 锚后激活前 → P03/P07 | 部分 | 合成 anchor pending；产品激活未执行；DENIED |
+| G05 | Genesis 激活后失 ACK → P04/P07 | 缺口 | 精确尾步骤未执行；DENIED |
+| G06 | 双 CREATE → P01 | 部分 | 双进程单赢家；断电/真实 decision 未执行；DENIED |
+| FK01 | Fork Record 前 → P02/P03 | 缺口 | 精确故障点未执行；DENIED |
+| FK02 | Fork Record 后、锚前 → P02/P03 | 缺口 | 精确 Fork prepared 注入未执行；DENIED |
+| FK03 | source 前进 → P02 | 部分 | source 条件单独拒绝；真竞速未执行；DENIED |
+| FK04 | Fork CAS 不确定 → P02/P04 | 部分 | COMMIT 临界区未执行；DENIED |
+| FK05 | target 锚后 source 不变 → P02/P07 | 部分 | 合成 source bytes 保持；真实 Registry 未执行；DENIED |
+| FK06 | 同 Tf 重试 → P02/P04 | 缺口 | Fork ID 重放未执行；DENIED |
+| FK07 | 同 target 并发 → P02 | 部分 | 双进程单赢家；断电未执行；DENIED |
+| FK08 | Fork/退休竞争 → P02 | 部分 | 合成已退休后 Fork 拒绝；真同时竞速未执行；DENIED |
+
+## 出口与下一门禁
+
+目前只能提交 `E0_SYNTHETIC_PARTIAL` 与反例证据，不能裁定 `M1-A_PRIMITIVE_PASS`。`P05` 直接写绕过、`P06` 同身份旧文件覆盖说明：如果目标部署不给 authority 服务独占且不可整体回滚的管理域，本候选在该威胁模型下须 `NO_SAFE_PROTOCOL_WITH_CURRENT_PRIMITIVES / STOP`；本轮没有足够真实部署证据判断该条件能否满足，现状态为 `M1-A_PRIMITIVE_GATE_PENDING`。独立审核即使认可原始证据，也只能给 `PROBE_EVIDENCE_REVIEW_COMPLETE`；不能开启 Schema/migration、SoulRoot writer、Host 或下一阶段。

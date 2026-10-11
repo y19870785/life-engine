@@ -1,0 +1,1160 @@
+{
+  "kind": "M1-A_SYNTHETIC_E0_ONLY",
+  "base": "ca16d19e33bc274b0d3ac984c9761abb5a60e946",
+  "worktree_head_before_commit": "ca16d19e33bc274b0d3ac984c9761abb5a60e946",
+  "working_tree_clean": false,
+  "utc": "2026-10-11T05:30:00.371107+00:00",
+  "platform": "Windows-10-10.0.26200-SP0",
+  "python": "3.10.9 (tags/v3.10.9:1dd9be6, Dec  6 2022, 20:01:21) [MSC v.1934 64 bit (AMD64)]",
+  "sqlite": "3.39.4",
+  "sqlite_vfs": "default sqlite3 VFS; exact VFS name not exposed",
+  "filesystem": "local temporary directory; physical filesystem not established",
+  "program": [
+    "C:\\Program Files\\Python310\\python.exe",
+    "-B",
+    "-X",
+    "utf8",
+    "-m",
+    "unittest",
+    "discover",
+    "-s",
+    "tests",
+    "-p",
+    "test_m1a_probe_*.py",
+    "-v"
+  ],
+  "exit_code": 0,
+  "files": [
+    {
+      "path": "stderr.txt",
+      "sha256": "764e99d6b748184784c3dea6f2cf11397462d57ef6d640343d7727b4e80a5905",
+      "size": 1062
+    },
+    {
+      "path": "stdout.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size": 0
+    },
+    {
+      "path": "test_p01_enroll_has_separate_baseline/DELETE/continuity.sqlite",
+      "sha256": "18ec499b0daa84f0d36dc504e14081eaef6927d789024e8f290a84b910669f08",
+      "size": 24576
+    },
+    {
+      "path": "test_p01_enroll_has_separate_baseline/manifest.json",
+      "sha256": "6b45bf5851d3072846f467aa4a65c7302a059d3f2b4c2d06b69f2b59539d89a4",
+      "size": 1197
+    },
+    {
+      "path": "test_p01_enroll_has_separate_baseline/WAL/continuity.sqlite",
+      "sha256": "d5c269a7982096f59e4dd2ef968083c950e5a41bc54d5ce82957b34cf3050eaf",
+      "size": 24576
+    },
+    {
+      "path": "test_p01_p02_each_cas_condition_rejects/DELETE/continuity.sqlite",
+      "sha256": "9d64bc448478c94eb952beb134c9105bea8a1cc21313dc124077c515368a160a",
+      "size": 24576
+    },
+    {
+      "path": "test_p01_p02_each_cas_condition_rejects/manifest.json",
+      "sha256": "38d6525f0a2116b0c2ae59697cd6cae0b50952c1385cb81107785022e4e6413c",
+      "size": 699
+    },
+    {
+      "path": "test_p01_p02_each_cas_condition_rejects/WAL/continuity.sqlite",
+      "sha256": "78a550d86db5fd4e66c688a021d6aeccfc8b9a7426ca693f8639e78ece7bba7f",
+      "size": 24576
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-0-create/continuity.sqlite",
+      "sha256": "6f0abeadbecc964521101f0ec6c6c8235d89d2c211bf871b836eca25a94cd41c",
+      "size": 24576
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-0-create/result-0.json",
+      "sha256": "2a0a71d9e8507495b26c18c894119ad7547214455c6ffe0dbcf8c33116a8c63b",
+      "size": 55
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-0-create/result-1.json",
+      "sha256": "d9d479b6e7d60c3efab8d450bd1213c3ee5c2a48d9b65b46c453fa316d5205c1",
+      "size": 54
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-0-create/start",
+      "sha256": "cced28c6dc3f99c2396a5eaad732bf6b28142335892b1cd0e6af6cdb53f5ccfa",
+      "size": 5
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-0-fork/continuity.sqlite",
+      "sha256": "9f5177e3dd6a35ab38ffac4c2ff53347e670f8ad4e7cc90b732a74846e7c6eb0",
+      "size": 24576
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-0-fork/result-0.json",
+      "sha256": "1ecc6a6b48c1dab71d611e836e6f2c03183ca31d1672eb04c693da3a56de6369",
+      "size": 53
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-0-fork/result-1.json",
+      "sha256": "82c01fa1d790048ce8e057a547f238c51afef0480078430b5d1de19618644112",
+      "size": 52
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-0-fork/start",
+      "sha256": "cced28c6dc3f99c2396a5eaad732bf6b28142335892b1cd0e6af6cdb53f5ccfa",
+      "size": 5
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-1-create/continuity.sqlite",
+      "sha256": "a0473dc1049296fb919335c1856a85f7b87073860aed195828c6842a71acdc53",
+      "size": 24576
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-1-create/result-0.json",
+      "sha256": "0734e4db019260cc2447b6c97dae70d96bdbd93b0f7afe4c3a4c28a74708eab9",
+      "size": 55
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-1-create/result-1.json",
+      "sha256": "ab479b02df0d978dd3511871d4fe4c459d4c00d626409045b23a2b4b5f5729f5",
+      "size": 54
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-1-create/start",
+      "sha256": "cced28c6dc3f99c2396a5eaad732bf6b28142335892b1cd0e6af6cdb53f5ccfa",
+      "size": 5
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-1-fork/continuity.sqlite",
+      "sha256": "464acba715be0339bdbdc507c8bf2fb6e789cb44d931a432b5bb21b9e5ba8828",
+      "size": 24576
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-1-fork/result-0.json",
+      "sha256": "d01f8cadd45a31089f10d5ddcd543e4b540c0b54b51200d642203ee92e19f98e",
+      "size": 53
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-1-fork/result-1.json",
+      "sha256": "9cfcc6738079f5e6e0b2dde0df340906b26fa93de72817c40ff2b137489a15ef",
+      "size": 52
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-1-fork/start",
+      "sha256": "cced28c6dc3f99c2396a5eaad732bf6b28142335892b1cd0e6af6cdb53f5ccfa",
+      "size": 5
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-2-create/continuity.sqlite",
+      "sha256": "4c5c9e5f941e16bf7a774762eaaaf633f75f3a0cdb825076ae303c5ff61b1440",
+      "size": 24576
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-2-create/result-0.json",
+      "sha256": "921bcd39daebcc2ee241aba64d1d936651c465e8dcf230e030e584634c90bc68",
+      "size": 54
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-2-create/result-1.json",
+      "sha256": "2f2d43779b52e1a6919ce9f013ebf676077da1e514bf7cac263f18402cea7e2a",
+      "size": 55
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-2-create/start",
+      "sha256": "cced28c6dc3f99c2396a5eaad732bf6b28142335892b1cd0e6af6cdb53f5ccfa",
+      "size": 5
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-2-fork/continuity.sqlite",
+      "sha256": "f5e53956454bbe7ad9126c194222c599a2e883935df162deeb04a6e0af585337",
+      "size": 24576
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-2-fork/result-0.json",
+      "sha256": "e421cc80029d337ccdf70c5c0cacacca2d6abf86caa886d634fb7dbf7762cbcb",
+      "size": 53
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-2-fork/result-1.json",
+      "sha256": "5660e34333927722792e2865920faf05cfa370ac7d3c008cece0257e51eb39b8",
+      "size": 52
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-2-fork/start",
+      "sha256": "cced28c6dc3f99c2396a5eaad732bf6b28142335892b1cd0e6af6cdb53f5ccfa",
+      "size": 5
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-3-create/continuity.sqlite",
+      "sha256": "ff346f6abebc78c895a971628c18d057077a1941078335d95499d449eecc5874",
+      "size": 24576
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-3-create/result-0.json",
+      "sha256": "dff1ebfc111dc146a86a2cb3b4f3eaa0e340c3f41768293c9c9428f6f8c386cf",
+      "size": 54
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-3-create/result-1.json",
+      "sha256": "b0538fc4f2a54b2d6afde06088f7a4d3b6b93af5bf11b1c7676559a56b27552c",
+      "size": 55
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-3-create/start",
+      "sha256": "cced28c6dc3f99c2396a5eaad732bf6b28142335892b1cd0e6af6cdb53f5ccfa",
+      "size": 5
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-3-fork/continuity.sqlite",
+      "sha256": "ed5392075212720ed24b4ec8cb17b09fc8ff31c966f76f1c5902569706c2a557",
+      "size": 24576
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-3-fork/result-0.json",
+      "sha256": "fd05a455e0632759ab5f71fa8068e18dca53841e4c0d976b041f843e5d385890",
+      "size": 53
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-3-fork/result-1.json",
+      "sha256": "2f6d45613c408b9a936e5965a44d19efbaef392178fe04fe6a3c94c8250e8695",
+      "size": 52
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-3-fork/start",
+      "sha256": "cced28c6dc3f99c2396a5eaad732bf6b28142335892b1cd0e6af6cdb53f5ccfa",
+      "size": 5
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-4-create/continuity.sqlite",
+      "sha256": "ea57649098d73cf9c5b8512473e602763469f81072bff25709eaa451d6ae2eaf",
+      "size": 24576
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-4-create/result-0.json",
+      "sha256": "fd4c5111a96a652fcfddb2eb54bd8c6d23c89c5f4125b55bb49244eb2792866f",
+      "size": 55
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-4-create/result-1.json",
+      "sha256": "f6e764ca8693145439a4edc64f3091dda573ec1424def5b643e5c5a94131635d",
+      "size": 54
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-4-create/start",
+      "sha256": "cced28c6dc3f99c2396a5eaad732bf6b28142335892b1cd0e6af6cdb53f5ccfa",
+      "size": 5
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-4-fork/continuity.sqlite",
+      "sha256": "aca028927cae6439899855492f2710da3eba95a37c0287af23925a798f5aec01",
+      "size": 24576
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-4-fork/result-0.json",
+      "sha256": "909699f309d96f268b4028651dc1f679068d6c0b7d43eaf974f0f71293ccb990",
+      "size": 53
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-4-fork/result-1.json",
+      "sha256": "10e965007c1f54ef2c000229f216bc551076a84da459cc45f0f3c7ac17a8bd49",
+      "size": 52
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-4-fork/start",
+      "sha256": "cced28c6dc3f99c2396a5eaad732bf6b28142335892b1cd0e6af6cdb53f5ccfa",
+      "size": 5
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-5-create/continuity.sqlite",
+      "sha256": "177ada4f81a95cb21c636dca06a25019a9d04c685599dd00dae017d5b6e4fe03",
+      "size": 24576
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-5-create/result-0.json",
+      "sha256": "1c9ad02b8950fab46e4399a3ca44318d9a2aaa02ffa0e67f5ea94cf97948dd8e",
+      "size": 54
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-5-create/result-1.json",
+      "sha256": "198fbb66f51c135d92928f742fcbe1ae3c1461b34eff83d1131c948d43969a6c",
+      "size": 55
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-5-create/start",
+      "sha256": "cced28c6dc3f99c2396a5eaad732bf6b28142335892b1cd0e6af6cdb53f5ccfa",
+      "size": 5
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-5-fork/continuity.sqlite",
+      "sha256": "dab3ce4c11dd6000f263cac3d3e9b303323d2f6e380e5ff7815508a64221687e",
+      "size": 24576
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-5-fork/result-0.json",
+      "sha256": "27864a8a7893e2789cff53c8fab198eaa424df910eaf517810248c87ee7ee9a0",
+      "size": 52
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-5-fork/result-1.json",
+      "sha256": "3b0384044e8bfa925ad5479a5c1a44335def1d31afb5727cbe1659f6a326f332",
+      "size": 53
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-5-fork/start",
+      "sha256": "cced28c6dc3f99c2396a5eaad732bf6b28142335892b1cd0e6af6cdb53f5ccfa",
+      "size": 5
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-6-create/continuity.sqlite",
+      "sha256": "9b66e42ed23dba04c53500e1596729f80362b290c9ca653378d2c1af48621bc0",
+      "size": 24576
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-6-create/result-0.json",
+      "sha256": "c77161e441f0139c35e8352b9a41d8dfe4495fde466754506e64a66f07b503d1",
+      "size": 55
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-6-create/result-1.json",
+      "sha256": "e90756515b79045093d3c3178a5bbbfa7d227240250f5efa207e21ee62c2e140",
+      "size": 54
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-6-create/start",
+      "sha256": "cced28c6dc3f99c2396a5eaad732bf6b28142335892b1cd0e6af6cdb53f5ccfa",
+      "size": 5
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-6-fork/continuity.sqlite",
+      "sha256": "f63dd6c312aacf63a5074bf1a5a03be462e8ddbd5656ff8e2beedaaf527d09a0",
+      "size": 24576
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-6-fork/result-0.json",
+      "sha256": "0fbfbda5aa8271c6d0e34cb4271c08003b952d034a44986bc3199e69213655c1",
+      "size": 53
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-6-fork/result-1.json",
+      "sha256": "d49137f79329b5d20459aefe9e8d70049f688a6d561c925a9c558f035a22e441",
+      "size": 52
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-6-fork/start",
+      "sha256": "cced28c6dc3f99c2396a5eaad732bf6b28142335892b1cd0e6af6cdb53f5ccfa",
+      "size": 5
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-7-create/continuity.sqlite",
+      "sha256": "11651543f88f11991ac8e023ff26c33ba6bebb16c42a49dbb31643fbceed99b8",
+      "size": 24576
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-7-create/result-0.json",
+      "sha256": "00f584e184548cc6df1446b39f8f5fd5dcdca1b9fb6f16b2283fd6683cb50be7",
+      "size": 55
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-7-create/result-1.json",
+      "sha256": "9a1d087c2e1899c598f9e45bee4d65b80ebc18326b078bbc899ed3afd42cc2de",
+      "size": 54
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-7-create/start",
+      "sha256": "cced28c6dc3f99c2396a5eaad732bf6b28142335892b1cd0e6af6cdb53f5ccfa",
+      "size": 5
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-7-fork/continuity.sqlite",
+      "sha256": "88822bde2e246ab06c83a33acc29b0a9ce36fc322e6ffb5b1ccdbc83d83a7bf0",
+      "size": 24576
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-7-fork/result-0.json",
+      "sha256": "bee1afa891c2239cd5801178658fd81b4fee4c9c83326cd6768746d4d9fb5dfd",
+      "size": 53
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-7-fork/result-1.json",
+      "sha256": "53492d2d33659f7e57f1a753d89f32d3cf3531ccc9d16f202142cf52ca5a804d",
+      "size": 52
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-7-fork/start",
+      "sha256": "cced28c6dc3f99c2396a5eaad732bf6b28142335892b1cd0e6af6cdb53f5ccfa",
+      "size": 5
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-8-create/continuity.sqlite",
+      "sha256": "37fef3dd12fe4609fc68a1a29ec284eeabd10217c9dd30534af74746750088e9",
+      "size": 24576
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-8-create/result-0.json",
+      "sha256": "f546f066869a3a6c4d1fd28edd3b86bea78013d8ca4d49953ac1bcd18ff40e13",
+      "size": 55
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-8-create/result-1.json",
+      "sha256": "a9a8926bfb75cb9af15c74fedbe8495e609f276797bfa3832822666f009393dd",
+      "size": 54
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-8-create/start",
+      "sha256": "cced28c6dc3f99c2396a5eaad732bf6b28142335892b1cd0e6af6cdb53f5ccfa",
+      "size": 5
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-8-fork/continuity.sqlite",
+      "sha256": "529bf89a031d5c2778d8682749fb137c0e0e83e3f16513a2b92bfd1ec0ace602",
+      "size": 24576
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-8-fork/result-0.json",
+      "sha256": "eb46e823c259b7851fbff7663ae218e06ec731891936b73954f3b70b6510ca83",
+      "size": 53
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-8-fork/result-1.json",
+      "sha256": "b727cf11c87e0ae5f256365158260c30fe2026857b7f804c60239e1152ca7999",
+      "size": 52
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-8-fork/start",
+      "sha256": "cced28c6dc3f99c2396a5eaad732bf6b28142335892b1cd0e6af6cdb53f5ccfa",
+      "size": 5
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-9-create/continuity.sqlite",
+      "sha256": "28639865c406443ac655a7dc1e61270d1c70d7669f4d10a8c1af449295d743d5",
+      "size": 24576
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-9-create/result-0.json",
+      "sha256": "3e167126cb1fe6d28b2c2fc126219bbac4a3a3f30ea827d108753ed14e632fb7",
+      "size": 55
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-9-create/result-1.json",
+      "sha256": "9821a68974b6f0bedfe1183e27fa0f33151fb66aef5d9d1780cd001c8b96620c",
+      "size": 54
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-9-create/start",
+      "sha256": "cced28c6dc3f99c2396a5eaad732bf6b28142335892b1cd0e6af6cdb53f5ccfa",
+      "size": 5
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-9-fork/continuity.sqlite",
+      "sha256": "f6c05361fc465ae545df683b695013b3c1fe6ea2bfff61c11826634da7d583c5",
+      "size": 24576
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-9-fork/result-0.json",
+      "sha256": "cc4360f790124a74d516747f7756924e8045a2ddbe706fdc31c595625e5be385",
+      "size": 52
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-9-fork/result-1.json",
+      "sha256": "8291c846bb4b21ce00f3495f6856172335433010355aab31c02077ac8f367513",
+      "size": 53
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/DELETE-9-fork/start",
+      "sha256": "cced28c6dc3f99c2396a5eaad732bf6b28142335892b1cd0e6af6cdb53f5ccfa",
+      "size": 5
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/manifest.json",
+      "sha256": "2b7567c4b92da6b00a43557909bcb9968372caf6af155a8f0f52e8a9d4fa5fa8",
+      "size": 49821
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-0-create/continuity.sqlite",
+      "sha256": "ac11d1630358f63a9a9f9dfb03d45f3868f66c9d0ac4af753f569cb7435d94a8",
+      "size": 24576
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-0-create/result-0.json",
+      "sha256": "2a0a71d9e8507495b26c18c894119ad7547214455c6ffe0dbcf8c33116a8c63b",
+      "size": 55
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-0-create/result-1.json",
+      "sha256": "d9d479b6e7d60c3efab8d450bd1213c3ee5c2a48d9b65b46c453fa316d5205c1",
+      "size": 54
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-0-create/start",
+      "sha256": "cced28c6dc3f99c2396a5eaad732bf6b28142335892b1cd0e6af6cdb53f5ccfa",
+      "size": 5
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-0-fork/continuity.sqlite",
+      "sha256": "db2407ce80f71ebf9954760f2f5cc309f128859b8cd9911245b3cd8d1f3d5a69",
+      "size": 24576
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-0-fork/result-0.json",
+      "sha256": "4cc6c15d437f64c383c85b1b20cea875c93b2426a70096fb458517d990cdec55",
+      "size": 52
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-0-fork/result-1.json",
+      "sha256": "441e02ffa4f346cbac5a251ce9a7094b0c446b415cf9b697c1527196ffbd7586",
+      "size": 53
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-0-fork/start",
+      "sha256": "cced28c6dc3f99c2396a5eaad732bf6b28142335892b1cd0e6af6cdb53f5ccfa",
+      "size": 5
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-1-create/continuity.sqlite",
+      "sha256": "fb9534ccff83218b05b8d6906fdacfc21b461165c7fc50fb9291ec4a2604a3ce",
+      "size": 24576
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-1-create/result-0.json",
+      "sha256": "0734e4db019260cc2447b6c97dae70d96bdbd93b0f7afe4c3a4c28a74708eab9",
+      "size": 55
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-1-create/result-1.json",
+      "sha256": "ab479b02df0d978dd3511871d4fe4c459d4c00d626409045b23a2b4b5f5729f5",
+      "size": 54
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-1-create/start",
+      "sha256": "cced28c6dc3f99c2396a5eaad732bf6b28142335892b1cd0e6af6cdb53f5ccfa",
+      "size": 5
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-1-fork/continuity.sqlite",
+      "sha256": "49a61cb6126f69e48dd1c5eb5eb3745dac39085827a41be28ab3e541ab0d049e",
+      "size": 24576
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-1-fork/result-0.json",
+      "sha256": "ac61afdd41ec22ced4572f45d4c22a20c1d72c31b62af1986a11ff5f6e4ab08d",
+      "size": 52
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-1-fork/result-1.json",
+      "sha256": "dd680b4916d04729dbb485c855f2508384739d88c1de239d99e41d23acf7dbf1",
+      "size": 53
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-1-fork/start",
+      "sha256": "cced28c6dc3f99c2396a5eaad732bf6b28142335892b1cd0e6af6cdb53f5ccfa",
+      "size": 5
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-2-create/continuity.sqlite",
+      "sha256": "d94e110a1dc0444a00493c9837b5c41cc3440e433a808c763c682635510501e9",
+      "size": 24576
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-2-create/result-0.json",
+      "sha256": "f36af925e2c7c6c1b4a1c20343fb8377328b004be514427048dd83f4e6ba5b77",
+      "size": 55
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-2-create/result-1.json",
+      "sha256": "d1c9a5a1a6b284bd94bef3b5408f35c9e366d012dd88d4eff02c836f878a30ee",
+      "size": 54
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-2-create/start",
+      "sha256": "cced28c6dc3f99c2396a5eaad732bf6b28142335892b1cd0e6af6cdb53f5ccfa",
+      "size": 5
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-2-fork/continuity.sqlite",
+      "sha256": "cdc740a74ffffa94aab116f9f34b04c15e50ac77e14e9967a44066b1d3efdd0e",
+      "size": 24576
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-2-fork/result-0.json",
+      "sha256": "e421cc80029d337ccdf70c5c0cacacca2d6abf86caa886d634fb7dbf7762cbcb",
+      "size": 53
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-2-fork/result-1.json",
+      "sha256": "5660e34333927722792e2865920faf05cfa370ac7d3c008cece0257e51eb39b8",
+      "size": 52
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-2-fork/start",
+      "sha256": "cced28c6dc3f99c2396a5eaad732bf6b28142335892b1cd0e6af6cdb53f5ccfa",
+      "size": 5
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-3-create/continuity.sqlite",
+      "sha256": "5ae242d2086a7331c453c383223d590ea23c59929718c78cd272259370efbdba",
+      "size": 24576
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-3-create/result-0.json",
+      "sha256": "dff1ebfc111dc146a86a2cb3b4f3eaa0e340c3f41768293c9c9428f6f8c386cf",
+      "size": 54
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-3-create/result-1.json",
+      "sha256": "b0538fc4f2a54b2d6afde06088f7a4d3b6b93af5bf11b1c7676559a56b27552c",
+      "size": 55
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-3-create/start",
+      "sha256": "cced28c6dc3f99c2396a5eaad732bf6b28142335892b1cd0e6af6cdb53f5ccfa",
+      "size": 5
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-3-fork/continuity.sqlite",
+      "sha256": "33203aaf0a7417605acb6c795d53558531ade67087d7c7ec157c2a99b21818b9",
+      "size": 24576
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-3-fork/result-0.json",
+      "sha256": "fd05a455e0632759ab5f71fa8068e18dca53841e4c0d976b041f843e5d385890",
+      "size": 53
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-3-fork/result-1.json",
+      "sha256": "2f6d45613c408b9a936e5965a44d19efbaef392178fe04fe6a3c94c8250e8695",
+      "size": 52
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-3-fork/start",
+      "sha256": "cced28c6dc3f99c2396a5eaad732bf6b28142335892b1cd0e6af6cdb53f5ccfa",
+      "size": 5
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-4-create/continuity.sqlite",
+      "sha256": "1d34573a72f8aacf2b5e7be4c6a6078f2a6f062102f94ca1f32b42e5b06dc525",
+      "size": 24576
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-4-create/result-0.json",
+      "sha256": "8f4e5cf4ebb91fa525f514396d074b7e1449e38d5619b20d0bdd62d152bd3b4a",
+      "size": 54
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-4-create/result-1.json",
+      "sha256": "483a1c250ae66bdbd06a51f37e9ff3afb6ccf0d49b523f14b62b9f0f70585f6f",
+      "size": 55
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-4-create/start",
+      "sha256": "cced28c6dc3f99c2396a5eaad732bf6b28142335892b1cd0e6af6cdb53f5ccfa",
+      "size": 5
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-4-fork/continuity.sqlite",
+      "sha256": "5210ea12ed9c80c133007a4df5073ffaa58ce507cdb7a2b52838386ec4644f71",
+      "size": 24576
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-4-fork/result-0.json",
+      "sha256": "149e45e56936b0d9923011ae294f17c440733345666bb6638180e4fe4dbca30d",
+      "size": 52
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-4-fork/result-1.json",
+      "sha256": "51a1e733825529cc4ac6b85aaadac28b536f138d1a9b7130a186a4941e25b537",
+      "size": 53
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-4-fork/start",
+      "sha256": "cced28c6dc3f99c2396a5eaad732bf6b28142335892b1cd0e6af6cdb53f5ccfa",
+      "size": 5
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-5-create/continuity.sqlite",
+      "sha256": "2dca1086ef650ff19e4dd9ae0f2709afea60c7936713dd7409f9169f0aa7c1ed",
+      "size": 24576
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-5-create/result-0.json",
+      "sha256": "1c9ad02b8950fab46e4399a3ca44318d9a2aaa02ffa0e67f5ea94cf97948dd8e",
+      "size": 54
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-5-create/result-1.json",
+      "sha256": "198fbb66f51c135d92928f742fcbe1ae3c1461b34eff83d1131c948d43969a6c",
+      "size": 55
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-5-create/start",
+      "sha256": "cced28c6dc3f99c2396a5eaad732bf6b28142335892b1cd0e6af6cdb53f5ccfa",
+      "size": 5
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-5-fork/continuity.sqlite",
+      "sha256": "84e6043369b1d71e78cc765a64319f18c28682aab9b82fdee41bb6c1ce9d5825",
+      "size": 24576
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-5-fork/result-0.json",
+      "sha256": "a183a83be6b96961725035ff1d041a63e0482ef3be4a208b05f039109320640b",
+      "size": 53
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-5-fork/result-1.json",
+      "sha256": "d7130038ccea6d7405dc8442c4e1f12999553161e86635a93b6c5f81c79d734b",
+      "size": 52
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-5-fork/start",
+      "sha256": "cced28c6dc3f99c2396a5eaad732bf6b28142335892b1cd0e6af6cdb53f5ccfa",
+      "size": 5
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-6-create/continuity.sqlite",
+      "sha256": "b00730240c082c14c0a38e3de3a71a6918f720555727c3d39dcf288d65dd6660",
+      "size": 24576
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-6-create/result-0.json",
+      "sha256": "c77161e441f0139c35e8352b9a41d8dfe4495fde466754506e64a66f07b503d1",
+      "size": 55
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-6-create/result-1.json",
+      "sha256": "e90756515b79045093d3c3178a5bbbfa7d227240250f5efa207e21ee62c2e140",
+      "size": 54
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-6-create/start",
+      "sha256": "cced28c6dc3f99c2396a5eaad732bf6b28142335892b1cd0e6af6cdb53f5ccfa",
+      "size": 5
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-6-fork/continuity.sqlite",
+      "sha256": "f38adf5adfe81853b6feaf5b9d14b1310cde0e5323c3a6b2f133d9ed5a61fbeb",
+      "size": 24576
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-6-fork/result-0.json",
+      "sha256": "7817d8cc8d1c8b3b682b50e5c20d16b77abc84dba895a2c59dd7d5d97327651d",
+      "size": 52
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-6-fork/result-1.json",
+      "sha256": "1f81288b9d82dbc6876b74719c82090e983628350fc267eb2a58aba7c77dc5a5",
+      "size": 53
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-6-fork/start",
+      "sha256": "cced28c6dc3f99c2396a5eaad732bf6b28142335892b1cd0e6af6cdb53f5ccfa",
+      "size": 5
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-7-create/continuity.sqlite",
+      "sha256": "a6c46a0608223ed08fffe5f3b65a63c915e779e3150d483def30659edf9b3b91",
+      "size": 24576
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-7-create/result-0.json",
+      "sha256": "00f584e184548cc6df1446b39f8f5fd5dcdca1b9fb6f16b2283fd6683cb50be7",
+      "size": 55
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-7-create/result-1.json",
+      "sha256": "9a1d087c2e1899c598f9e45bee4d65b80ebc18326b078bbc899ed3afd42cc2de",
+      "size": 54
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-7-create/start",
+      "sha256": "cced28c6dc3f99c2396a5eaad732bf6b28142335892b1cd0e6af6cdb53f5ccfa",
+      "size": 5
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-7-fork/continuity.sqlite",
+      "sha256": "7876104f8c5d88b9b13348cfb86f3099ab931139f9ce4337a7045fac0e2c4132",
+      "size": 24576
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-7-fork/result-0.json",
+      "sha256": "b275b914457c05c03a3e4226124a4d7972a8130e3bc9768c1bb9d294bd012295",
+      "size": 52
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-7-fork/result-1.json",
+      "sha256": "9388ffe71a6991db6f06d7aaf72bbb6c1e9bfb3c473287dd0fd3ea06702e2548",
+      "size": 53
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-7-fork/start",
+      "sha256": "cced28c6dc3f99c2396a5eaad732bf6b28142335892b1cd0e6af6cdb53f5ccfa",
+      "size": 5
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-8-create/continuity.sqlite",
+      "sha256": "c07e234896f260d664948b4ad2072df7c4cc06c1ade2de1bc17acaa676c9590f",
+      "size": 24576
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-8-create/result-0.json",
+      "sha256": "1a8e11e0547ffb68734da9ce2ed937e7614d86ccad5887597354c2bb825f446b",
+      "size": 54
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-8-create/result-1.json",
+      "sha256": "30e210d9f8bce6e8e96662fa68977ca0505eeb568302acb8beb52db82759c562",
+      "size": 55
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-8-create/start",
+      "sha256": "cced28c6dc3f99c2396a5eaad732bf6b28142335892b1cd0e6af6cdb53f5ccfa",
+      "size": 5
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-8-fork/continuity.sqlite",
+      "sha256": "ac1bdd70b4ff64bf7ba50000a75c6fd021a94df014e7e82402213a9f9fb67615",
+      "size": 24576
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-8-fork/result-0.json",
+      "sha256": "eb46e823c259b7851fbff7663ae218e06ec731891936b73954f3b70b6510ca83",
+      "size": 53
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-8-fork/result-1.json",
+      "sha256": "b727cf11c87e0ae5f256365158260c30fe2026857b7f804c60239e1152ca7999",
+      "size": 52
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-8-fork/start",
+      "sha256": "cced28c6dc3f99c2396a5eaad732bf6b28142335892b1cd0e6af6cdb53f5ccfa",
+      "size": 5
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-9-create/continuity.sqlite",
+      "sha256": "73aaaa843706e0ef3573d371a35ae19c22202a988faa62322d9b6eadc9c04ccd",
+      "size": 24576
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-9-create/result-0.json",
+      "sha256": "3e167126cb1fe6d28b2c2fc126219bbac4a3a3f30ea827d108753ed14e632fb7",
+      "size": 55
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-9-create/result-1.json",
+      "sha256": "9821a68974b6f0bedfe1183e27fa0f33151fb66aef5d9d1780cd001c8b96620c",
+      "size": 54
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-9-create/start",
+      "sha256": "cced28c6dc3f99c2396a5eaad732bf6b28142335892b1cd0e6af6cdb53f5ccfa",
+      "size": 5
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-9-fork/continuity.sqlite",
+      "sha256": "31f8734aebff6cf9f63dad447ea4f84cb2703b2fddd1f3dbda0c1e0feab10ca9",
+      "size": 24576
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-9-fork/result-0.json",
+      "sha256": "40038147e4f0b122735c6ba95285a0e8aa62f635d1cd6f7ba1d4ee278bf9e18c",
+      "size": 53
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-9-fork/result-1.json",
+      "sha256": "b3d13c2321c1668f93c015b9afa91bf62a2db78e79e7afbff52e2934cde1a5c4",
+      "size": 52
+    },
+    {
+      "path": "test_p01_p02_multiprocess_single_winner/WAL-9-fork/start",
+      "sha256": "cced28c6dc3f99c2396a5eaad732bf6b28142335892b1cd0e6af6cdb53f5ccfa",
+      "size": 5
+    },
+    {
+      "path": "test_p03_fault_hooks_and_no_gc/DELETE-anchor_pending-0/continuity.sqlite",
+      "sha256": "dfa0a69d02df22d998e9224dd15bf0e8fc826cc99edd1a6421df54c8cd00e13a",
+      "size": 24576
+    },
+    {
+      "path": "test_p03_fault_hooks_and_no_gc/DELETE-anchor_pending-1/continuity.sqlite",
+      "sha256": "dfa0a69d02df22d998e9224dd15bf0e8fc826cc99edd1a6421df54c8cd00e13a",
+      "size": 24576
+    },
+    {
+      "path": "test_p03_fault_hooks_and_no_gc/DELETE-anchor_pending-2/continuity.sqlite",
+      "sha256": "dfa0a69d02df22d998e9224dd15bf0e8fc826cc99edd1a6421df54c8cd00e13a",
+      "size": 24576
+    },
+    {
+      "path": "test_p03_fault_hooks_and_no_gc/DELETE-before_commit-0/continuity.sqlite",
+      "sha256": "19253b7763554b297a5a4cb5e9bcc6a46b5b1af73b557253e04b4544c4342647",
+      "size": 24576
+    },
+    {
+      "path": "test_p03_fault_hooks_and_no_gc/DELETE-before_commit-0/continuity.sqlite-journal",
+      "sha256": "c7cc8555f7e0dc6d5f62de2921380605c1f496efbf8b89556f0c1067a07a3c2e",
+      "size": 8720
+    },
+    {
+      "path": "test_p03_fault_hooks_and_no_gc/DELETE-before_commit-1/continuity.sqlite",
+      "sha256": "19253b7763554b297a5a4cb5e9bcc6a46b5b1af73b557253e04b4544c4342647",
+      "size": 24576
+    },
+    {
+      "path": "test_p03_fault_hooks_and_no_gc/DELETE-before_commit-1/continuity.sqlite-journal",
+      "sha256": "ee186d4b94742946e7acc573072935c6e72387839d5705ff5843f4027caebb39",
+      "size": 8720
+    },
+    {
+      "path": "test_p03_fault_hooks_and_no_gc/DELETE-before_commit-2/continuity.sqlite",
+      "sha256": "19253b7763554b297a5a4cb5e9bcc6a46b5b1af73b557253e04b4544c4342647",
+      "size": 24576
+    },
+    {
+      "path": "test_p03_fault_hooks_and_no_gc/DELETE-before_commit-2/continuity.sqlite-journal",
+      "sha256": "51cb6d2f50eb5c4edf47edb0a42dc5b6ae20d4300160890e54c818d0b279b809",
+      "size": 8720
+    },
+    {
+      "path": "test_p03_fault_hooks_and_no_gc/DELETE-prepared-0/continuity.sqlite",
+      "sha256": "a047dc5814accc6566f47afa5d45cc8f41c3e719a5c822ec768954f40bfa6a82",
+      "size": 24576
+    },
+    {
+      "path": "test_p03_fault_hooks_and_no_gc/DELETE-prepared-1/continuity.sqlite",
+      "sha256": "a047dc5814accc6566f47afa5d45cc8f41c3e719a5c822ec768954f40bfa6a82",
+      "size": 24576
+    },
+    {
+      "path": "test_p03_fault_hooks_and_no_gc/DELETE-prepared-2/continuity.sqlite",
+      "sha256": "a047dc5814accc6566f47afa5d45cc8f41c3e719a5c822ec768954f40bfa6a82",
+      "size": 24576
+    },
+    {
+      "path": "test_p03_fault_hooks_and_no_gc/DELETE-record_mid-0/continuity.sqlite",
+      "sha256": "66b81d0952b5b28ac15af14fff25a76b492c8f44906ddd2be817cbd8ceb0503b",
+      "size": 24576
+    },
+    {
+      "path": "test_p03_fault_hooks_and_no_gc/DELETE-record_mid-0/continuity.sqlite-journal",
+      "sha256": "da2ef34743b8ffe05594ef61720bfa438a19c09e15f7c5b9509142b91a8d8b3d",
+      "size": 12824
+    },
+    {
+      "path": "test_p03_fault_hooks_and_no_gc/DELETE-record_mid-1/continuity.sqlite",
+      "sha256": "66b81d0952b5b28ac15af14fff25a76b492c8f44906ddd2be817cbd8ceb0503b",
+      "size": 24576
+    },
+    {
+      "path": "test_p03_fault_hooks_and_no_gc/DELETE-record_mid-1/continuity.sqlite-journal",
+      "sha256": "80c66e2040dcb49f8b8005f8bf02e23881ac3f95ddfe9399ea36a14f1f3b915d",
+      "size": 12824
+    },
+    {
+      "path": "test_p03_fault_hooks_and_no_gc/DELETE-record_mid-2/continuity.sqlite",
+      "sha256": "66b81d0952b5b28ac15af14fff25a76b492c8f44906ddd2be817cbd8ceb0503b",
+      "size": 24576
+    },
+    {
+      "path": "test_p03_fault_hooks_and_no_gc/DELETE-record_mid-2/continuity.sqlite-journal",
+      "sha256": "bdd57705f6575477a9ef02cb1ce86cae3059181fc5ded7c9d20f682c6242ed5d",
+      "size": 12824
+    },
+    {
+      "path": "test_p03_fault_hooks_and_no_gc/manifest.json",
+      "sha256": "4d6185c42ad443108d2b62b0857a56c0763a00f8f7a6db4101e8ffe968bcc773",
+      "size": 12515
+    },
+    {
+      "path": "test_p03_fault_hooks_and_no_gc/WAL-anchor_pending-0/continuity.sqlite",
+      "sha256": "d92dfaacbc5a506fc899575bcd63602b153b56d2e3aed4e18c05286be7bc7590",
+      "size": 24576
+    },
+    {
+      "path": "test_p03_fault_hooks_and_no_gc/WAL-anchor_pending-1/continuity.sqlite",
+      "sha256": "d92dfaacbc5a506fc899575bcd63602b153b56d2e3aed4e18c05286be7bc7590",
+      "size": 24576
+    },
+    {
+      "path": "test_p03_fault_hooks_and_no_gc/WAL-anchor_pending-2/continuity.sqlite",
+      "sha256": "d92dfaacbc5a506fc899575bcd63602b153b56d2e3aed4e18c05286be7bc7590",
+      "size": 24576
+    },
+    {
+      "path": "test_p03_fault_hooks_and_no_gc/WAL-before_commit-0/continuity.sqlite",
+      "sha256": "b365cab70ac999074b9870c9f33fa938fa704997942d2af9de87fdd7e5ebbf41",
+      "size": 24576
+    },
+    {
+      "path": "test_p03_fault_hooks_and_no_gc/WAL-before_commit-1/continuity.sqlite",
+      "sha256": "b365cab70ac999074b9870c9f33fa938fa704997942d2af9de87fdd7e5ebbf41",
+      "size": 24576
+    },
+    {
+      "path": "test_p03_fault_hooks_and_no_gc/WAL-before_commit-2/continuity.sqlite",
+      "sha256": "b365cab70ac999074b9870c9f33fa938fa704997942d2af9de87fdd7e5ebbf41",
+      "size": 24576
+    },
+    {
+      "path": "test_p03_fault_hooks_and_no_gc/WAL-prepared-0/continuity.sqlite",
+      "sha256": "aea1310d1d70e73e0980de36429a6c45b3822939ff7052bb56aa8484dcc39397",
+      "size": 24576
+    },
+    {
+      "path": "test_p03_fault_hooks_and_no_gc/WAL-prepared-1/continuity.sqlite",
+      "sha256": "aea1310d1d70e73e0980de36429a6c45b3822939ff7052bb56aa8484dcc39397",
+      "size": 24576
+    },
+    {
+      "path": "test_p03_fault_hooks_and_no_gc/WAL-prepared-2/continuity.sqlite",
+      "sha256": "aea1310d1d70e73e0980de36429a6c45b3822939ff7052bb56aa8484dcc39397",
+      "size": 24576
+    },
+    {
+      "path": "test_p03_fault_hooks_and_no_gc/WAL-record_mid-0/continuity.sqlite",
+      "sha256": "a4e2476ddcb4df1b2ac2aa37f478482f7dd27629208ae7f71757162a5e957cb1",
+      "size": 24576
+    },
+    {
+      "path": "test_p03_fault_hooks_and_no_gc/WAL-record_mid-1/continuity.sqlite",
+      "sha256": "a4e2476ddcb4df1b2ac2aa37f478482f7dd27629208ae7f71757162a5e957cb1",
+      "size": 24576
+    },
+    {
+      "path": "test_p03_fault_hooks_and_no_gc/WAL-record_mid-2/continuity.sqlite",
+      "sha256": "a4e2476ddcb4df1b2ac2aa37f478482f7dd27629208ae7f71757162a5e957cb1",
+      "size": 24576
+    },
+    {
+      "path": "test_p04_delete_commit_busy_gate_stays_closed/delete-commit-busy/continuity.sqlite",
+      "sha256": "d7e78304901913ef70c62c946128a090b14896837b1ea63c480350db075a3427",
+      "size": 24576
+    },
+    {
+      "path": "test_p04_delete_commit_busy_gate_stays_closed/manifest.json",
+      "sha256": "c06c540d348cb968c68ae44d8cfbc8b9ef969f2ab93a36925340389ba7213a6c",
+      "size": 462
+    },
+    {
+      "path": "test_p04_real_busy_and_lost_ack/DELETE/continuity.sqlite",
+      "sha256": "4aa130c4a036551ae5c53ef9ab5f5c175a8844763c8366cc3b23b6edb0c21b19",
+      "size": 24576
+    },
+    {
+      "path": "test_p04_real_busy_and_lost_ack/manifest.json",
+      "sha256": "e92650e0975474e19dd7c3f1b85b591052b4dcbe27b05f3d0295261385e235c9",
+      "size": 1795
+    },
+    {
+      "path": "test_p04_real_busy_and_lost_ack/WAL/continuity.sqlite",
+      "sha256": "081a5a1310c63482825ed514d83100f96fd61c7c382453590bcd9580f09031e1",
+      "size": 24576
+    },
+    {
+      "path": "test_p04_real_sqlite_interrupt/DELETE/continuity.sqlite",
+      "sha256": "66b81d0952b5b28ac15af14fff25a76b492c8f44906ddd2be817cbd8ceb0503b",
+      "size": 24576
+    },
+    {
+      "path": "test_p04_real_sqlite_interrupt/manifest.json",
+      "sha256": "2e63795666ca3ac36e8dafd385c9ba450a0e4e7b75edea964abe4d009dd31fc6",
+      "size": 580
+    },
+    {
+      "path": "test_p04_real_sqlite_interrupt/WAL/continuity.sqlite",
+      "sha256": "a4e2476ddcb4df1b2ac2aa37f478482f7dd27629208ae7f71757162a5e957cb1",
+      "size": 24576
+    },
+    {
+      "path": "test_p05_synthetic_admission_bypass_is_detected/DELETE/continuity.sqlite",
+      "sha256": "dc3c7e3492d31a8b505f44a25aad249289b251d55cf47c2d3338d9d5d5298e12",
+      "size": 24576
+    },
+    {
+      "path": "test_p05_synthetic_admission_bypass_is_detected/manifest.json",
+      "sha256": "cb266e34a699eae4b8a586d4de2fb6a917a8ac1e127e2ac8d9eb2c170602f191",
+      "size": 1617
+    },
+    {
+      "path": "test_p05_synthetic_admission_bypass_is_detected/WAL/continuity.sqlite",
+      "sha256": "53e658fdd15acc73a27d0162ba4cf41f6d5c76cee2135952fe76ca95cbdd96d6",
+      "size": 24576
+    },
+    {
+      "path": "test_p06_business_restore_cannot_establish_nonrollback/DELETE/business-backup.json",
+      "sha256": "3c4d385d43ced193884a5f60f736d102684b9e94e7ceeb3aa5962bd60fb65701",
+      "size": 13
+    },
+    {
+      "path": "test_p06_business_restore_cannot_establish_nonrollback/DELETE/business.json",
+      "sha256": "3c4d385d43ced193884a5f60f736d102684b9e94e7ceeb3aa5962bd60fb65701",
+      "size": 13
+    },
+    {
+      "path": "test_p06_business_restore_cannot_establish_nonrollback/DELETE/continuity.sqlite",
+      "sha256": "d35442b3cfc2d592dd0205bd5417a7434c6718af88f1c00d9d592e7b2b327660",
+      "size": 24576
+    },
+    {
+      "path": "test_p06_business_restore_cannot_establish_nonrollback/DELETE/old-continuity.sqlite",
+      "sha256": "d35442b3cfc2d592dd0205bd5417a7434c6718af88f1c00d9d592e7b2b327660",
+      "size": 24576
+    },
+    {
+      "path": "test_p06_business_restore_cannot_establish_nonrollback/manifest.json",
+      "sha256": "f43ce4b16b87c520f38af9aa016a9cd353cf2ba289ef415cf011bd89bc4a6b15",
+      "size": 2157
+    },
+    {
+      "path": "test_p06_business_restore_cannot_establish_nonrollback/WAL/business-backup.json",
+      "sha256": "3c4d385d43ced193884a5f60f736d102684b9e94e7ceeb3aa5962bd60fb65701",
+      "size": 13
+    },
+    {
+      "path": "test_p06_business_restore_cannot_establish_nonrollback/WAL/business.json",
+      "sha256": "3c4d385d43ced193884a5f60f736d102684b9e94e7ceeb3aa5962bd60fb65701",
+      "size": 13
+    },
+    {
+      "path": "test_p06_business_restore_cannot_establish_nonrollback/WAL/continuity.sqlite",
+      "sha256": "a8db1324498eaefcbd2c8735b9ccfc577e28d8c6db6cd115fd0d2d8f1ffea80d",
+      "size": 24576
+    },
+    {
+      "path": "test_p06_business_restore_cannot_establish_nonrollback/WAL/old-continuity.sqlite",
+      "sha256": "a8db1324498eaefcbd2c8735b9ccfc577e28d8c6db6cd115fd0d2d8f1ffea80d",
+      "size": 24576
+    },
+    {
+      "path": "test_p07_fork_target_pending_and_parent_loss/DELETE/continuity.sqlite",
+      "sha256": "7c516b49fcab68988cc4b12aff342a16041c5b09c3221f5aa986b356ce4daf93",
+      "size": 24576
+    },
+    {
+      "path": "test_p07_fork_target_pending_and_parent_loss/manifest.json",
+      "sha256": "3bf806ed0ebcd92b5d8b7422c5ba4d29956ea20880a6347739894daf2edcc84f",
+      "size": 1614
+    },
+    {
+      "path": "test_p07_fork_target_pending_and_parent_loss/WAL/continuity.sqlite",
+      "sha256": "25de3e20c41fbc60f7996fcf4590da2bbb83eadc85e84e61c7ad0c0c8b5b05b6",
+      "size": 24576
+    },
+    {
+      "path": "test_p07_four_axes_and_corruption/DELETE/continuity.sqlite",
+      "sha256": "f6df8308e136ef6eed0d313bdcf07a0d3811cc4c9599a66391716e50399dec12",
+      "size": 24576
+    },
+    {
+      "path": "test_p07_four_axes_and_corruption/manifest.json",
+      "sha256": "ea0a25b662abbba1a8108423bf0e01c6a15263a40ed8496427145d99ebb393e6",
+      "size": 1273
+    },
+    {
+      "path": "test_p07_four_axes_and_corruption/WAL/continuity.sqlite",
+      "sha256": "750157b287c223e2e9a7d8d78504738fa8afc854fa868fca5beae35e25a7904b",
+      "size": 24576
+    }
+  ],
+  "claim_limit": "E0 process behavior only; E1/E2/E3 and real admission NOT_PROVEN"
+}
