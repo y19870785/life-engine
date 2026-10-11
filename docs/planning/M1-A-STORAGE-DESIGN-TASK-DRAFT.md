@@ -1,17 +1,35 @@
 # M1-A — Continuity Storage / Admission 设计任务书草案
 
-状态：`DRAFT / REVIEW_REQUIRED / NOT_EXECUTION_AUTHORIZATION`。日期：2026-10-09。
+状态：`PROPOSED_V1 / REVIEW_REQUIRED / DESIGN_ONLY`。日期：2026-10-11。
 
 Roadmap Stage: Soul Continuity Mainline → M1 Soul Identity Core V1 → M1-A Schema / Storage Contract。
 Why Now: M0 已冻结，M1-P0 给出了条件性持久化协议；在 Soul Identity 写入前必须选择并证明新增存储原语、旧版本准入和备份隔离路径。
 
 ## 1. 准入与本稿地位
 
-本稿只供阶段目标与设计范围审核。规划编制时观察到的 canonical main 为 `25aa9aec7ceeb97d6fba99c913430c5296ec9e07`（PR #50 Squash commit），其 exact `push/main` CI #37703957820 四矩阵成功。这是历史观察，不自动成为正式执行 Base。
+本任务书的拟定设计 Base 为 `c26d6c5c4a721bedf7dde6c6575ee23277574dd6`（PR #52 Squash commit）。[exact `push/main` CI #38107717191](https://github.com/y19870785/life-engine/actions/runs/38107717191) 四矩阵成功，PR #52 已获独立 `M1-P0_DOC_DONE`。原 PR #50 Squash `25aa9aec7ceeb97d6fba99c913430c5296ec9e07` 与 PR #51 Squash `462eee14bdc4be32c163797bc528ea7c0bba7c22` 均为历史 Base，不自动替代当前 main。正式设计启动前仍须重新检查远端 main 未漂移。
 
-正式发布 M1-A 设计任务前，重新核验 main 与 M1-P0 独立收口结论，记录其被审合同版本、Base/Head、差异与结论；若尚无可追溯结论，补做独立 Gate 审核。只有用户批准本任务的确定版本与固定 Base 后，才开始设计执行。本稿本身不授权原语探针、故障注入代码、Schema/migration、Anchor/Record writer、active enrollment 或生产数据操作。
+2026-10-11 准入复核结果：独立内容终审曾发现上游 CREATE 首代 `0` 与 M1-P0 `G1` 冲突（F01）；PR #52 将首代校准为 `G0`，独立审核裁定 `F01_CLOSED`，并在合并后 exact main CI 全部成功后裁定 `M1-P0_DOC_DONE`。这是文档协议准入证据，不是目标平台存储原语证明。
 
-合同优先级：`SP-006S0-SOUL-CONTINUITY-ARCHITECTURE.md`、`M1-P0-CONTINUITY-PERSISTENCE-PROTOCOL.md`、`M1-P0-IMPLEMENTATION-GATE.md`、`M1-P0-CRASH-RECOVERY-MATRIX.md`。阶段自主开发流程 R2 是拟议治理流程，生效条件见其 §10；本设计任务不靠流程提案取得产品权限。
+正式发布 M1-A 设计任务前，重新核验 main 与 M1-P0 独立收口结论，记录其被审合同版本、Base/Head、差异与结论。用户先前的“授权”是准备任务书的历史依据；正式设计授权的来源必须是用户看到本确定版本、内容 hash 和固定 Base 后作出的明确批准，不能由本文件自行签发。拟议范围仅为只读源码/合同调查及 `docs/planning/` 下的设计文档，允许已批准范围内的修订和独立设计审核；不含原语探针、故障注入代码、Schema/migration、Anchor/Record writer、active enrollment、真实 Host 或生产数据操作。
+
+合同优先级：`SP-006S0-SOUL-CONTINUITY-ARCHITECTURE.md`、`M1-P0-CONTINUITY-PERSISTENCE-PROTOCOL.md`、`M1-P0-IMPLEMENTATION-GATE.md`、`M1-P0-CRASH-RECOVERY-MATRIX.md`。[阶段自主开发流程 R2](CODEX-STAGE-AUTONOMY-PLAN.md)已随 PR #51 完成独立收口，但流程本身不签发产品实施权限。
+
+### 拟议的设计授权合同（待确切版本审定）
+
+| 字段 | 拟议值 |
+| --- | --- |
+| Authorization ID / Version / Source | `M1-A-DESIGN-V1`；先前“授权”仅为任务准备依据；正式 Source 待用户对本确定版本及 SHA-256 的明确批准消息定位后填写，缺失时仍为 `PROPOSED` |
+| State / Base | `PROPOSED`；固定设计 Base 为 `c26d6c5c4a721bedf7dde6c6575ee23277574dd6`；获批后为 `ACTIVE`，可由用户暂停/撤销，到期或出口后分别记 `PAUSED / REVOKED / EXPIRED / COMPLETED`；启动、恢复及每次远端变更前重验用户授权、main 和依赖证据 |
+| Goal / Exit | 交付 §3 的设计材料，先取得独立 `DESIGN_REVIEW_COMPLETE`；之后才允许提交、推送、建立一个 Draft PR，对实际 Base/Head/diff 另作审核，exact Head CI 作为后续 PR Gate 证据；最终停在 `REVIEW_COMPLETE_AWAITING_HUMAN_GATE`，不要求 Ready/Merge，不宣称仓库任务 DONE |
+| Actions | 只读源码/合同核验、编写 `docs/planning/` 设计文档、独立设计审核与同范围最多三轮修订；独立设计 PASS 后在隔离分支提交并推送设计文档、创建一个 Draft PR；Ready、Merge 和 CI rerun 均不在本拟议授权内 |
+| Scope / Migration | 不改 Runtime、Schema、tests、workflow；不运行原语探针；仅分析合成/隔离数据方案，不接触真实 Host、生产数据或真实发送 |
+| Acceptance | §2 全部决策、§3 全部交付物、可追溯 C01–C20/G01–G06/FK01–FK08 归属；不具证据的保证一律 `PENDING / NOT_PROVEN` |
+| Limits / Recovery | 一份设计主文档、一个 Draft PR、最多三轮独立审核修订；CI 重试额度 0；单次 CI 等待最多 60 分钟、独立审核等待最多 30 分钟，超时记 `PENDING` 并停止新变更动作；无后台自动运行；累计轮次跨会话保存，超出后停止；拟议不设额外 token/费用上限，仍受系统限额约束，须由用户明确批准 |
+| Delegation / Review | 本合同不启用实施或审核子 Agent，也不启用 R2 §7 阶段自主循环；ChatGPT 设计审核仅向用户已授权的独立审核会话交接确切文档，跨聊天发送权限若不成立则先取得授权 |
+| Exceptions | M1-P0 独立收口缺失、main 外部漂移、候选与冻结语义不相容、无可行验证路径、必须降低保证或需扩大动作时停止并交用户/ChatGPT 决策；纯实验实证缺失应诚实列 `PENDING / NOT_PROVEN` 并给验证方案，不误判为设计失败 |
+
+本表是供审批的具体边界。只有用户确认其确定版本（含内容 hash、固定 Base 和资源限额）后，状态才可从 `PROPOSED` 进入 `ACTIVE`。设计交付物在已批准范围内的三轮修订、commit/push 和复审无需逐轮批准；授权合同的范围、验收、权限或资源上限扩大则需新版本和用户授权。暂停、撤销、到期后不再发起新变更动作；只读对账已在途动作，恢复时重新核验授权和远端状态，不靠修改状态文件自解锁。若将来启用阶段自主循环，须先另行完成 R2 §7 协调保护准入；本合同不授权实现该工具。
 
 ## 2. 本次要回答的决定
 
