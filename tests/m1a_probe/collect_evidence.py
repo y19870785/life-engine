@@ -109,6 +109,9 @@ def process_identity(pid: int) -> dict | None:
             exit_code = wintypes.DWORD()
             if not kernel.GetExitCodeProcess(handle, ctypes.byref(exit_code)):
                 raise OSError(ctypes.get_last_error(), "GetExitCodeProcess failed")
+            if exit_code.value != 259:
+                return {"pid": pid, "created": (created.high << 32) | created.low,
+                        "image": None, "active": False}
             image = ctypes.create_unicode_buffer(32768)
             size = wintypes.DWORD(len(image))
             if not kernel.QueryFullProcessImageNameW(handle, 0, image, ctypes.byref(size)):
@@ -132,15 +135,39 @@ def live_registered_workers(target: Path, run_id: str) -> list[int]:
     live = []
     ledger = target / "worker-ledger.jsonl"
     if not ledger.exists():
-        return live
+        raise ValueError("WORKER_LEDGER_MISSING")
+    pending = set()
+    registered = set()
+    started = False
     for line in ledger.read_text(encoding="utf-8").splitlines():
         record = json.loads(line)
-        if record["run_id"] != run_id or not record["identity"]:
+        if record["run_id"] != run_id:
             raise ValueError("WORKER_LEDGER_IDENTITY_MISMATCH")
-        current = process_identity(int(record["identity"]["pid"]))
+        kind = record["kind"]
+        if kind == "run_start" and not started:
+            started = True
+            continue
+        spawn_id = record.get("spawn_id")
+        if not started or not spawn_id:
+            raise ValueError("WORKER_LEDGER_SEQUENCE_INVALID")
+        if kind == "spawn_intent" and spawn_id not in pending and spawn_id not in registered:
+            pending.add(spawn_id)
+            continue
+        if kind not in ("spawn_registered", "spawn_reaped") or spawn_id not in pending:
+            raise ValueError("WORKER_LEDGER_SEQUENCE_INVALID")
+        pending.remove(spawn_id)
+        registered.add(spawn_id)
+        if kind == "spawn_reaped":
+            continue
+        identity = record.get("identity")
+        if not identity:
+            raise ValueError("WORKER_LEDGER_IDENTITY_MISMATCH")
+        current = process_identity(int(identity["pid"]))
         if current is not None and current["active"] and all(
-                current[key] == record["identity"][key] for key in ("pid", "created", "image")):
+                current[key] == identity[key] for key in ("pid", "created", "image")):
             live.append(current["pid"])
+    if not started or pending:
+        raise ValueError("WORKER_LEDGER_INCOMPLETE")
     return sorted(set(live))
 
 
@@ -159,6 +186,10 @@ def main() -> int:
     evidence_sink(target)
     target.mkdir(exist_ok=False)
     run_id = uuid.uuid4().hex
+    with (target / "worker-ledger.jsonl").open("x", encoding="utf-8") as ledger:
+        ledger.write(json.dumps({"run_id": run_id, "kind": "run_start"}) + "\n")
+        ledger.flush()
+        os.fsync(ledger.fileno())
     env = dict(os.environ)
     env["M1A_PROBE_EVIDENCE_ROOT"] = str(target)
     env["M1A_PROBE_RUN_ID"] = run_id

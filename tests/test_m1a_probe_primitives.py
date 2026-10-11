@@ -11,6 +11,7 @@ import sys
 import tempfile
 import time
 import unittest
+import uuid
 
 PROBE = Path(__file__).parent / "m1a_probe"
 sys.path.insert(0, str(PROBE))
@@ -36,6 +37,12 @@ class ProbeTests(unittest.TestCase):
             self.evidence_root = Path(tempfile.mkdtemp(prefix="m1a-evidence-transient-"))
             self.evidence_grade = "TRANSIENT_REGRESSION_ONLY"
             self.assertEqual(self.evidence_root.resolve(), self.evidence_root.absolute())
+        self.run_id = os.environ.get("M1A_PROBE_RUN_ID", "TRANSIENT")
+        ledger = self.evidence_root / "worker-ledger.jsonl"
+        if requested_sink and not ledger.is_file():
+            raise RuntimeError("WORKER_LEDGER_MISSING")
+        if not requested_sink:
+            self.append_worker_event({"kind": "run_start"})
         self.paths = []
         self.observations = []
 
@@ -65,19 +72,42 @@ class ProbeTests(unittest.TestCase):
         self.paths.append(database)
         return database
 
-    def track_worker(self, process):
-        identity = process_identity(process.pid)
-        if identity is None or not identity["active"]:
-            process.kill()
-            process.communicate(timeout=2)
-            raise RuntimeError("WORKER_IDENTITY_UNAVAILABLE")
-        entry = {"run_id": os.environ.get("M1A_PROBE_RUN_ID", "TRANSIENT"),
-                 "identity": identity}
+    def append_worker_event(self, event):
+        entry = {"run_id": self.run_id, **event}
         with (self.evidence_root / "worker-ledger.jsonl").open("a", encoding="utf-8") as ledger:
             ledger.write(json.dumps(entry, sort_keys=True) + "\n")
             ledger.flush()
             os.fsync(ledger.fileno())
+
+    def spawn_worker(self, args, **kwargs):
+        spawn_id = uuid.uuid4().hex
+        self.append_worker_event({"kind": "spawn_intent", "spawn_id": spawn_id})
+        process = subprocess.Popen(args, **kwargs)
+        try:
+            identity = process_identity(process.pid)
+            if process.poll() is not None:
+                self.append_worker_event({"kind": "spawn_reaped", "spawn_id": spawn_id})
+            elif identity is not None and identity["active"]:
+                self.append_worker_event({"kind": "spawn_registered", "spawn_id": spawn_id,
+                                          "identity": identity})
+            else:
+                raise RuntimeError("WORKER_IDENTITY_UNAVAILABLE")
+        except BaseException:
+            if process.poll() is None:
+                process.kill()
+            process.communicate(timeout=2)
+            raise
         return process
+
+    def run_worker(self, args, timeout=10):
+        process = self.spawn_worker(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        try:
+            stdout, stderr = process.communicate(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            process.communicate(timeout=2)
+            raise
+        return subprocess.CompletedProcess(args, process.returncode, stdout, stderr)
 
     def genesis(self, path, transition="genesis"):
         with connect(path) as db:
@@ -88,8 +118,7 @@ class ProbeTests(unittest.TestCase):
 
     def fresh(self, path):
         code = "import sqlite3,json,sys; c=sqlite3.connect(sys.argv[1]); r=c.execute('SELECT revision,value FROM soul_root').fetchone(); print(json.dumps({'revision':r[0],'value':json.loads(r[1])} if r else None)); c.close()"
-        result = subprocess.run([sys.executable, "-X", "utf8", "-c", code, str(path)],
-                                capture_output=True, text=True, timeout=10)
+        result = self.run_worker([sys.executable, "-X", "utf8", "-c", code, str(path)])
         self.assertEqual(result.returncode, 0, result.stderr)
         return result.stdout.strip()
 
@@ -114,10 +143,10 @@ class ProbeTests(unittest.TestCase):
         started = []
         for i in range(2):
             started.append(time.monotonic())
-            processes.append(self.track_worker(subprocess.Popen([sys.executable, "-X", "utf8", str(PROBE / "primitive.py"),
+            processes.append(self.spawn_worker([sys.executable, "-X", "utf8", str(PROBE / "primitive.py"),
                                                str(path), mode, operations[i], f"{operations[i]}-{index}-{i}",
                                                str(start), str(ready[i]), str(output[i])], stdout=subprocess.PIPE,
-                                              stderr=subprocess.PIPE, text=True)))
+                                              stderr=subprocess.PIPE, text=True))
         try:
             deadline = min(started) + 8
             while not all(item.exists() for item in ready) and time.monotonic() < deadline:
@@ -229,8 +258,8 @@ class ProbeTests(unittest.TestCase):
             for hook in ("record_mid", "prepared", "before_commit", "anchor_pending"):
                 for repeat in range(3):
                     path = self.db(mode, f"{mode}-{hook}-{repeat}")
-                    process = subprocess.run([sys.executable, "-X", "utf8", str(PROBE / "fault_worker.py"),
-                                              str(path), hook], capture_output=True, text=True, timeout=10)
+                    process = self.run_worker([sys.executable, "-X", "utf8", str(PROBE / "fault_worker.py"),
+                                               str(path), hook])
                     self.assertEqual(process.returncode, 42, process.stderr)
                     raw_files = self.crash_snapshot(path)
                     with connect(path) as db:
@@ -330,12 +359,12 @@ class ProbeTests(unittest.TestCase):
         for mode in ("WAL", "DELETE"):
             for repeat in range(3):
                 path = self.db(mode, f"{mode}-{repeat}")
-                process = subprocess.run([sys.executable, "-X", "utf8", str(PROBE / "fault_worker.py"),
-                                          str(path), "ack_lost"], capture_output=True, text=True, timeout=10)
+                process = self.run_worker([sys.executable, "-X", "utf8", str(PROBE / "fault_worker.py"),
+                                           str(path), "ack_lost"])
                 self.assertEqual(process.returncode, 42, process.stderr)
                 raw_files = self.crash_snapshot(path)
-                query = subprocess.run([sys.executable, "-X", "utf8", str(PROBE / "query_worker.py"),
-                                        str(path), "lost-ack-fresh"], capture_output=True, text=True, timeout=10)
+                query = self.run_worker([sys.executable, "-X", "utf8", str(PROBE / "query_worker.py"),
+                                         str(path), "lost-ack-fresh"])
                 self.assertEqual(query.returncode, 0, query.stderr)
                 answer = json.loads(query.stdout)
                 self.assertEqual(answer["outcome"], "COMMITTED")
@@ -418,9 +447,9 @@ class ProbeTests(unittest.TestCase):
                 retirement = prepare(db, record("RETIRE", f"gate-retire-{index}", expected_revision=0))
             ready = fixture / f"ready-{index}"
             release = fixture / f"release-{index}"
-            worker = self.track_worker(subprocess.Popen([sys.executable, "-X", "utf8", str(PROBE / "gate_worker.py"),
+            worker = self.spawn_worker([sys.executable, "-X", "utf8", str(PROBE / "gate_worker.py"),
                                        str(gate), str(continuity), str(business), str(ready), str(release)],
-                                      stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True))
+                                      stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
             worker_deadline = time.monotonic() + 10
             try:
                 deadline = worker_deadline - 2
@@ -548,17 +577,14 @@ class ProbeTests(unittest.TestCase):
                                   "linked_ancestor": "DENIED_BEFORE_WRITE"})
 
     def test_collector_live_worker_blocks_raw_copy_without_terminating_it(self):
-        target = self.root / "collector-negative"
-        target.mkdir()
-        run_id = os.environ.get("M1A_PROBE_RUN_ID", "TRANSIENT")
-        worker = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(20)"],
-                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        target = self.evidence_root
+        run_id = self.run_id
+        worker = self.spawn_worker([sys.executable, "-c", "import time; time.sleep(20)"],
+                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         try:
             identity = process_identity(worker.pid)
             self.assertIsNotNone(identity)
             self.assertTrue(identity["active"])
-            (target / "worker-ledger.jsonl").write_text(
-                json.dumps({"run_id": run_id, "identity": identity}) + "\n", encoding="utf-8")
             self.assertEqual(live_registered_workers(target, run_id), [worker.pid])
             self.assertIsNone(worker.poll(), "read-only liveness query must not terminate worker")
             copied, live, settled = settle_and_preserve(target, set(), run_id, True)
@@ -571,6 +597,20 @@ class ProbeTests(unittest.TestCase):
             if worker.poll() is None:
                 worker.terminate()
             worker.communicate(timeout=5)
+
+    def test_collector_missing_or_pending_ledger_blocks_raw_copy(self):
+        target = self.root / "collector-incomplete"
+        target.mkdir()
+        for missing in (True, False):
+            if not missing:
+                with (target / "worker-ledger.jsonl").open("w", encoding="utf-8") as ledger:
+                    for event in ({"kind": "run_start"},
+                                  {"kind": "spawn_intent", "spawn_id": "unregistered"}):
+                        ledger.write(json.dumps({"run_id": self.run_id, **event}) + "\n")
+            with self.assertRaisesRegex(ValueError, "WORKER_LEDGER"):
+                settle_and_preserve(target, {self.root}, self.run_id, True)
+            self.assertFalse((target / "timeout-raw").exists())
+        self.observations.append({"missing_or_pending_ledger": "RAW_COPY_DENIED"})
 
     def test_p07_fork_target_pending_and_parent_loss(self):
         for mode in ("WAL", "DELETE"):
