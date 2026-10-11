@@ -25,6 +25,15 @@ py -3.12 -X utf8 examples/experience_x1.py status --sandbox $x1
 
 `day1` 创建新的 Soul 会话，从 Core 查询已接受的记忆并显示来源、World 和活动状态。`virtual_daily` 中 `PLAN` 表示作息来源；`PLANNED` 表示尚未发生；`ACTIVE` / `COMPLETED` 是合成时钟驱动的模拟状态，`inferred` 和 `reason` 指示推断，并不证明 Agent 真的去过那里。可以分别判断「事实找得对不对」和「世界状态是否可信」。因为没有模型接入，`--message` 目前只作为输入回显，不生成自然语言回答。
 
+若要用 Hermes 评价**措辞与世界感**，只在独立测试 Profile 中分别打开两个全新会话，将下列命令的纯文本输出各自复制进去。它明确标注为手动传递的合成上下文；Hermes 不会自动访问本地 X1 状态，也不应复用主 Profile：
+
+```powershell
+py -3.12 -X utf8 examples/experience_x1.py hermes-prompt --day 0 --sandbox $x1
+py -3.12 -X utf8 examples/experience_x1.py hermes-prompt --day 1 --sandbox $x1
+```
+
+Day 1 可用 `--message '你怎么知道我昨天有面试？'` 换问法。执行 `forget` 后再次生成 Day 1 提示，应不含已忘正文。只复制命令输出中的合成文本，不复制真实聊天或现有 Hermes 记忆。此试验只能评估给定事实后的语言表现，不能作为自动记忆接线、真实 Host 或 Soul Continuity 的通过证据。
+
 负例和清理：
 
 ```powershell

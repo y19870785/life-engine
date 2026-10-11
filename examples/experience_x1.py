@@ -134,6 +134,39 @@ def activity_rows(db):
             JOIN living_locations l ON a.location_id=l.id ORDER BY a.start''')]
 
 
+def day1_tick(living, ctx):
+    for index in range(20):
+        result = living.tick(ctx, f'day1-tick-{index}')
+        if result['result'] != 'RECOVERY_IN_PROGRESS':
+            return
+    raise ValueError('LIVING_RECOVERY_INCOMPLETE')
+
+
+def hermes_prompt(db, memories, message, day):
+    header = ('X1 合成体验试验。以下上下文由 Life Engine 本地样机手动复制，'
+              '不是 Hermes 自动读取记忆，也不是真实 Host 验收。\n'
+              '你扮演虚构 Agent S。虚拟活动不是现实中的亲身经历。'
+              '只根据下列事实自然回应，不编造面试结果、共同历史或已发生的活动。'
+              '若使用了列出的记忆且用户追问来源，说明这是用户此前在合成试验中说过的话。')
+    if day == 0:
+        return (header + '\n当前模拟时间：Day 0 傍晚。虚拟日常：在书房读书；稍后计划散步。'
+                '\n这是一段新的 Hermes 测试会话。\n用户：' + INTERVIEW)
+    lines = [header, '当前模拟时间：Day 1 傍晚。这是另一个新的 Hermes 测试会话。',
+             '以下是本地 Core 按 Soul World 与当前会话检索的已接受记忆：']
+    if memories:
+        lines.extend(f'- {m["content"]}（来源：{m["source"]}；状态：{m["canon"]}；结果未知）'
+                     for m in memories)
+    else:
+        lines.append('- 无可用的已接受记忆。')
+    lines.append('虚拟日常（仅为合成时钟驱动的角色状态）：')
+    for row in activity_rows(db):
+        lines.append(f'- {row["local_date"]} {row["name"]}／{row["location"]}：'
+                     f'{row["state"]}，来源 {row["source"]}，推断={bool(row["inferred"])}。'
+                     'PLANNED 只能说计划，不能说做过。')
+    lines.append('用户：' + message)
+    return '\n'.join(lines)
+
+
 def run_command(args):
     if args.command == 'init':
         return init(args.sandbox)
@@ -147,8 +180,14 @@ def run_command(args):
     if args.command == 'reset':
         shutil.rmtree(base)
         return output({'status': 'SYNTHETIC_SANDBOX_REMOVED', 'sandbox': str(base)})
-    at = DAY0 if args.command == 'day0' else DAY0 + timedelta(days=1)
+    at = DAY0 if args.command == 'day0' or (args.command == 'hermes-prompt' and args.day == 0) else DAY0 + timedelta(days=1)
     db, world, memory, living, actor, scope, ctx = core(base, data, at)
+    if args.command == 'hermes-prompt':
+        if args.day == 0:
+            return print(hermes_prompt(db, [], INTERVIEW, 0))
+        view = session(world, actor, scope)
+        day1_tick(living, ctx)
+        return print(hermes_prompt(db, facts(memory, view), args.message, 1))
     if args.command == 'day0':
         view = session(world, actor, scope)
         owner = OwnerMemoryContext(actor, scope)
@@ -166,10 +205,7 @@ def run_command(args):
                        'accepted_memory': facts(memory, view), 'model': 'MODEL_NOT_CONNECTED'})
     if args.command == 'day1':
         view = session(world, actor, scope)
-        for index in range(20):
-            result = living.tick(ctx, f'day1-tick-{index}')
-            if result['result'] != 'RECOVERY_IN_PROGRESS':
-                break
+        day1_tick(living, ctx)
         packet = {'session': str(view.session_id), 'input': args.message,
                   'memory': facts(memory, view), 'virtual_daily': activity_rows(db),
                   'world': str(scope.world_id), 'model': 'MODEL_NOT_CONNECTED'}
@@ -202,9 +238,11 @@ def run_command(args):
 def main():
     parser = argparse.ArgumentParser(description='X1 合成记忆与虚拟日常本地试用')
     parser.add_argument('command', choices=['init', 'day0', 'day1', 'status', 'forget',
-                                            'isolation-check', 'card-preview', 'reset'])
+                                            'isolation-check', 'card-preview', 'reset', 'hermes-prompt'])
     parser.add_argument('--sandbox', help='系统临时目录下的 X1 实例路径')
     parser.add_argument('--message', default='今天总算结束了。')
+    parser.add_argument('--day', type=int, choices=[0, 1], default=1,
+                        help='hermes-prompt 使用的合成 Day 0 或 Day 1')
     parser.add_argument('--accept', action='store_true', help='显式接受 Day 0 合成原话为 Soul 记忆')
     parser.add_argument('--card', help='只读预览的角色卡文件')
     args = parser.parse_args()

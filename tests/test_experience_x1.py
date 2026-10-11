@@ -11,11 +11,14 @@ SCRIPT = Path(__file__).resolve().parents[1] / 'examples' / 'experience_x1.py'
 
 
 class ExperienceX1Tests(unittest.TestCase):
-    def command(self, name, *args):
+    def command_text(self, name, *args):
         result = subprocess.run([sys.executable, '-X', 'utf8', str(SCRIPT), name, *args],
                                 capture_output=True, text=True, encoding='utf-8', timeout=30)
         self.assertEqual(result.returncode, 0, result.stderr)
-        return json.loads(result.stdout)
+        return result.stdout
+
+    def command(self, name, *args):
+        return json.loads(self.command_text(name, *args))
 
     def test_reopen_forget_and_world_isolation(self):
         with tempfile.TemporaryDirectory(prefix='life-engine-x1-test-') as temp:
@@ -34,8 +37,14 @@ class ExperienceX1Tests(unittest.TestCase):
             self.assertEqual(activities['2026-09-29', '散步']['state'], 'PLANNED')
             self.assertEqual(activities['2026-09-28', '散步']['location_source'], 'FICTIONAL_ROLE_STATE')
             self.assertEqual(self.command('isolation-check', '--sandbox', sandbox)['status'], 'ISOLATED')
+            prompt = self.command_text('hermes-prompt', '--day', '1', '--sandbox', sandbox)
+            self.assertIn('明天下午有个面试', prompt)
+            self.assertIn('PLANNED 只能说计划', prompt)
+            self.assertNotIn('RP_ONLY_SECRET', prompt)
             self.assertEqual(self.command('forget', '--sandbox', sandbox)['normal_query'], [])
             self.assertEqual(self.command('day1', '--sandbox', sandbox)['memory'], [])
+            forgotten_prompt = self.command_text('hermes-prompt', '--day', '1', '--sandbox', sandbox)
+            self.assertNotIn('明天下午有个面试', forgotten_prompt)
             self.assertEqual(self.command('day0', '--accept', '--sandbox', sandbox)['accepted_memory'], [])
 
     def test_card_is_preview_only(self):
