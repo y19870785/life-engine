@@ -1,6 +1,6 @@
 # X1 — C01 + C04 隔离交互样机任务草案
 
-状态：`TASK_DRAFT / NOT_IMPLEMENTATION_AUTHORIZATION`。用户于 2026-10-11 在 [X0 场景卡](EXPERIENCE-FIRST-X0-SCENARIO-BASELINE-DRAFT.md)中选择 `C01 + C04：记忆与自己的世界`。规划基线为 `main@5cd993c1d9d286e3d903e36be54d3650446b5deb`；实际实施 Base 须在开工前重新固定并核对其 exact `push/main` CI。用户的选择确定产品优先级，不把 M1-A 探针、M1.x 或 M2 升级为已通过。
+状态：`TASK_DRAFT / X1b_LOCAL_PROTOTYPE_IMPLEMENTED`。本文件保留任务边界；实际本地试用命令见 [X1 试用说明](EXPERIENCE-FIRST-X1-TRIAL.md)。用户于 2026-10-11 在 [X0 场景卡](EXPERIENCE-FIRST-X0-SCENARIO-BASELINE-DRAFT.md)中选择 `C01 + C04：记忆与自己的世界`。规划基线为 `main@5cd993c1d9d286e3d903e36be54d3650446b5deb`；实施前已核对该 SHA 的 exact `push/main` CI 四矩阵成功。用户的选择确定产品优先级，不把 M1-A 探针、M1.x 或 M2 升级为已通过。
 
 ## 要让用户亲手感受到什么
 
