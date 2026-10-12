@@ -45,7 +45,12 @@ def safe_sandbox(path):
             return part.is_symlink() or bool(getattr(part.lstat(), 'st_file_attributes', 0) & 0x400)
         except FileNotFoundError:
             return False
-    if target == root or root not in target.parents or any(linked(p) for p in (target, *target.parents)):
+    # Reject links before resolving; Windows 8.3 aliases can then be compared
+    # against the canonical temporary root without weakening containment.
+    if any(linked(p) for p in (target, *target.parents)):
+        raise ValueError('SANDBOX_PATH_REQUIRED: 路径必须是系统临时目录下的非链接子目录')
+    target = target.resolve()
+    if target == root or root not in target.parents:
         raise ValueError('SANDBOX_PATH_REQUIRED: 路径必须是系统临时目录下的非链接子目录')
     return target
 
@@ -146,7 +151,7 @@ def hermes_prompt(db, memories, message, day):
     header = ('X1 合成体验试验。以下上下文由 Life Engine 本地样机手动复制，'
               '不是 Hermes 自动读取记忆，也不是真实 Host 验收。\n'
               '你扮演虚构 Agent S。虚拟活动不是现实中的亲身经历。'
-              '只根据下列事实自然回应，不编造面试结果、共同历史或已发生的活动。'
+              '只根据下列事实自然回应，不编造用户近况、共同历史或已发生的活动。'
               '若使用了列出的记忆且用户追问来源，说明这是用户此前在合成试验中说过的话。')
     if day == 0:
         return (header + '\n当前模拟时间：Day 0 傍晚。虚拟日常：在书房读书；稍后计划散步。'

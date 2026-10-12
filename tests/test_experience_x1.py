@@ -44,8 +44,38 @@ class ExperienceX1Tests(unittest.TestCase):
             self.assertEqual(self.command('forget', '--sandbox', sandbox)['normal_query'], [])
             self.assertEqual(self.command('day1', '--sandbox', sandbox)['memory'], [])
             forgotten_prompt = self.command_text('hermes-prompt', '--day', '1', '--sandbox', sandbox)
-            self.assertNotIn('明天下午有个面试', forgotten_prompt)
+            self.assertNotIn('面试', forgotten_prompt)
             self.assertEqual(self.command('day0', '--accept', '--sandbox', sandbox)['accepted_memory'], [])
+            self.assertEqual(self.command('reset', '--sandbox', sandbox)['status'], 'SYNTHETIC_SANDBOX_REMOVED')
+            self.assertFalse(Path(sandbox).exists())
+
+    @unittest.skipUnless(sys.platform == 'win32', 'Windows 8.3 path aliases')
+    def test_windows_short_path_reopens_same_sandbox(self):
+        import ctypes
+        from ctypes import wintypes
+        short_path = ctypes.WinDLL('kernel32', use_last_error=True).GetShortPathNameW
+        short_path.argtypes = [wintypes.LPCWSTR, wintypes.LPWSTR, wintypes.DWORD]
+        short_path.restype = wintypes.DWORD
+        with tempfile.TemporaryDirectory(prefix='life-engine-x1-long-path-') as temp:
+            buffer = ctypes.create_unicode_buffer(32768)
+            length = short_path(str(Path(temp).resolve()), buffer, len(buffer))
+            self.assertGreater(length, 0)
+            self.assertLess(length, len(buffer))
+            if buffer.value.lower() == str(Path(temp).resolve()).lower():
+                self.skipTest('8.3 aliases are disabled on this volume')
+            alias = str(Path(buffer.value) / 'trial')
+            ready = self.command('init', '--sandbox', alias)
+            self.assertEqual(Path(ready['sandbox']), (Path(temp) / 'trial').resolve())
+            self.assertEqual(self.command('status', '--sandbox', alias)['memory'], [])
+            self.command('reset', '--sandbox', alias)
+            self.assertFalse((Path(temp) / 'trial').exists())
+
+    def test_temp_root_is_never_a_sandbox(self):
+        result = subprocess.run([sys.executable, '-X', 'utf8', str(SCRIPT), 'reset',
+                                 '--sandbox', tempfile.gettempdir()], capture_output=True,
+                                text=True, encoding='utf-8', timeout=30)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('SANDBOX_PATH_REQUIRED', result.stderr)
 
     def test_card_is_preview_only(self):
         with tempfile.TemporaryDirectory(prefix='life-engine-x1-card-') as temp:
