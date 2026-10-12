@@ -36,7 +36,6 @@ py -3.12 -X utf8 examples/experience_x1.py status --sandbox $x1
 首次推进 Day 1 会先补算 Day 0 的散步，再推进到次日；昨天的活动为模拟完成，今天当前活动为 `UNKNOWN`，不会自动重复昨天作息。若试用 Hermes，现在在同一独立测试 Profile 中打开另一个全新会话，复制下列 Day 1 提示。它明确标注为手动传递的合成上下文；Hermes 不会自动访问本地 X1 状态，也不应复用主 Profile：
 
 ```powershell
-py -3.12 -X utf8 examples/experience_x1.py hermes-prompt --day 0 --sandbox $x1
 py -3.12 -X utf8 examples/experience_x1.py hermes-prompt --day 1 --sandbox $x1
 ```
 
