@@ -14,7 +14,15 @@ py -3.12 -X utf8 examples/experience_x1.py day0 --sandbox $x1
 py -3.12 -X utf8 examples/experience_x1.py day0 --accept --sandbox $x1
 ```
 
-第一条 `day0` 只预览「明天下午有个面试，我有点紧张」，不会保存。`--accept` 明确接受这条合成原话为 Soul World 记忆。现在关闭 PowerShell，重新打开一个窗口，仍在仓库根目录运行：
+第一条 `day0` 只预览「明天下午有个面试，我有点紧张」，不会保存。`--accept` 明确接受这条合成原话为 Soul World 记忆。若要用 Hermes 评价**措辞与世界感**，现在先导出 Day 0 提示，复制到独立测试 Profile 的一个全新会话：
+
+```powershell
+py -3.12 -X utf8 examples/experience_x1.py hermes-prompt --day 0 --sandbox $x1
+```
+
+此时 Core 中读书为 `ACTIVE`、散步为 `PLANNED`，提示直接读取这些状态。必须先导出 Day 0，再推进 Day 1；推进后反向导出会返回 `CLOCK_REGRESSION`。更新样机后请用 `init` 创建新实例进行完整试用。
+
+现在关闭 PowerShell，重新打开一个窗口，仍在仓库根目录运行：
 
 ```powershell
 $x1 = '同一个 sandbox 路径'
@@ -25,7 +33,7 @@ py -3.12 -X utf8 examples/experience_x1.py status --sandbox $x1
 
 `day1` 创建新的 Soul 会话，从 Core 查询已接受的记忆并显示来源、World 和活动状态。`virtual_daily` 中 `PLAN` 表示作息来源；`PLANNED` 表示尚未发生；`ACTIVE` / `COMPLETED` 是合成时钟驱动的模拟状态，`inferred` 和 `reason` 指示推断，并不证明 Agent 真的去过那里。可以分别判断「事实找得对不对」和「世界状态是否可信」。因为没有模型接入，`--message` 目前只作为输入回显，不生成自然语言回答。
 
-若要用 Hermes 评价**措辞与世界感**，只在独立测试 Profile 中分别打开两个全新会话，将下列命令的纯文本输出各自复制进去。它明确标注为手动传递的合成上下文；Hermes 不会自动访问本地 X1 状态，也不应复用主 Profile：
+首次推进 Day 1 会先补算 Day 0 的散步，再推进到次日；昨天的活动为模拟完成，今天当前活动为 `UNKNOWN`，不会自动重复昨天作息。若试用 Hermes，现在在同一独立测试 Profile 中打开另一个全新会话，复制下列 Day 1 提示。它明确标注为手动传递的合成上下文；Hermes 不会自动访问本地 X1 状态，也不应复用主 Profile：
 
 ```powershell
 py -3.12 -X utf8 examples/experience_x1.py hermes-prompt --day 0 --sandbox $x1

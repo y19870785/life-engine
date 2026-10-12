@@ -25,6 +25,12 @@ class ExperienceX1Tests(unittest.TestCase):
             sandbox = str(Path(temp) / 'trial')
             ready = self.command('init', '--sandbox', sandbox)
             self.assertEqual(ready['status'], 'SYNTHETIC_READY')
+            initial = self.command('status', '--sandbox', sandbox)['virtual_daily']
+            self.assertEqual({x['name']: x['state'] for x in initial},
+                             {'在书房读书': 'ACTIVE', '散步': 'PLANNED'})
+            day0_prompt = self.command_text('hermes-prompt', '--day', '0', '--sandbox', sandbox)
+            self.assertIn('在书房读书／书房：ACTIVE', day0_prompt)
+            self.assertIn('散步／公园：PLANNED', day0_prompt)
             preview = self.command('day0', '--sandbox', sandbox)
             self.assertEqual(preview['accepted_memory'], [])
             day0 = self.command('day0', '--accept', '--sandbox', sandbox)
@@ -34,13 +40,21 @@ class ExperienceX1Tests(unittest.TestCase):
             self.assertEqual(day1['memory'][0]['scope'], ready['world'])
             activities = {(x['local_date'], x['name']): x for x in day1['virtual_daily']}
             self.assertEqual(activities['2026-09-28', '散步']['state'], 'COMPLETED')
-            self.assertEqual(activities['2026-09-29', '散步']['state'], 'PLANNED')
+            self.assertFalse(any(day == '2026-09-29' for day, _ in activities))
+            self.assertEqual(day1['current_activity'], 'UNKNOWN')
             self.assertEqual(activities['2026-09-28', '散步']['location_source'], 'FICTIONAL_ROLE_STATE')
             self.assertEqual(self.command('isolation-check', '--sandbox', sandbox)['status'], 'ISOLATED')
             prompt = self.command_text('hermes-prompt', '--day', '1', '--sandbox', sandbox)
             self.assertIn('明天下午有个面试', prompt)
             self.assertIn('PLANNED 只能说计划', prompt)
+            self.assertIn('今天当前活动未知', prompt)
+            self.assertNotIn('2026-09-29', prompt)
             self.assertNotIn('RP_ONLY_SECRET', prompt)
+            stale = subprocess.run([sys.executable, '-X', 'utf8', str(SCRIPT),
+                                    'hermes-prompt', '--day', '0', '--sandbox', sandbox],
+                                   capture_output=True, text=True, encoding='utf-8', timeout=30)
+            self.assertNotEqual(stale.returncode, 0)
+            self.assertIn('CLOCK_REGRESSION', stale.stderr)
             self.assertEqual(self.command('forget', '--sandbox', sandbox)['normal_query'], [])
             self.assertEqual(self.command('day1', '--sandbox', sandbox)['memory'], [])
             forgotten_prompt = self.command_text('hermes-prompt', '--day', '1', '--sandbox', sandbox)

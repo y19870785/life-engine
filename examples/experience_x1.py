@@ -103,7 +103,9 @@ def init(path):
                dict(start=19*60, end=20*60, name='散步', location='公园', category='PARK')]
     living.enroll(ctx, policy(quiet=[0, 0], routine=routine, contacts=[]), '合成目标', 'init-enroll')
     living.tick(ctx, 'init-tick')
-    LivingRuntime(living.repository, clock=lambda: DAY0 + timedelta(hours=1)).tick(ctx, 'init-walk-tick')
+    # Day 0 has a fixed synthetic plan; no routine is asserted for future days.
+    living.configure(ctx, living.status(ctx)['root']['revision'], 'day0-only-plan',
+                     policy=policy(quiet=[0, 0], routine=[], contacts=[]))
     (base / 'x1.json').write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding='utf-8')
     output({'status': 'SYNTHETIC_READY', 'sandbox': str(base), 'world': data['world'],
             'next': f'py -3.12 -X utf8 examples/experience_x1.py day0 --accept --sandbox "{base}"'})
@@ -140,6 +142,9 @@ def activity_rows(db):
 
 
 def day1_tick(living, ctx):
+    walk_at = DAY0 + timedelta(hours=1)
+    if living.status(ctx)['root']['last_evaluated_at'] < walk_at.timestamp():
+        LivingRuntime(living.repository, clock=lambda: walk_at).tick(ctx, 'day0-walk-tick')
     for index in range(20):
         result = living.tick(ctx, f'day1-tick-{index}')
         if result['result'] != 'RECOVERY_IN_PROGRESS':
@@ -153,11 +158,10 @@ def hermes_prompt(db, memories, message, day):
               '你扮演虚构 Agent S。虚拟活动不是现实中的亲身经历。'
               '只根据下列事实自然回应，不编造用户近况、共同历史或已发生的活动。'
               '若使用了列出的记忆且用户追问来源，说明这是用户此前在合成试验中说过的话。')
-    if day == 0:
-        return (header + '\n当前模拟时间：Day 0 傍晚。虚拟日常：在书房读书；稍后计划散步。'
-                '\n这是一段新的 Hermes 测试会话。\n用户：' + INTERVIEW)
-    lines = [header, '当前模拟时间：Day 1 傍晚。这是另一个新的 Hermes 测试会话。',
-             '以下是本地 Core 按 Soul World 与当前会话检索的已接受记忆：']
+    lines = [header, f'当前模拟时间：Day {day} 傍晚。这是一段新的 Hermes 测试会话。']
+    if day == 1:
+        lines.append('今天当前活动未知；下列昨天的活动不能当作今天正在做的事。')
+    lines.append('以下是本地 Core 按 Soul World 与当前会话检索的已接受记忆：')
     if memories:
         lines.extend(f'- {m["content"]}（来源：{m["source"]}；状态：{m["canon"]}；结果未知）'
                      for m in memories)
@@ -189,7 +193,9 @@ def run_command(args):
     db, world, memory, living, actor, scope, ctx = core(base, data, at)
     if args.command == 'hermes-prompt':
         if args.day == 0:
-            return print(hermes_prompt(db, [], INTERVIEW, 0))
+            living.status(ctx)  # Reject exporting Day 0 after the clock advances.
+            view = session(world, actor, scope)
+            return print(hermes_prompt(db, facts(memory, view), INTERVIEW, 0))
         view = session(world, actor, scope)
         day1_tick(living, ctx)
         return print(hermes_prompt(db, facts(memory, view), args.message, 1))
@@ -213,6 +219,7 @@ def run_command(args):
         day1_tick(living, ctx)
         packet = {'session': str(view.session_id), 'input': args.message,
                   'memory': facts(memory, view), 'virtual_daily': activity_rows(db),
+                  'current_activity': 'UNKNOWN',
                   'world': str(scope.world_id), 'model': 'MODEL_NOT_CONNECTED'}
         return output(packet)
     if args.command == 'status':
