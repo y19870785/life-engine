@@ -1,6 +1,6 @@
 # Life Engine
 
-角色卡接入 Hermes 的实验工具：见[角色卡预览、导入、验证与回退](docs/HERMES-CHARACTER-CARD-IMPORT.md)。原生 V1 在独立命名 Profile 的 CLI / Chat Completions 请求中运行原卡提示、开场、示例对白和世界书兼容子集；脚本、变量与正式 Lore/Story 连续性接入仍需后续实现。
+角色卡接入 Hermes 的实验工具：见[角色卡预览、导入、验证与回退](docs/HERMES-CHARACTER-CARD-IMPORT.md)。原生 V1 在独立命名 Profile 的 CLI / Chat Completions 请求中运行原卡提示、开场、示例对白和世界书兼容子集；可另行启用 [V2 跨会话连续性试用](docs/HERMES-CHARACTER-CONTINUITY-V2.md)，将可靠保存的用户原话与候选剧情接入独立 World、Memory 和 Story。脚本、变量与语义记忆整理仍需后续实现。
 
 > **X1 体验试用入口**：如果要试“跨会话记忆与 Agent 虚拟日常”，先按 [X1 本地试用说明](docs/planning/EXPERIENCE-FIRST-X1-TRIAL.md)使用隔离合成实例。`hermes-prompt` 只生成可手动复制到独立 Hermes 测试 Profile 的提示；这不是自动 Host 接入。下文 v0.2/legacy 安装步骤不能用于把 X1 样机接入现有 Hermes 主 Profile，也不授权插件加载、Gateway 重启或真实发送。
 
