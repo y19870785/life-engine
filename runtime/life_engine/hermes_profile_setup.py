@@ -204,9 +204,13 @@ def restore(receipt):
     target = home_path(receipt['target_home'])
     with locked(target):
         marker = json.loads(read(target / MARKER))
-        if marker != receipt or receipt.get('state') != 'APPLIED':
+        if marker != receipt or receipt.get('state') not in ('APPLIED', 'PREPARED'):
             raise ValueError('SETUP_RECEIPT_CHANGED')
-        if digest(read(target / 'config.yaml')) != receipt['after_config_sha256']:
+        installed = digest(read(target / 'config.yaml'))
+        allowed = {receipt['after_config_sha256']}
+        if receipt['state'] == 'PREPARED':
+            allowed.add(receipt['target_config_sha256'])
+        if installed not in allowed:
             raise ValueError('TARGET_CONFIG_CHANGED')
         backup = safe(receipt['backup'])
         if backup.parent != target / '.life-engine-profile-setup-backups':

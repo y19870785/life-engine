@@ -8,13 +8,16 @@ from uuid import uuid4
 from .hermes_card_import import home_path, read, digest, atomic, json_bytes, locked
 
 
-def configure(profile, tools_file, expected_card_sha):
+def configure(profile, tools_file, expected_card_sha, *, expected_tools_sha=None):
     home = home_path(profile)
     with locked(home):
         raw = read(home / 'plugins/life-engine-character-card/card.json')
         if digest(raw) != expected_card_sha:
             raise ValueError('CARD_CHANGED')
-        tools = json.loads(read(tools_file))
+        tools_raw = read(tools_file)
+        if expected_tools_sha is not None and digest(tools_raw) != expected_tools_sha:
+            raise ValueError('TOOLS_CHANGED')
+        tools = json.loads(tools_raw)
         if not isinstance(tools, list) or any(not isinstance(t, str) or not t for t in tools):
             raise ValueError('TOOL_NAME_LIST_REQUIRED')
         path = home / '.life-engine-character-capabilities.json'
@@ -34,9 +37,11 @@ def main():
     parser.add_argument('--profile-home', required=True)
     parser.add_argument('--tools-file', required=True, help='可信管理者提供的实际Host工具名称JSON数组')
     parser.add_argument('--expected-card-sha', required=True)
+    parser.add_argument('--expected-tools-sha')
     args = parser.parse_args()
     try:
-        result = configure(args.profile_home, args.tools_file, args.expected_card_sha)
+        result = configure(args.profile_home, args.tools_file, args.expected_card_sha,
+                           expected_tools_sha=args.expected_tools_sha)
     except (ValueError, OSError, TypeError) as exc:
         print(json.dumps({'state': 'UNAVAILABLE', 'error': str(exc)}, ensure_ascii=False))
         return 1

@@ -52,6 +52,8 @@ python tools/hermes_character.py install \
 
 `.life-engine-onboarding.json` 记录 CONFIG/CARD/WORLD/CONTINUITY/CAPABILITIES/DONE 各阶段和回执，不包含卡正文或配置凭据。失败标记 FAILED_PARTIAL，保留现场；禁止覆盖重跑。配置恢复按 after-hash 门控，卡片恢复按签名 receipt；连续性数据不要盲删。强制终止可能留下专用 onboarding lock，确认没有导入进程后再按记录恢复。
 
+退出目标 Profile 的聊天后，可以运行 `python tools/hermes_character.py recover-config --profile-home /home/user/.hermes/profiles/new-story` 恢复宿主配置。PREPARED 中断状态只允许配置匹配安装前或安装后摘要，且备份完整；发生用户修改时拒绝覆盖。这个命令不移除卡片、sidecar 或独立世界，卡片另用正式签名 receipt 回退。
+
 换开场重玩应使用新的 Profile 与数据根，原故事可以继续；这版还不是同一 Profile 多存档切换界面。已有故事不会在每次新会话重播开场。当前 World 读取窗口和工具轮次跳过策略沿用 V2，媒体形象/声线、工具结果连续性与 Telegram 路由仍需后续接入。
 
 源卡、故事介绍、开场、计划和运行记录都是私有资料，不要提交公共仓库。供 Hermes 调用的正式入口应固定到已审核代码快照，不指向会持续改动的开发分支。

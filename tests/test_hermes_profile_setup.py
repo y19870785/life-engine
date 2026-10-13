@@ -101,5 +101,26 @@ class ProfileSetupTests(unittest.TestCase):
         self.assertIn(str(create), plan['changes']['external_skill_dirs'])
         self.assertEqual(plan['changes']['disabled_skills'], ['source-hidden', 'specific-role'])
 
+    def test_prepared_receipt_recovers_before_or_after_config_write(self):
+        for point in ('before_config', 'after_config'):
+            with self.subTest(point=point):
+                plan = hs.prepare(self.source, self.target)
+                before = (self.target/'config.yaml').read_bytes()
+                original = hs.atomic
+                def interrupted(path, payload):
+                    if ((point == 'before_config' and path == self.target/'config.yaml') or
+                        (point == 'after_config' and path == self.target/hs.MARKER
+                         and json.loads(payload).get('state') == 'APPLIED')):
+                        raise OSError('synthetic config checkpoint interruption')
+                    return original(path, payload)
+                with patch.object(hs, 'atomic', side_effect=interrupted):
+                    with self.assertRaisesRegex(OSError, 'checkpoint interruption'):
+                        hs.apply(plan)
+                receipt = json.loads((self.target/hs.MARKER).read_bytes())
+                self.assertEqual(receipt['state'], 'PREPARED')
+                hs.restore(receipt)
+                self.assertEqual((self.target/'config.yaml').read_bytes(), before)
+                (self.target/hs.MARKER).unlink()
+
 
 if __name__ == '__main__': unittest.main()

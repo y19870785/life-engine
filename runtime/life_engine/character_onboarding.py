@@ -115,7 +115,7 @@ def _install(plan_path, expected_sha, profile, source_home, root, host_root, too
         checkpoint('CAPABILITIES')
         if ci.digest(ci.read(tools_file)) != ci.digest(tool_bytes):
             raise ValueError('TOOLS_CHANGED')
-        configure(home, tools_file, card_sha)
+        configure(home, tools_file, card_sha, expected_tools_sha=ci.digest(tool_bytes))
         record['state'] = 'INSTALLED'
         checkpoint('DONE')
         return {'state': 'INSTALLED', 'profile': str(home), 'world': record['world'],
@@ -144,6 +144,7 @@ def main(argv=None):
     for name in ('plan', 'expect-sha', 'profile-home', 'source-home', 'root', 'host-root', 'tools-file'):
         p.add_argument('--' + name, required=True)
     p.add_argument('--package', default=str(Path(__file__).resolve().parents[2]))
+    p = sub.add_parser('recover-config'); p.add_argument('--profile-home', required=True)
     args = parser.parse_args(argv)
     try:
         if args.action == 'inspect':
@@ -152,9 +153,16 @@ def main(argv=None):
             result = prepare(args.card, args.out, args.opening, acknowledged=args.ack,
                              user_name=args.user_name, user_persona=args.user_persona,
                              disabled_entries=args.disable_entry, lore_budget=args.lore_budget)
-        else:
+        elif args.action == 'install':
             result = install(args.plan, args.expect_sha, args.profile_home, args.source_home, args.root,
                              args.host_root, args.tools_file, args.package)
+        else:
+            setup = importlib.import_module('.hermes_profile_setup', __package__)
+            home = ci.home_path(args.profile_home)
+            receipt = json.loads(ci.read(home / setup.MARKER))
+            setup.restore(receipt)
+            result = {'state': 'CONFIG_ROLLED_BACK', 'profile': str(home),
+                      'scope': '只恢复宿主配置；卡片与独立World数据保留，卡片恢复使用签名receipt。'}
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
     except (ValueError, OSError, KeyError, TypeError) as exc:

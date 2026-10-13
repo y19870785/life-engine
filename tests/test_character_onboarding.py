@@ -100,5 +100,16 @@ class OnboardingTests(unittest.TestCase):
                                    self.base/'world', host, names, PACKAGE)
         self.assertFalse((home/'.life-engine-onboarding.lock').exists())
 
+    def test_tool_manifest_recheck_uses_the_same_bytes_as_install(self):
+        home = self.base/'profiles/tool-check'; home.mkdir(parents=True)
+        card = home/'plugins/life-engine-character-card/card.json'; card.parent.mkdir(parents=True)
+        card.write_text('{}')
+        names = self.base/'tools.json'; names.write_text('["terminal"]')
+        expected = ci.digest(names.read_bytes())
+        names.write_text('["terminal","write_file"]')
+        with self.assertRaisesRegex(ValueError, 'TOOLS_CHANGED'):
+            onboarding.configure(home, names, ci.digest(card.read_bytes()), expected_tools_sha=expected)
+        self.assertFalse((home/'.life-engine-character-capabilities.json').exists())
+
 
 if __name__ == '__main__': unittest.main()
