@@ -59,6 +59,15 @@ class CapabilityTests(unittest.TestCase):
         self.assertEqual(smaller['messages'], out['messages'])
         self.assertEqual(self.module.guard_tool(tool_name='terminal', **self.kw)['action'], 'block')
 
+    def test_forced_tool_must_have_an_actual_filtered_host_schema(self):
+        self.write(); self.module.before(**self.kw)
+        self.request['tool_choice'] = {'type': 'function', 'function': {'name': 'not_offered'}}
+        out = self.module.rewrite(request=self.request, **self.kw)['request']
+        self.assertEqual(out['tool_choice'], 'auto')
+        self.request['tool_choice']['function']['name'] = 'terminal'
+        out = self.module.rewrite(request=self.request, **self.kw)['request']
+        self.assertEqual(out['tool_choice']['function']['name'], 'terminal')
+
     def test_no_owner_permission_and_disabled_permission_keep_original_restriction(self):
         self.module.before(**self.kw)
         self.assertNotIn('tools', self.module.rewrite(request=self.request, **self.kw)['request'])
