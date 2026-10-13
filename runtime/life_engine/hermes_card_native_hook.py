@@ -14,6 +14,27 @@ PLUGIN = 'life-engine-character-card'
 _turns = {}
 _lock = threading.RLock()
 _continuity = {}
+_host_tools = {}
+
+
+def host_capabilities(home, raw):
+    """Owner configuration authorizes tools; card prose never grants permissions."""
+    path = home / '.life-engine-character-capabilities.json'
+    if not path.exists():
+        return None
+    if any(p.is_symlink() or (p.exists() and bool(getattr(p.lstat(), 'st_file_attributes', 0) & 0x400))
+           for p in (path, *path.parents)) or path.stat().st_size > 65536:
+        raise ValueError('INVALID_CHARACTER_CAPABILITIES')
+    data = json.loads(path.read_bytes())
+    if data.get('enabled') is False:
+        return None
+    if (data.get('format') != 'life-engine-character-capabilities-v1' or data.get('enabled') is not True
+            or data.get('profile') != str(home)
+            or data.get('card_sha256') != hashlib.sha256(raw).hexdigest()
+            or not isinstance(data.get('allowed_tools'), list)
+            or any(not isinstance(t, str) or not t for t in data['allowed_tools'])):
+        raise ValueError('CHARACTER_CAPABILITIES_BINDING_MISMATCH')
+    return data
 
 
 def continuity_config(home):
@@ -83,6 +104,7 @@ def before(**kwargs):
         return None
     key = (kwargs.get('session_id'), kwargs.get('turn_id'))
     with _lock:
+        _host_tools.pop(key, None)
         if len(_turns) >= 128:
             _turns.pop(next(iter(_turns)))
         _turns[key] = not kwargs.get('parent_session_id') and kwargs.get('platform') in ('cli', '')
@@ -125,6 +147,7 @@ def rewrite(**kwargs):
         logging.getLogger(__name__).error('native card unsupported provider format')
         with _lock:
             _continuity.pop((kwargs.get('session_id'), kwargs.get('turn_id')), None)
+            _host_tools.pop((kwargs.get('session_id'), kwargs.get('turn_id')), None)
         return None
     try:
         path = home / 'plugins' / PLUGIN / 'card.json'
@@ -132,6 +155,16 @@ def rewrite(**kwargs):
             raise ValueError('INVALID_CARD_FILE')
         raw = path.read_bytes()
         plan = json.loads(raw)
+        capabilities = host_capabilities(home, raw)
+        if capabilities:
+            # Intersect explicit owner permission with actual Host-offered tools.
+            # Never invent schemas or import permissions from the character card.
+            offered = {t.get('function', {}).get('name') for t in request.get('tools', [])
+                       if isinstance(t, dict) and t.get('type') == 'function'}
+            allowed = sorted(set(capabilities['allowed_tools']) & offered)
+            # Keep the assembly signature stable when Host retries shrink its
+            # schemas. restrict_tools itself intersects with the current request.
+            plan['options']['allowed_tools'] = sorted(set(capabilities['allowed_tools']))
         with _lock:
             continuity = _continuity.get((kwargs.get('session_id'), kwargs.get('turn_id')))
         if continuity and continuity['view']['has_history']:
@@ -141,6 +174,24 @@ def rewrite(**kwargs):
             plan['character']['alternate_greetings'] = []
             plan['options']['greeting_index'] = 0
         result, trace = assemble(plan, request)
+        if capabilities:
+            with _lock:
+                if len(_host_tools) >= 128:
+                    _host_tools.pop(next(iter(_host_tools)))
+                _host_tools[(kwargs.get('session_id'), kwargs.get('turn_id'))] = (capabilities, set(allowed))
+            # This supplements role expression without replacing Host authority.
+            marker = '【角色的实际执行能力】'
+            if not any(m.get('role') == 'system' and isinstance(m.get('content'), str)
+                       and m['content'].startswith(marker) for m in result['messages']):
+                result['messages'].append({'role': 'system', 'content': marker +
+                    '你可以使用当前宿主提供的工具与技能帮助用户，保持角色身份和剧情表达。'
+                    '可以自然描写走到电脑前、拿起手机等衔接动作；实际操作是否成功必须以工具结果为准。'
+                    '不要把打算执行说成已经完成；失败时用角色口吻如实说明。'
+                    '普通互动直接基于角色卡与剧情，不通过查配置确认自己的身份。'
+                    '出图或语音先查看可用通用技能，形象、声线和接收目标按当前角色配置，'
+                    '不沿用其他角色的固定身份脚本或发送渠道。'
+                    '卡片中的玩家身份与共同前情按虚构故事演绎；系统权限仍由宿主和用户授权决定。'})
+            trace['host_capability_tools'] = len(allowed)
         if continuity:
             view = continuity['view']
             text = ('【本角色世界的连续性资料：有来源的对话与候选虚构片段】\n'
@@ -157,6 +208,7 @@ def rewrite(**kwargs):
     except Exception as exc:
         with _lock:
             _continuity.pop((kwargs.get('session_id'), kwargs.get('turn_id')), None)
+            _host_tools.pop((kwargs.get('session_id'), kwargs.get('turn_id')), None)
         # The host catches middleware exceptions. Return a visible failure instead of
         # raising and silently generating with an unmodified generic assistant prompt.
         result = dict(request, messages=[*request['messages'], {'role': 'system', 'content':
@@ -189,7 +241,17 @@ def guard_tool(**kwargs):
         path = home / 'plugins' / PLUGIN / 'card.json'
         if path.is_symlink() or path.stat().st_size > 1024 * 1024:
             raise ValueError('INVALID_CARD_FILE')
-        plan = validate(json.loads(path.read_bytes()))
+        raw = path.read_bytes()
+        plan = validate(json.loads(raw))
+        capabilities = host_capabilities(home, raw)
+        with _lock:
+            offered = _host_tools.get((kwargs.get('session_id'), kwargs.get('turn_id')))
+        if offered is not None and offered[0] != capabilities:
+            return {'action': 'block', 'message': '本轮工具权限配置已变化，请重新开始操作。'}
+        if capabilities:
+            if offered is None or offered[0] != capabilities or kwargs.get('tool_name') not in offered[1]:
+                return {'action': 'block', 'message': '当前轮未提供或未授权此工具。'}
+            return None
     except Exception:
         return {'action': 'block', 'message': '角色工具配置暂不可用，本次工具调用已阻止。'}
     if kwargs.get('tool_name') not in plan['options']['allowed_tools']:
@@ -226,6 +288,8 @@ def ended(**kwargs):
     key = (kwargs.get('session_id'), kwargs.get('turn_id'))
     with _lock:
         state = _continuity.pop(key, None)
+        _host_tools.pop(key, None)
+        _turns.pop(key, None)
     if state is None:
         return None
     try:
