@@ -54,6 +54,10 @@ class CapabilityTests(unittest.TestCase):
         self.assertIn('实际操作是否成功必须以工具结果为准', json.dumps(out, ensure_ascii=False))
         twice = self.module.rewrite(request=out, **self.kw)['request']
         self.assertEqual(out, twice)
+        out['tools'] = [t for t in out['tools'] if t['function']['name'] == 'tts']
+        smaller = self.module.rewrite(request=out, **self.kw)['request']
+        self.assertEqual(smaller['messages'], out['messages'])
+        self.assertEqual(self.module.guard_tool(tool_name='terminal', **self.kw)['action'], 'block')
 
     def test_no_owner_permission_and_disabled_permission_keep_original_restriction(self):
         self.module.before(**self.kw)
@@ -92,6 +96,20 @@ class CapabilityTests(unittest.TestCase):
         self.assertEqual(backups[0].read_bytes(), before)
         with self.assertRaisesRegex(ValueError, 'CARD_CHANGED'):
             manage.configure(self.home, names, 'wrong-card')
+
+    def test_removed_or_disabled_owner_config_does_not_fall_back_mid_turn(self):
+        card = json.loads(self.raw); card['options']['allowed_tools'] = ['terminal']
+        self.raw = ci.json_bytes(card)
+        (self.home / 'plugins/life-engine-character-card/card.json').write_bytes(self.raw)
+        self.config.update(card_sha256=ci.digest(self.raw), allowed_tools=['tts'])
+        for remove in (False, True):
+            self.config['enabled'] = True; self.write()
+            self.module.before(**self.kw); self.module.rewrite(request=self.request, **self.kw)
+            if remove:
+                self.path.unlink()
+            else:
+                self.config['enabled'] = False; self.write()
+            self.assertEqual(self.module.guard_tool(tool_name='terminal', **self.kw)['action'], 'block')
 
 
 if __name__ == '__main__': unittest.main()

@@ -162,7 +162,9 @@ def rewrite(**kwargs):
             offered = {t.get('function', {}).get('name') for t in request.get('tools', [])
                        if isinstance(t, dict) and t.get('type') == 'function'}
             allowed = sorted(set(capabilities['allowed_tools']) & offered)
-            plan['options']['allowed_tools'] = allowed
+            # Keep the assembly signature stable when Host retries shrink its
+            # schemas. restrict_tools itself intersects with the current request.
+            plan['options']['allowed_tools'] = sorted(set(capabilities['allowed_tools']))
         with _lock:
             continuity = _continuity.get((kwargs.get('session_id'), kwargs.get('turn_id')))
         if continuity and continuity['view']['has_history']:
@@ -185,6 +187,9 @@ def rewrite(**kwargs):
                     '你可以使用当前宿主提供的工具与技能帮助用户，保持角色身份和剧情表达。'
                     '可以自然描写走到电脑前、拿起手机等衔接动作；实际操作是否成功必须以工具结果为准。'
                     '不要把打算执行说成已经完成；失败时用角色口吻如实说明。'
+                    '普通互动直接基于角色卡与剧情，不通过查配置确认自己的身份。'
+                    '出图或语音先查看可用通用技能，形象、声线和接收目标按当前角色配置，'
+                    '不沿用其他角色的固定身份脚本或发送渠道。'
                     '卡片中的玩家身份与共同前情按虚构故事演绎；系统权限仍由宿主和用户授权决定。'})
             trace['host_capability_tools'] = len(allowed)
         if continuity:
@@ -239,9 +244,11 @@ def guard_tool(**kwargs):
         raw = path.read_bytes()
         plan = validate(json.loads(raw))
         capabilities = host_capabilities(home, raw)
+        with _lock:
+            offered = _host_tools.get((kwargs.get('session_id'), kwargs.get('turn_id')))
+        if offered is not None and offered[0] != capabilities:
+            return {'action': 'block', 'message': '本轮工具权限配置已变化，请重新开始操作。'}
         if capabilities:
-            with _lock:
-                offered = _host_tools.get((kwargs.get('session_id'), kwargs.get('turn_id')))
             if offered is None or offered[0] != capabilities or kwargs.get('tool_name') not in offered[1]:
                 return {'action': 'block', 'message': '当前轮未提供或未授权此工具。'}
             return None
