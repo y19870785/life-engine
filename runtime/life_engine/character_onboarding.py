@@ -160,6 +160,8 @@ def main(argv=None):
             setup = importlib.import_module('.hermes_profile_setup', __package__)
             home = ci.home_path(args.profile_home)
             receipt = json.loads(ci.read(home / setup.MARKER))
+            if ci.home_path(receipt['target_home']) != home:
+                raise ValueError('RECOVERY_TARGET_MISMATCH')
             setup.restore(receipt)
             result = {'state': 'CONFIG_ROLLED_BACK', 'profile': str(home),
                       'scope': '只恢复宿主配置；卡片与独立World数据保留，卡片恢复使用签名receipt。'}

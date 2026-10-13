@@ -1,11 +1,13 @@
 """Story entry preserves author openings and isolates new installations."""
 import json
+import io
+from contextlib import redirect_stdout
 from pathlib import Path
 import sys
 import tempfile
 import types
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'runtime'))
 from life_engine import character_onboarding as onboarding, hermes_card_import as ci
@@ -110,6 +112,19 @@ class OnboardingTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'TOOLS_CHANGED'):
             onboarding.configure(home, names, ci.digest(card.read_bytes()), expected_tools_sha=expected)
         self.assertFalse((home/'.life-engine-character-capabilities.json').exists())
+
+    def test_recovery_cli_binds_receipt_to_the_requested_profile(self):
+        a=self.base/'profiles/a'; a.mkdir(parents=True)
+        b=self.base/'profiles/b'; b.mkdir()
+        fake=types.SimpleNamespace(MARKER='.life-engine-profile-setup.json',restore=Mock())
+        marker=a/fake.MARKER
+        marker.write_bytes(ci.json_bytes({'target_home':str(b),'state':'APPLIED'}))
+        with patch.dict(sys.modules, {'life_engine.hermes_profile_setup':fake}), redirect_stdout(io.StringIO()):
+            self.assertEqual(onboarding.main(['recover-config','--profile-home',str(a)]),1)
+            fake.restore.assert_not_called()
+            marker.write_bytes(ci.json_bytes({'target_home':str(a),'state':'APPLIED'}))
+            self.assertEqual(onboarding.main(['recover-config','--profile-home',str(a)]),0)
+            fake.restore.assert_called_once()
 
 
 if __name__ == '__main__': unittest.main()
