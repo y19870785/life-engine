@@ -6,12 +6,65 @@ import os
 from pathlib import Path
 import tempfile
 import threading
+import subprocess
 
 from .hermes_card_runtime import assemble, validate
 
 PLUGIN = 'life-engine-character-card'
 _turns = {}
 _lock = threading.RLock()
+_continuity = {}
+
+
+def continuity_config(home):
+    path = home / '.life-engine-continuity.json'
+    if not path.exists():
+        return None
+    if path.is_symlink() or path.stat().st_size > 65536:
+        raise ValueError('INVALID_CONTINUITY_CONFIG')
+    config = json.loads(path.read_bytes())
+    if not config.get('enabled'):
+        return None
+    if config.get('format') != 'life-engine-character-continuity-v2' or config.get('profile') != str(home):
+        raise ValueError('CONTINUITY_BINDING_MISMATCH')
+    # Pin the actual lifecycle implementations, including dirty local changes.
+    # Version labels alone cannot establish persistence/UID/exit semantics.
+    host = Path(config['host_root'])
+    if not config.get('host_files'):
+        raise ValueError('HOST_PROOF_IMPLEMENTATION_REQUIRED')
+    for name, sha in config['host_files'].items():
+        relative = Path(name)
+        if relative.is_absolute() or '..' in relative.parts:
+            raise ValueError('INVALID_HOST_PROOF_PATH')
+        file = host / relative
+        if file.is_symlink() or hashlib.sha256(file.read_bytes()).hexdigest() != sha:
+            raise ValueError('HOST_PROOF_IMPLEMENTATION_CHANGED')
+    return config
+
+
+def continuity_call(config, home, action, payload):
+    runner = ('import sys,runpy; sys.path.insert(0,sys.argv[1]); '
+              'sys.argv=sys.argv[2:]; runpy.run_module("life_engine.character_continuity",run_name="__main__")')
+    command = [config['python'], '-I', '-c', runner, config['runtime'], 'character-continuity', action,
+               '--root', config['root'], '--profile-home', str(home),
+               '--card', str(home / 'plugins' / PLUGIN / 'card.json')]
+    result = subprocess.run(command, input=json.dumps(payload, ensure_ascii=False), capture_output=True,
+                            text=True, encoding='utf-8', timeout=15, shell=False)
+    data = json.loads(result.stdout)
+    if result.returncode:
+        raise ValueError(data.get('error', 'CONTINUITY_UNAVAILABLE'))
+    return data
+
+
+def continuity_trace(home, value):
+    fd, temp = tempfile.mkstemp(prefix='.continuity-trace-', dir=home)
+    try:
+        with os.fdopen(fd, 'w', encoding='utf-8') as out:
+            json.dump(value, out, ensure_ascii=False)
+        os.replace(temp, home / '.life-engine-continuity-last-turn.json')
+    finally:
+        if os.path.exists(temp):
+            os.unlink(temp)
 
 
 def bound_home():
@@ -25,13 +78,38 @@ def bound_home():
 
 
 def before(**kwargs):
-    if bound_home() is None:
+    home = bound_home()
+    if home is None:
         return None
     key = (kwargs.get('session_id'), kwargs.get('turn_id'))
     with _lock:
         if len(_turns) >= 128:
             _turns.pop(next(iter(_turns)))
         _turns[key] = not kwargs.get('parent_session_id') and kwargs.get('platform') in ('cli', '')
+        eligible = _turns[key]
+    if not eligible:
+        return None
+    try:
+        config = continuity_config(home)
+        if config is None:
+            return None
+        original = kwargs.get('user_message')
+        if not isinstance(original, str):
+            raise ValueError('CONTINUITY_TEXT_ONLY')
+        messages = kwargs.get('conversation_history') or []
+        user = next((m for m in reversed(messages) if isinstance(m, dict) and m.get('role') == 'user'), None)
+        if user is None or user.get('content') != original:
+            raise ValueError('CONTINUITY_USER_OBJECT_REQUIRED')
+        from .hermes_turn_proof import watermark
+        mark = watermark(home, kwargs['session_id'])
+        view = continuity_call(config, home, 'context', {'session_id': kwargs['session_id']})
+        with _lock:
+            if len(_continuity) >= 128:
+                _continuity.pop(next(iter(_continuity)))
+            _continuity[key] = {'config': config, 'view': view, 'user_obj': user,
+                                'user_text': original, 'watermark': mark}
+    except Exception as exc:
+        continuity_trace(home, {'state': 'CONTEXT_UNAVAILABLE', 'error_type': type(exc).__name__})
     return None
 
 
@@ -45,6 +123,8 @@ def rewrite(**kwargs):
     # This version intentionally limits actual provider formats, not just model names.
     if not isinstance(request.get('messages'), list) or 'input' in request or 'system' in request:
         logging.getLogger(__name__).error('native card unsupported provider format')
+        with _lock:
+            _continuity.pop((kwargs.get('session_id'), kwargs.get('turn_id')), None)
         return None
     try:
         path = home / 'plugins' / PLUGIN / 'card.json'
@@ -52,10 +132,31 @@ def rewrite(**kwargs):
             raise ValueError('INVALID_CARD_FILE')
         raw = path.read_bytes()
         plan = json.loads(raw)
+        with _lock:
+            continuity = _continuity.get((kwargs.get('session_id'), kwargs.get('turn_id')))
+        if continuity and continuity['view']['has_history']:
+            # Existing World history supersedes replaying the card's opening as a
+            # fresh scene. The raw installed card stays unchanged.
+            plan['character']['first_mes'] = ''
+            plan['character']['alternate_greetings'] = []
+            plan['options']['greeting_index'] = 0
         result, trace = assemble(plan, request)
+        if continuity:
+            view = continuity['view']
+            text = ('【本角色世界的连续性资料：有来源的对话与候选虚构片段】\n'
+                    + view['policy'] + '\n' + json.dumps(view['records'], ensure_ascii=False))
+            if not any(m.get('role') == 'system' and isinstance(m.get('content'), str)
+                       and m['content'].startswith('【本角色世界的连续性资料：') for m in result['messages']):
+                at = next((i for i, m in enumerate(result['messages']) if m.get('role') == 'system'
+                           and isinstance(m.get('content'), str) and m['content'].startswith('<!-- life-engine-native:')), 0)
+                result['messages'].insert(at + 1, {'role': 'system', 'content': text})
+            trace.update(continuity_world=view['world'], continuity_records=len(view['records']),
+                         opening='continued_world' if view['has_history'] else 'card_opening')
         trace.update(card_sha256=hashlib.sha256(raw).hexdigest(), state='COMPOSED',
                      session_id=kwargs.get('session_id'), turn_id=kwargs.get('turn_id'))
     except Exception as exc:
+        with _lock:
+            _continuity.pop((kwargs.get('session_id'), kwargs.get('turn_id')), None)
         # The host catches middleware exceptions. Return a visible failure instead of
         # raising and silently generating with an unmodified generic assistant prompt.
         result = dict(request, messages=[*request['messages'], {'role': 'system', 'content':
@@ -96,8 +197,60 @@ def guard_tool(**kwargs):
     return None
 
 
+def after(**kwargs):
+    key = (kwargs.get('session_id'), kwargs.get('turn_id'))
+    with _lock:
+        state = _continuity.get(key)
+        if state is None:
+            return None
+        user = state['user_obj']
+        messages = kwargs.get('conversation_history') or []
+        final = messages[-1] if messages else None
+        if (not any(m is user for m in messages) or
+                not isinstance(user.get('message_uid'), str) or not isinstance(final, dict) or
+                final.get('role') != 'assistant' or final.get('tool_calls') or
+                final.get('content') != kwargs.get('assistant_response') or
+                not isinstance(final.get('message_uid'), str)):
+            state['candidate'] = None
+        else:
+            state['candidate'] = {'session_id': key[0], 'turn_id': key[1],
+                'user_uid': user['message_uid'], 'assistant_uid': final['message_uid'],
+                'user_text': state['user_text'], 'assistant_text': final['content'], 'watermark': state['watermark']}
+    return None
+
+
+def ended(**kwargs):
+    home = bound_home()
+    if home is None:
+        return None
+    key = (kwargs.get('session_id'), kwargs.get('turn_id'))
+    with _lock:
+        state = _continuity.pop(key, None)
+    if state is None:
+        return None
+    try:
+        frame = state.get('candidate')
+        if frame is None:
+            raise ValueError('CONTINUITY_PROOF_INCOMPLETE')
+        for flag in ('completed', 'failed', 'interrupted', 'turn_exit_reason'):
+            frame[flag] = kwargs.get(flag)
+        # Recheck pinned lifecycle files before accepting the observer result.
+        config = continuity_config(home)
+        if config != state['config']:
+            raise ValueError('CONTINUITY_CONFIGURATION_CHANGED')
+        result = continuity_call(config, home, 'commit', {'frame': frame, 'lease': state['view']['lease']})
+        continuity_trace(home, {'state': result['state'], 'source': result['source'],
+                               'session_id': key[0], 'turn_id': key[1]})
+    except Exception as exc:
+        continuity_trace(home, {'state': 'WRITE_SKIPPED', 'error_type': type(exc).__name__,
+                               'session_id': key[0], 'turn_id': key[1]})
+    return None
+
+
 def register(ctx):
     if bound_home() is not None:
         ctx.register_hook('pre_llm_call', before)
         ctx.register_hook('pre_tool_call', guard_tool)
+        ctx.register_hook('post_llm_call', after)
+        ctx.register_hook('on_session_end', ended)
         ctx.register_middleware('llm_request', rewrite)
