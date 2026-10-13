@@ -107,6 +107,18 @@ class NativeCardTests(unittest.TestCase):
         self.assertTrue(trace['already_composed'])
         self.assertEqual(len(request['messages']),3)
 
+    def test_retry_refilters_rebuilt_tools_and_validates_legacy_functions(self):
+        value=plan(); first,_=rt.assemble(value,{'messages':[]})
+        first['tools']=[{'type':'function','function':{'name':'terminal'}}]
+        first['tool_choice']='required'
+        second,trace=rt.assemble(value,first)
+        self.assertTrue(trace['already_composed'])
+        self.assertNotIn('tools',second); self.assertNotIn('tool_choice',second)
+        self.assertEqual(second['messages'],first['messages'])
+        first['functions']=[{'name':'terminal'}]
+        with self.assertRaisesRegex(ValueError,'LEGACY_FUNCTIONS'):
+            rt.assemble(value,first)
+
     def test_depth_does_not_split_tool_results(self):
         value=plan(); value['entries'][2].update(constant=True,depth=1)
         history=[{'role':'assistant','content':None,'tool_calls':[{'id':'call1','type':'function',
@@ -146,6 +158,16 @@ class NativeCardTests(unittest.TestCase):
         self.assertEqual(rt.expand('{{user}}',value['character'],value['options']),'{{setvar::x::1}}')
         with self.assertRaisesRegex(ValueError,'CHAT_COMPLETIONS'):
             rt.assemble(value,{'input':[]})
+
+    def test_unknown_example_speaker_is_reported_and_never_assigned_to_user(self):
+        raw=source(); raw['data']['mes_example']='<START>\n{{user}}: hello\nUnknownSpeaker: THIRD_PERSON_SENTINEL'
+        value=rt.compile_plan(raw,'x')
+        self.assertIn('EXAMPLE_SPEAKER_REQUIRES_ADAPTATION',[i['code'] for i in value['issues']])
+        value['options']['acknowledged']=[i['id'] for i in value['issues']]
+        with self.assertRaisesRegex(ValueError,'EXAMPLE_SPEAKER'):
+            rt.assemble(value,{'messages':[]})
+        raw['data']['character_book']['entries'][0]['priority']=0
+        self.assertIn('PRIORITY_NOT_IMPLEMENTED',rt.compile_plan(raw,'x')['entries'][0]['issues'])
 
     def test_multi_card_content_is_not_reauthored(self):
         for name,description,scenario in [('伊岚','巡山的精灵。','玩家是同行的旅人。'),
@@ -190,6 +212,7 @@ class NativeCardTests(unittest.TestCase):
                 (folder/'card.json').write_text('broken')
                 response=module.rewrite(request=req,**ctx)
                 self.assertEqual(response['reason'],'UNAVAILABLE')
+                self.assertEqual(module.guard_tool(tool_name='terminal',**ctx)['action'],'block')
             # Restore only after repairing the deliberate drift to the signed payload.
             value.pop('review_only'); (folder/'card.json').write_bytes(ci.json_bytes(value))
             ci.restore(home,result['receipt'])

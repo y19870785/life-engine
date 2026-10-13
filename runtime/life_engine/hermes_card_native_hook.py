@@ -30,7 +30,7 @@ def before(**kwargs):
     key = (kwargs.get('session_id'), kwargs.get('turn_id'))
     with _lock:
         if len(_turns) >= 128:
-            _turns.clear()
+            _turns.pop(next(iter(_turns)))
         _turns[key] = not kwargs.get('parent_session_id') and kwargs.get('platform') in ('cli', '')
     return None
 
@@ -84,10 +84,13 @@ def guard_tool(**kwargs):
         eligible = _turns.get((kwargs.get('session_id'), kwargs.get('turn_id')), False)
     if home is None or not eligible:
         return None
-    path = home / 'plugins' / PLUGIN / 'card.json'
-    if path.is_symlink() or path.stat().st_size > 1024 * 1024:
-        raise ValueError('INVALID_CARD_FILE')
-    plan = validate(json.loads(path.read_bytes()))
+    try:
+        path = home / 'plugins' / PLUGIN / 'card.json'
+        if path.is_symlink() or path.stat().st_size > 1024 * 1024:
+            raise ValueError('INVALID_CARD_FILE')
+        plan = validate(json.loads(path.read_bytes()))
+    except Exception:
+        return {'action': 'block', 'message': '角色工具配置暂不可用，本次工具调用已阻止。'}
     if kwargs.get('tool_name') not in plan['options']['allowed_tools']:
         return {'action': 'block', 'message': '当前角色会话未启用此工具，请在管理会话执行。'}
     return None

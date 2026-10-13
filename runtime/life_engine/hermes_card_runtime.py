@@ -129,6 +129,8 @@ def compile_plan(raw, fingerprint):
         for key, value in source.items():
             if (key not in known_source and value) or (key in neutral and value != neutral[key]):
                 row_issues.append('SETTING_NOT_IMPLEMENTED:' + key)
+        if source.get('priority') is not None:
+            row_issues.append('PRIORITY_NOT_IMPLEMENTED')
         row = {'id': index, 'enabled': source.get('enabled', True) is not False and not source.get('disable', False),
                'content': content, 'keys': keys, 'secondary_keys': secondary,
                'constant': bool(source.get('constant', False)), 'selective': bool(source.get('selective', False)),
@@ -153,6 +155,10 @@ def compile_plan(raw, fingerprint):
         issue('character.depth_prompt', 'ROLE_NOT_IMPLEMENTED')
     for code in text_issues(character['depth_prompt']['prompt']):
         issue('character.depth_prompt', code)
+    try:
+        example_messages(character['mes_example'], character, options)
+    except ValueError:
+        issue('character.mes_example', 'EXAMPLE_SPEAKER_REQUIRES_ADAPTATION')
     # Budget is deliberately reported as a conservative estimate, not ST token parity.
     issue('budget', 'UTF8_BYTE_ESTIMATE_NOT_MODEL_TOKENIZER')
     return {'format': FORMAT, 'source_sha256': fingerprint, 'character': character,
@@ -229,6 +235,8 @@ def example_messages(value, char, opts):
                     role = 'assistant'
             if role:
                 parsed.append({'role': role, 'content': expand(match[2], char, opts)})
+            elif match:
+                raise ValueError('EXAMPLE_SPEAKER_REQUIRES_ADAPTATION')
             elif parsed:
                 parsed[-1]['content'] += '\n' + expand(line, char, opts)
             else:
@@ -280,6 +288,23 @@ def select_lore(plan, history):
     return sorted(chosen, key=lambda r: (r['order'], r['id'])), omitted, used
 
 
+def restrict_tools(request, options):
+    result = deepcopy(request)
+    if 'functions' in result:
+        raise ValueError('LEGACY_FUNCTIONS_UNSUPPORTED')
+    if 'tools' in result:
+        result['tools'] = [t for t in result['tools'] if t.get('type') == 'function'
+                           and t.get('function', {}).get('name') in options['allowed_tools']]
+        if not result['tools']:
+            result.pop('tools')
+            result.pop('tool_choice', None)
+            result.pop('parallel_tool_calls', None)
+        elif isinstance(result.get('tool_choice'), dict):
+            if result['tool_choice'].get('function', {}).get('name') not in options['allowed_tools']:
+                result['tool_choice'] = 'auto'
+    return result
+
+
 def assemble(plan, request):
     """Compose request-local messages. Host system instructions/history stay intact."""
     validate(plan)
@@ -290,7 +315,7 @@ def assemble(plan, request):
     marker = '<!-- life-engine-native:' + signature + ' -->'
     original = request['messages']
     if any(m.get('role') == 'system' and message_text(m).startswith(marker) for m in original):
-        return deepcopy(request), {'already_composed': True}
+        return restrict_tools(request, opts), {'already_composed': True}
     split = 0
     while split < len(original) and original[split].get('role') in ('system', 'developer'):
         split += 1
@@ -334,20 +359,8 @@ def assemble(plan, request):
         messages.append({'role': 'system', 'content': expand(char['post_history_instructions'], char, opts)})
     if len(json.dumps(messages, ensure_ascii=False).encode()) > 1024 * 1024:
         raise ValueError('REQUEST_TOO_LARGE')
-    result = deepcopy(request)
+    result = restrict_tools(request, opts)
     result['messages'] = messages
-    if 'tools' in result:
-        result['tools'] = [t for t in result['tools'] if t.get('type') == 'function'
-                           and t.get('function', {}).get('name') in opts['allowed_tools']]
-        if not result['tools']:
-            result.pop('tools')
-            result.pop('tool_choice', None)
-            result.pop('parallel_tool_calls', None)
-        elif isinstance(result.get('tool_choice'), dict):
-            if result['tool_choice'].get('function', {}).get('name') not in opts['allowed_tools']:
-                result['tool_choice'] = 'auto'
-    if 'functions' in result:
-        raise ValueError('LEGACY_FUNCTIONS_UNSUPPORTED')
     return result, {'selected': [r['id'] for r in lore], 'dropped_budget': dropped,
                     'lore_budget_used': used, 'budget_unit': 'utf8_bytes_estimate',
                     'source_sha256': plan['source_sha256'], 'message_count': len(messages)}
