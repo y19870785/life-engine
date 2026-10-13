@@ -61,6 +61,7 @@ class HermesCardImportTests(unittest.TestCase):
         self.assertEqual((self.home/'config.yaml').read_text(),'untouched')
         self.assertFalse(ci.verify(self.home,receipt)['ok'])
         self.assertEqual(ci.restore(self.home,receipt)['state'],'ROLLED_BACK')
+        self.assertEqual(self.install()['state'], 'APPLIED')
 
     def test_frozen_plan_and_default_home_refused(self):
         with self.assertRaisesRegex(ValueError,'PLAN_CHANGED'):
@@ -125,6 +126,38 @@ class HermesCardImportTests(unittest.TestCase):
         (receipt.parent/'before/SOUL.md').write_text('corrupt')
         with self.assertRaisesRegex(ValueError,'BACKUP_CHANGED'):
             ci.restore(self.home,receipt)
+
+    def test_receipt_tampering_never_deletes_original_soul(self):
+        result=self.install(); receipt=Path(result['receipt'])
+        data=json.loads(receipt.read_text()); data['files']['SOUL.md']['before']=None
+        receipt.write_bytes(ci.json_bytes(data))
+        before=(self.home/'SOUL.md').read_bytes()
+        for operation in (ci.verify,ci.restore):
+            with self.assertRaisesRegex(ValueError,'RECEIPT_CHANGED'):
+                operation(self.home,receipt)
+        self.assertEqual((self.home/'SOUL.md').read_bytes(),before)
+
+    def test_cache_archive_conflict_refused_before_any_restore(self):
+        result=self.install(); receipt=Path(result['receipt'])
+        cache=self.home/'plugins'/hook.PLUGIN/'__pycache__'; cache.mkdir()
+        (cache/'keep.txt').write_text('preserve')
+        (receipt.parent/'runtime-cache').mkdir()
+        before={name:(self.home/name).read_bytes() for name in ci.FILES}
+        with self.assertRaisesRegex(ValueError,'CACHE_ARCHIVE_CONFLICT'):
+            ci.restore(self.home,receipt)
+        self.assertEqual(before,{name:(self.home/name).read_bytes() for name in ci.FILES})
+        self.assertEqual((cache/'keep.txt').read_text(),'preserve')
+
+    def test_preview_preserves_full_private_original_without_deploying_it(self):
+        original=card(); original['data']['extensions']={'private_unknown':'sentinel'}
+        original['data']['character_book']={'scan_depth':42,'entries':[
+            {'keys':['one'],'content':'entry','disable':True,'insertion_order':7}]}
+        src=self.root/'full.json'; src.write_text(json.dumps(original))
+        plan=self.root/'full-plan.json'; ci.preview(src,plan)
+        value=json.loads(plan.read_text())
+        self.assertEqual(value['review_only']['original'],original)
+        self.assertTrue(value['entries'][0]['source_disabled'])
+        self.assertEqual(value['entries'][0]['source_order'],7)
 
 
 if __name__=='__main__': unittest.main()

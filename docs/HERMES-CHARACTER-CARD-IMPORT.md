@@ -30,7 +30,7 @@ Windows 也可以用 `py -3.12 -X utf8 tools/hermes_card.py preview ...` 预览�
 - `entries`：保留原正文与来源设置。**所有 `include` 默认 false**，避免把作者秘密自动泄漏给角色。逐项审阅后，只将要启用的条目设为 true。
 - `constant` / `keys` / `secondary_keys` / `selective` / `case_sensitive` / `priority`：本版的实际运行参数。高 priority 优先，同优先级按原条目索引排序。
 - `unsupported`：正则、模板等需要改编的标记。完成文本与触发词改编后才清除；仅清标记仍不能执行脚本。未选择的条目不进入安装文件。
-- `review_only`：原始设定、指令、开场白、示例对白和外部引用供审阅，不会自动放入提示。需要的普通背景可以手工整理到 persona 或选中条目。
+- `review_only`：`original` 保存解析后的完整原卡对象，包括未知扩展与世界书元数据；另列指令、开场白、示例对白和外部引用供审阅，不会自动放入提示。需要的普通背景可以手工整理到 persona 或选中条目。条目同时列出 `source_enabled`、`source_disabled` 和 `source_order`，供核对来源冲突。
 
 人物秘密、用户隐藏身份与关系前情应作明确选择，不能把作者预设当真实共同记忆。不要要求模型为自己生成的经历自动确权。自动内容过滤和最终输出事实验证不在此工具中，人工/Agent 审阅不可省略。
 
@@ -44,7 +44,9 @@ python3 tools/hermes_card.py apply --plan /tmp/card-plan.json \
   --profile-home "$HOME/.hermes/profiles/card-trial" --expect-sha256 FINAL_SHA256
 ```
 
-安装只写 SOUL 和 `plugins/life-engine-character-card/` 内的四个文件。先保存原文件与 `PREPARED` 回执，再写新内容；普通写入失败会尝试恢复。返回的 `receipt` 路径用于校验与回退，请保存。既有 Life Engine 实例、记忆、密钥、模型配置和其他插件不会修改。
+安装写入 SOUL 和 `plugins/life-engine-character-card/` 内的四个文件，并在 Profile 内创建 `.life-engine-card-backups/`、临时锁与专用回执签名密钥 `.life-engine-card-key`。先保存原文件与签名的 `PREPARED` 回执，再写新内容；普通写入失败会尝试恢复。返回的 `receipt` 路径用于校验与回退，请保存。既有 Life Engine 实例、记忆、API 凭据、模型配置和其他插件不会修改。
+
+回执签名用于发现回执被单独误改；无法防御同时能读取签名密钥和修改文件的本地程序。请保留签名密钥和备份，丢失或损坏时工具会拒绝自动恢复。
 
 安装期间不要运行目标 Profile 或由另一个编辑器修改这些文件。工具锁只协调本工具，不会锁住 Hermes 或编辑器。进程强制终止可能留下部分安装与锁：先确认没有导入进程仍在运行，再移除该 Profile 的 `.life-engine-card.lock`，使用已落盘回执执行 rollback；不要盲删锁或重新 apply。
 
@@ -69,7 +71,7 @@ hermes -p card-trial plugins disable life-engine-character-card
 python3 tools/hermes_card.py rollback --profile-home "$HOME/.hermes/profiles/card-trial" --receipt /actual/path/receipt.json
 ```
 
-回退恢复原 SOUL，移除此次创建的固定插件文件，保留备份、回执与空目录；不递归删除目录。若用户在安装后改过文件，或备份损坏，会拒绝回退并报告冲突，避免覆盖新工作。重复回退无副作用。更换卡片先回退，再重新预览/安装。回退不会抹除旧会话中已出现的内容，也不是记忆遗忘证明。
+回退恢复原 SOUL，移除此次创建的固定插件文件，将插件运行产生的 `__pycache__` 整体移入此次备份的 `runtime-cache`，保留备份、签名密钥、回执与空目录；不递归删除目录。若用户在安装后改过文件、回执被改动、备份损坏或缓存归档目标冲突，会拒绝回退并报告冲突，避免覆盖新工作。重复回退无副作用。更换卡片先回退，再重新预览/安装。回退不会抹除旧会话中已出现的内容，也不是记忆遗忘证明。
 
 ## 让 Hermes 代为操作
 
