@@ -62,6 +62,12 @@ def verify_pair(home, frame):
             rows.append(row)
         if not rows[0]['id'] < rows[1]['id'] or rows[1]['id'] <= frame['watermark']:
             raise ValueError('NEW_FINAL_ROW_REQUIRED')
+        # A clean final row cannot prove an intervening tool/reasoning round safe.
+        # Inspect only the bounded current-turn interval, never previous history.
+        if db.execute('SELECT 1 FROM messages WHERE session_id=? AND active=1 '
+                      'AND id>? AND id<? LIMIT 1',
+                      (frame['session_id'], rows[0]['id'], rows[1]['id'])).fetchone():
+            raise ValueError('ORDINARY_TEXT_PAIR_REQUIRED')
         source = digest('|'.join((str(Path(home).resolve()), frame['session_id'],
                                  frame['user_uid'], frame['assistant_uid'])))
         return {'source': source, 'user_row': rows[0]['id'], 'assistant_row': rows[1]['id'],

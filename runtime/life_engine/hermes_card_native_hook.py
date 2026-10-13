@@ -45,7 +45,7 @@ def continuity_config(home):
 def continuity_call(config, home, action, payload):
     runner = ('import sys,runpy; sys.path.insert(0,sys.argv[1]); '
               'sys.argv=sys.argv[2:]; runpy.run_module("life_engine.character_continuity",run_name="__main__")')
-    command = [config['python'], '-I', '-c', runner, config['runtime'], 'character-continuity', action,
+    command = [config['python'], '-I', '-X', 'utf8', '-c', runner, config['runtime'], 'character-continuity', action,
                '--root', config['root'], '--profile-home', str(home),
                '--card', str(home / 'plugins' / PLUGIN / 'card.json')]
     result = subprocess.run(command, input=json.dumps(payload, ensure_ascii=False), capture_output=True,

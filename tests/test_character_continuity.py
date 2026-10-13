@@ -136,6 +136,20 @@ class ContinuityTests(unittest.TestCase):
         b=cc.context(other_root,other,self.sha,'other')
         self.assertNotEqual(a['world'],b['world']); self.assertEqual(b['records'],[])
 
+    def test_intervening_tool_round_is_not_an_ordinary_pair(self):
+        frame=self.frame()
+        with self.db() as db:
+            db.execute('INSERT INTO messages VALUES(1,?,?,?,?,NULL,1,0)',
+                       ('day0','user',frame['user_text'],frame['user_uid']))
+            db.execute('INSERT INTO messages VALUES(2,?,?,?,?,?,1,0)',
+                       ('day0','assistant','','tool-call','[{"id":"call"}]'))
+            db.execute('INSERT INTO messages VALUES(3,?,?,?,?,NULL,1,0)',
+                       ('day0','tool','tool result','tool-result'))
+            db.execute('INSERT INTO messages VALUES(4,?,?,?,?,NULL,1,0)',
+                       ('day0','assistant',frame['assistant_text'],frame['assistant_uid']))
+        with self.assertRaisesRegex(ValueError,'ORDINARY_TEXT_PAIR'):
+            verify_pair(self.profile,frame)
+
     def test_partial_core_write_recovers_once_and_stays_out_of_projection(self):
         lease=cc.context(self.root,self.profile,self.sha,'day0')['lease']
         frame=self.frame(); self.persist(frame)
@@ -155,6 +169,30 @@ class ContinuityTests(unittest.TestCase):
             return (core.memory.collection_revision(core.owner).value,
                     core.story.story_revision(core.story_owner).value)
         self.assertEqual(cc.core_call(self.root,self.profile,self.sha,inspect),(1,1))
+
+    def test_core_success_before_journal_checkpoint_recovers_without_duplicates(self):
+        for failure_at in (2,3):
+            with self.subTest(journal_call=failure_at):
+                frame=self.frame(suffix='checkpoint-'+str(failure_at))
+                lease=cc.context(self.root,self.profile,self.sha,'day0')['lease']
+                self.persist(frame)
+                original=cc.journal; count=0
+                @contextmanager
+                def interrupted(root):
+                    nonlocal count
+                    count+=1
+                    if count==failure_at:
+                        raise OSError('synthetic checkpoint failure')
+                    with original(root) as db:
+                        yield db
+                with patch.object(cc,'journal',interrupted):
+                    with self.assertRaisesRegex(OSError,'checkpoint failure'):
+                        cc.commit(self.root,self.profile,self.sha,frame,lease)
+                cc.context(self.root,self.profile,self.sha,'day0')
+        self.assertEqual(cc.status(self.root,self.profile,self.sha)['turns'],{'COMMITTED':2})
+        def inspect(core):
+            return core.memory.collection_revision(core.owner).value,core.story.story_revision(core.story_owner).value
+        self.assertEqual(cc.core_call(self.root,self.profile,self.sha,inspect),(2,2))
 
     def test_model_assertion_never_promoted_to_user_memory_and_correction_is_latest(self):
         first=self.frame(); first['assistant_text']='你以前答应陪我跑步三次。'
@@ -187,7 +225,9 @@ class ContinuityTests(unittest.TestCase):
         (folder/'card.json').write_bytes(self.card.read_bytes())
         (folder/'binding.json').write_bytes(cc.json_bytes({'profile_home':str(self.profile)}))
         config={'format':cc.FORMAT,'enabled':True,'profile':str(self.profile),'host_root':str(PACKAGE),
-                'host_files':{'README.md':cc.digest((PACKAGE/'README.md').read_bytes())}}
+                'host_files':{'README.md':cc.digest((PACKAGE/'README.md').read_bytes())},
+                'python':sys.executable,'root':str(self.root),
+                'runtime':str(self.root/'releases'/cc.durable.registry(self.root)['release']/'runtime')}
         (self.profile/'.life-engine-continuity.json').write_bytes(cc.json_bytes(config))
         spec=importlib.util.spec_from_file_location('continuity_test_plugin',folder/'__init__.py',
             submodule_search_locations=[str(folder)])
@@ -201,6 +241,11 @@ class ContinuityTests(unittest.TestCase):
         with patch.dict(sys.modules,{'continuity_test_plugin':module,
                 'hermes_constants':types.SimpleNamespace(get_hermes_home=lambda:self.profile)}):
             spec.loader.exec_module(module)
+            # Actual frozen-runtime subprocess exercises stdout encoding as well
+            # as the CLI JSON protocol; a mocked call would miss Windows GBK.
+            actual=module.continuity_call(config,self.profile,'context',{'session_id':'day0'})
+            self.assertEqual(actual['state'],'READY')
+            self.assertIn('用户',actual['policy'])
             with patch.object(module,'continuity_call',side_effect=backend):
                 module.before(user_message=frame['user_text'],conversation_history=[user],**kw)
                 self.assertNotIn('message_uid',user)
