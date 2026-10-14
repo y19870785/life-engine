@@ -1,12 +1,16 @@
 # v0.3 已知问题与历史记录
 
-## CURRENT CANONICAL STATE — GOV-SOUL-ROADMAP1
+## CURRENT — 2026-10-14 角色基线与正式主线边界
 
-当前治理见 [Soul Continuity 主线记录](architecture/GOV-SOUL-ROADMAP1-SOUL-CONTINUITY-MAINLINE.md)：A2-R1 canonical implementation commit `a552a2d0846ff024b930d0d802228b863a6da74f`；`SP-005A4-HLV4-A2-R1 = DONE`，但 `REAL_HOST_PLUGIN_LOAD / REAL_HOST_DELIVERY_BOUNDARY_PASS / REAL_HOST_SENT / ACKNOWLEDGED = NOT_ACQUIRED`，`ACK_VALIDATOR = HOST_GAP`，`REAL_SEND = NO`。
+当前状态入口见 [W0/W1 角色基线](planning/W0-W1-CHARACTER-BASELINE.md)。#56—#59 是未合并 Draft 链，本分支实现 Base 为 #59，不冒充 canonical main。以下既有治理边界仍保留，SHA 标识历史实现对象。
+
+既有治理见 [Soul Continuity 主线记录](architecture/GOV-SOUL-ROADMAP1-SOUL-CONTINUITY-MAINLINE.md)：A2-R1 canonical implementation commit `a552a2d0846ff024b930d0d802228b863a6da74f`；`SP-005A4-HLV4-A2-R1 = DONE`，但 `REAL_HOST_PLUGIN_LOAD / REAL_HOST_DELIVERY_BOUNDARY_PASS / REAL_HOST_SENT / ACKNOWLEDGED = NOT_ACQUIRED`，`ACK_VALIDATOR = HOST_GAP`，`REAL_SEND = NO`。
 
 ### Active Mainline Issues
 
-Soul Continuity = `ACTIVE_MAINLINE`；下一架构 Gate `SP-006S0 = NEXT / NOT AUTHORIZED`。Soul Identity、连续性证明和可信 Prompt Projection 尚待架构冻结；这些是新主线的待决问题，不由本文定义 Runtime 方案。
+Soul Continuity = `ACTIVE_MAINLINE`；`SP-006S0 = DONE`，M1-P0 持久化协议文档已完成。M1-A 存储设计与隔离原语探针已有记录，但结果为 `E0_SYNTHETIC_PARTIAL / M1-A_PRIMITIVE_GATE_PENDING`；同身份绕过与整体回滚问题尚未解决，正式 writer/verdict、M1.x、M2 不由角色试用解锁。详见 [M1-A 证据与缺口](planning/M1-A-PRIMITIVE-ADMISSION-EVIDENCE.md)。
+
+角色试用的普通文本连续性限制为最近 12 个完整记录、48,000 UTF-8 字节；结构化纠正/遗忘、工具轮经历、超窗口检索均为 `EXPECTED_GAP`。原生角色 Prompt/Lore 兼容子集未统一到正式 Core Prompt/Lore。W1 将本地合成、真实调度、真实模型观察分别报告，未完成层级不得标 PASS。
 
 ### Deferred Host Integration Issues
 
