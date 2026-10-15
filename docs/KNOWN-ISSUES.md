@@ -1,6 +1,6 @@
 # v0.3 已知问题与历史记录
 
-## CURRENT — 2026-10-14 角色基线与正式主线边界
+## CURRENT — 2026-10-16 角色基线与正式主线边界
 
 当前状态入口见 [W0/W1 角色基线](planning/W0-W1-CHARACTER-BASELINE.md)。#56—#59 是未合并 Draft 链，本分支实现 Base 为 #59，不冒充 canonical main。以下既有治理边界仍保留，SHA 标识历史实现对象。
 
@@ -11,6 +11,12 @@
 Soul Continuity = `ACTIVE_MAINLINE`；`SP-006S0 = DONE`，M1-P0 持久化协议文档已完成。M1-A 存储设计与隔离原语探针已有记录，但结果为 `E0_SYNTHETIC_PARTIAL / M1-A_PRIMITIVE_GATE_PENDING`；同身份绕过与整体回滚问题尚未解决，正式 writer/verdict、M1.x、M2 不由角色试用解锁。详见 [M1-A 证据与缺口](planning/M1-A-PRIMITIVE-ADMISSION-EVIDENCE.md)。
 
 角色试用的普通文本连续性限制为最近 12 个完整记录、48,000 UTF-8 字节；结构化纠正/遗忘、工具轮经历、超窗口检索均为 `EXPECTED_GAP`。原生角色 Prompt/Lore 兼容子集未统一到正式 Core Prompt/Lore。W1 将本地合成、真实调度、真实模型观察分别报告，未完成层级不得标 PASS。
+
+### W1 验证辅助工具接线未完成
+
+W1 当前为 EVIDENCE_PARTIAL：V1 受限 dispatcher 验证通过，V2 两次隔离尝试均未通过，T2 BLOCKED 且 provider 请求为 0。`tools/hermes_text_baseline_probe.py` 在真实 Host 尚不可完成 V2 验证，不能作为已可用工具发布。最终固定对象 b185406 的 World 初始化导入探针被 T1_CHILD_DENIED 拒绝；源码/路径支持解释器启动名 `bin/python3` 与 durable resolve 后 `bin/python3.14` 不匹配的推断，尚未重跑确认。这是 helper 接线问题，不构成产品连续性功能失败的证明。
+
+现场与清理记录见 [W1 验证记录](validation/W1-HERMES-TEXT-BASELINE.md)。本批已达到修复边界；下一轮只建议以真实 durable 命令验证解释器身份匹配，当前不扩大白名单、不重跑、不解锁 T2。
 
 ### Deferred Host Integration Issues
 

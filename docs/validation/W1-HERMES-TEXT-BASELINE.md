@@ -1,6 +1,6 @@
 # W1 普通文本体验基线验证
 
-日期：2026-10-14；run ID `w0w1-20261014-01`。范围与固定 Base 见 [W0/W1 基线](../planning/W0-W1-CHARACTER-BASELINE.md)。本文件只记录本批实际取得的结果，不覆盖历史验证原件。
+更新：2026-10-16；run ID `w0w1-20261014-01`。范围与固定 Base 见 [W0/W1 基线](../planning/W0-W1-CHARACTER-BASELINE.md)。本文件只记录本批实际取得的结果，不覆盖历史验证原件。
 
 ## T0 本地合成
 
@@ -21,7 +21,7 @@ py -3.12 -X utf8 -m unittest discover -s tests -p 'test_hermes*.py' -v
 
 ## T1 辅助工具的本地准入检查
 
-新增 `tools/hermes_text_baseline_probe.py`，仅由 C 在 B 审核固定提交后运行。工具校验整个 `runtime/**/*.py` 的路径与内容 SHA-256，要求全新测试目录，清理继承的凭据/代理环境；只使用真实 Host 的 UID 分配、SessionDB 和插件 dispatcher。生命周期完成参数与文本由工具合成，不代表真实模型 finalizer 或真实 CLI turn。
+新增 `tools/hermes_text_baseline_probe.py`，仅由 C 在 B 审核固定提交后运行。**当前该辅助工具尚不能在本次真实 Host 完成 V2 验证，仍待修复；本地准入通过不等于功能 PASS。**工具校验整个 `runtime/**/*.py` 的路径与内容 SHA-256，要求全新测试目录，清理继承的凭据/代理环境；只使用真实 Host 的 UID 分配、SessionDB 和插件 dispatcher。生命周期完成参数与文本由工具合成，不代表真实模型 finalizer 或真实 CLI turn。
 
 父进程和明确允许的 continuity CLI 子进程禁止 Python socket 网络动作；World 初始化还允许固定的 durable 导入探针，其命令正文、schema 8、冻结 Runtime 路径与摘要均须匹配，同样注入禁网与禁子进程的 guard；其他子进程拒绝。子进程仍执行冻结的真实 continuity CLI，额外加入禁网 audit hook；不是 mock Core 写回。父子进程都禁写 bytecode。此约束面向本批已审代码，不声称是可抵御任意原生扩展的 OS sandbox。
 
@@ -35,6 +35,23 @@ py -3.12 -X utf8 -m unittest discover -s tests -p 'test_hermes*.py' -v
 
 ## T1 / T2 与阶段结论
 
-T1 V1：`host-t1-v1-002` 已执行但 ENVIRONMENT_BLOCKED；隔离 Profile 未取得生产安装 facts，导致已安装 ruamel 未被加入导入路径，并非 Host 未安装依赖。后续显式绑定既有依赖的 `host-t1-v1-003` 由 C 报告受限 PASS（退出 0）：真实 dispatcher 的卡片组装、工具拒绝、隔离和 rollback/reinstall。此结果不覆盖 V2 跨会话连续性。T1 V2：`host-t1-v2-001` 在 SessionDB 导入所需的可选版本查询处被 T1_CHILD_DENIED 阻断，尚未安装角色插件或初始化 World；失败报告已写入且清理无错误。第三轮辅助修复仍禁止所有 git 子进程：仅对实际 Host version_info 模块、固定 Host cwd 下七条明确版本查询抛 PermissionError，让 Host 原生 OSError 分支降级；动态 git 查询及其他调用继续拒绝。report 保留拒绝命令和元数据不可用状态，不能用该 API 的 unknown/None 证明 Host 身份，身份依赖 C 的外部固定 SHA 与文件摘要核验。新版 helper 等待独立审核和一次派发，不扩充后续动态权限。T2 真实 CLI 模型：NOT_EXECUTED；凭据合法引用与 provider 请求持久硬上限仍是门禁。当前 provider 请求累计 0，渠道发送 0。
+本批结论：**W0-REVIEW_COMPLETE；W1 EVIDENCE_PARTIAL；T1 V2 FAILED；T2 BLOCKED / NOT_EXECUTED**。helper 准入是允许隔离执行的审核结论，不是 V2 功能通过。未修改产品 Runtime，也未修改最近 12 条/48,000 字节语义。
 
-W0 独立审核：W0-REVIEW_COMPLETE（B 于 2026-10-14 收口，累计 #59 代码准入及 c8e2397 文档校准审核；不授予各 Draft 发布/合并资格）。W1 总体：PENDING。代码未改变现有 12 条/48,000 字节语义；结构化纠正/遗忘、工具轮经历与超窗口检索均 EXPECTED_GAP。provider 请求与退出记录由 C 另行提交，核验后更新本记录。
+| 动作 | 固定对象 | 实际结果 |
+| --- | --- | --- |
+| host-t1-v1-002 | #59 `1d1ec6b7681684cbc44458e94344c261c5a2011b` | ENVIRONMENT_BLOCKED / exit 1；隔离 Profile 缺少安装 facts 引用，已安装 ruamel 未被加入导入路径 |
+| host-t1-v1-003 | 同上，显式绑定既有依赖的已审启动 guard | SYNTHETIC_HOST_MIDDLEWARE_PASS / exit 0；真实 dispatcher 的卡片组装、工具拒绝、隔离、rollback/reinstall 等八项断言通过；不覆盖 V2 |
+| host-t1-v2-001 | `d67d3f840c1723e3b15e37d467e910f1a3b9de7c` | T1_FAILED / exit 1；SessionDB 导入链的可选版本 git 查询被 T1_CHILD_DENIED 拒绝，卡片安装、World 初始化和 V2 激活前停止 |
+| host-t1-v2-002 | `b18540606a9e0eb75aa347699e8df794e3ab32c8` | T1_FAILED / exit 1；已导入 Host 依赖并安装合成卡片，World create_install 内 durable.probe_release 子进程被 helper 白名单拒绝 |
+
+V2 两次执行的 Runtime 路径/内容 SHA-256 均为 `489ce764f39b2a94ec06cfcf6413a77b4144cbb50b354705352acc3d5daba2d0`。001 helper SHA-256 为 `0CED46589A4E723C6281AAC98C01269EC37B9E3DCA0CD3B8EEF20F51081B46FE`；002 为 `3DD06A387A83A7FD691D0043C8A9476F57496D492167C7EC82D7318D5CEC429E`。Host 观察 HEAD `4e745c539893422cc5509b167350049702e948ee` 含既有本地修改，因此另核验六个生命周期文件实际字节，执行前后无漂移。解释器为 Host managed Python 3.14.7，使用隔离环境与既有只读依赖，没有新增依赖安装。
+
+002 阻断发生在 helper 第 110 行的命令匹配失败分支，未到第 107 行 Runtime 路径/摘要失败分支。只读源码和路径核验支持以下**根因推断，尚未重跑验证**：durable 将基础解释器 resolve 为 `bin/python3.14`，helper 的 `sys.executable` 保持启动路径 `bin/python3`，字符串前缀未匹配。这是验证辅助工具与真实 Host 接线未收敛，不能据此判定产品连续性功能失败，更不能宣称 V2 通过。两次均无 dispatcher 事件、UID 持久化或跨会话投影证据。
+
+版本查询仍不执行 git 子进程；002 实际仅记录 `git rev-parse HEAD` 被拒，metadata 为 UNAVAILABLE_QUERIES_DENIED。报告中的 expected_native_fallback 是预期说明，不是实测完整版本 API 返回 unknown/None；Host 身份以外部固定 SHA 和生命周期文件摘要核验为据。
+
+001 清理 errors=[]，因插件未安装、V2 未激活，恢复/停用不适用；Host 导入创建的合成 Profile/SOUL 保留。002 清理 errors=[]，插件文件已 restore、目录为空，合成 config 恢复至安装前内容；V2 配置不存在且从未激活，不能把它当作激活后停用验证。部分 World control 数据、identity、release 及失败报告保留。退出后无测试进程，六个 Host 生命周期摘要未变。失败目录未覆盖或删除。
+
+T2 凭据合法引用与实际 provider 请求持久硬上限尚未满足准入，状态 BLOCKED / NOT_EXECUTED。本批 provider 请求累计 **0/12**，渠道发送 **0**，无 SENT/ACK。W0 收口来自 B 于 2026-10-14 对累计 #59 代码准入及 c8e2397 文档校准的独立审核，不授予各 Draft 发布/合并资格。
+
+本批按修复轮次边界收口，不再修改 helper 或继续 Host 重跑。下一轮提案仅为对齐真实 durable 初始化命令与解释器身份的薄验证：从真实调用捕获并核验参数，覆盖启动路径与 resolve 路径差异，避免测试 fixture 重复错误假设；经独立审核后再决定是否重试。该提案未在本批执行，T2、W2—W4、正式 M1 和合并均未解锁。结构化纠正/遗忘、工具轮经历和超窗口检索继续 EXPECTED_GAP。

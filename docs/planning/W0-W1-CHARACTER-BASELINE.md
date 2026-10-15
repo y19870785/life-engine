@@ -45,3 +45,7 @@ W0 修正状态入口与历史标记，不重写历史验证原件。W1 先建�
 T0 是本地合成；T1 是真实 Hermes 插件调度与合成请求、不调用模型；T2 是真实 CLI 模型观察。每层单独结论，机器结构通过不等于模型体验完全合格。新增测试与运行状态见 [W1 验证记录](../validation/W1-HERMES-TEXT-BASELINE.md)。没有证据时写 NOT_EXECUTED/PENDING，不提前签 PASS。
 
 既有指南中的实机观察属于其原固定对象的历史证据，不能自动移用到本批。结束时 C 记录退出、受控停用和漂移核验，保留世界与失败现场；主协调汇总代码、审核、CI、Host 与体验结果。
+
+## 本批收口（2026-10-16）
+
+W0-REVIEW_COMPLETE；W1 EVIDENCE_PARTIAL。T0 合成与 V1 受限真实 dispatcher 获得证据，V2 辅助工具仍有 Host 接线阻断、两次尝试失败，T2 BLOCKED / NOT_EXECUTED；provider 请求 0。固定对象、清理和根因推断见 [验证记录](../validation/W1-HERMES-TEXT-BASELINE.md)。保留失败现场和当前代码，以 Draft 交付供后续修复；本批不继续改 helper 或扩大执行范围。
