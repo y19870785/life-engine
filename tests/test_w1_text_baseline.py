@@ -110,7 +110,8 @@ p.main()
     def test_optional_version_queries_are_denied_with_native_fallback(self):
         with tempfile.TemporaryDirectory() as temp:
             host = Path(temp)
-            (host / 'version_info.py').write_text(
+            (host / 'hermes_cli').mkdir()
+            (host / 'hermes_cli/version_info.py').write_text(
                 "import subprocess\n"
                 "def _run_git(command,cwd):\n"
                 " try: return subprocess.run(command,cwd=cwd,capture_output=True,text=True).stdout\n"
@@ -120,7 +121,9 @@ import importlib.util,json,pathlib,sys,subprocess
 h=pathlib.Path(sys.argv[1]);host=pathlib.Path(sys.argv[2])
 def load(name,path):
  spec=importlib.util.spec_from_file_location(name,path);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m);return m
-p=load('probe',h);v=load('version_info',host/'version_info.py')
+p=load('probe',h);v=load('version_info',host/'hermes_cli/version_info.py')
+(host/'version_info.py').write_bytes((host/'hermes_cli/version_info.py').read_bytes())
+wrong=load('wrong_version_info',host/'version_info.py')
 c={'python':sys.executable,'runtime':'','root':str(host/'world'),'host_root':str(host)}
 p.restrict_processes(c,host/'profile')
 results=[v._run_git(list(q),str(host)) for q in p.VERSION_QUERIES]
@@ -128,6 +131,8 @@ denied=[]
 for command,cwd in ((['git','rev-parse','HEAD'],str(host/'other')),(['git','fetch'],str(host)),(['git','show','v1:pyproject.toml'],str(host)),(['git','rev-list','--count','v1..HEAD'],str(host))):
  try: v._run_git(command,cwd)
  except RuntimeError: denied.append(True)
+try: wrong._run_git(['git','rev-parse','HEAD'],str(host))
+except RuntimeError: denied.append(True)
 try: subprocess.run(['git','rev-parse','HEAD'],cwd=str(host))
 except RuntimeError: denied.append(True)
 print(json.dumps({'results':results,'denied':denied,'logged':c['version_query_denials']}))
@@ -137,7 +142,7 @@ print(json.dumps({'results':results,'denied':denied,'logged':c['version_query_de
             self.assertEqual(result.returncode, 0, result.stderr)
             report = json.loads(result.stdout)
             self.assertEqual(report['results'], [None] * 7)
-            self.assertEqual(report['denied'], [True] * 5)
+            self.assertEqual(report['denied'], [True] * 6)
             self.assertEqual(report['logged'], [list(q) for q in probe.VERSION_QUERIES])
 
     def test_parent_and_exact_child_deny_network_and_other_processes(self):

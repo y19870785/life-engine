@@ -48,7 +48,7 @@ def optional_version_query(command, kwargs, config):
     frame = sys._getframe(1)
     while frame is not None:
         filename = Path(frame.f_code.co_filename).absolute()
-        if (filename == filename.resolve() == Path(host) / 'version_info.py'
+        if (filename == filename.resolve() == Path(host) / 'hermes_cli/version_info.py'
                 and frame.f_globals.get('__file__') == str(filename)
                 and frame.f_code.co_name in ('_run_git', '_git_version_info')):
             return True
