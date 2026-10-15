@@ -27,6 +27,34 @@ IMPORT_PROBE = ('import sys; sys.path.insert(0, sys.argv[1]); from life_engine i
                 'if int(sys.argv[2]) >= 6: from life_engine.story_runtime import StoryRuntime\n'
                 'if int(sys.argv[2]) >= 7: from life_engine.bridge_runtime import BridgeRuntime\n')
 
+# No git process is allowed. These optional version probes can use the Host's
+# native OSError fallback; unknown commands still fail the admission boundary.
+VERSION_QUERIES = (
+    ('git', 'rev-parse', 'HEAD'), ('git', 'branch', '--show-current'),
+    ('git', 'log', '-1', '--format=%ct', 'HEAD'),
+    ('git', '--no-optional-locks', 'status', '--porcelain', '-uno'),
+    ('git', 'tag', '--merged', 'HEAD', '--list', 'v[0-9]*'),
+    ('git', 'describe', '--tags', '--long', '--match', 'v2[0-9][0-9][0-9].*', 'HEAD'),
+    ('git', 'rev-parse', '--short=7', 'HEAD'),
+)
+
+
+def optional_version_query(command, kwargs, config):
+    host = config.get('host_root')
+    if (not host or tuple(command) not in VERSION_QUERIES
+            or kwargs.get('cwd') != host or kwargs.get('executable') is not None):
+        return False
+    # Only the real optional version module may consume this recoverable denial.
+    frame = sys._getframe(1)
+    while frame is not None:
+        filename = Path(frame.f_code.co_filename).absolute()
+        if (filename == filename.resolve() == Path(host) / 'version_info.py'
+                and frame.f_globals.get('__file__') == str(filename)
+                and frame.f_code.co_name in ('_run_git', '_git_version_info')):
+            return True
+        frame = frame.f_back
+    return False
+
 
 def tree_digest(folder):
     digest = hashlib.sha256()
@@ -63,6 +91,9 @@ def restrict_processes(config, profile):
         if not isinstance(command, list) or kwargs.get('shell') or args:
             raise RuntimeError('T1_CHILD_DENIED')
         command = list(command)
+        if optional_version_query(command, kwargs, config):
+            config.setdefault('version_query_denials', []).append(command)
+            raise PermissionError('T1_OPTIONAL_VERSION_QUERY_DENIED')
         if (len(command) == 15 and command[:8] == expected_prefix
                 and command[8] in ('context', 'commit') and command[9:] == expected_suffix):
             command[5] = CHILD_GUARD + RUNNER
@@ -112,7 +143,7 @@ def main():
     sys.path.insert(0, str(host)); sys.path.insert(0, str(runtime))
     # Block network/processes during Host imports and plugin discovery too.
     config = {'python': sys.executable, 'runtime': '', 'root': str(root / 'world'),
-              'runtime_sha256': args.expected_runtime_sha256}
+              'runtime_sha256': args.expected_runtime_sha256, 'host_root': str(host)}
     restrict_processes(config, profile)
     dependency = Path(args.dependency_site).absolute()
     report = {'state': 'PENDING', 'scope': 'T1 real dispatcher; synthetic lifecycle and rows; no model/CLI turn',
@@ -219,6 +250,13 @@ def main():
                 action()
             except Exception as exc:
                 cleanup_errors.append({'step': name, 'error_type': type(exc).__name__})
+        report['version_metadata'] = {
+            'optional_queries_denied': config.get('version_query_denials', []),
+            'state': 'UNAVAILABLE_QUERIES_DENIED' if config.get('version_query_denials') else 'NOT_OBSERVED',
+            'identity_source': 'external Host file and Git verification; not this optional API',
+        }
+        if config.get('version_query_denials'):
+            report['version_metadata']['expected_native_fallback'] = 'source=git; version=unknown; commit/branch=None'
         report['cleanup'] = {'errors': cleanup_errors, 'synthetic_evidence_retained': True}
         if cleanup_errors:
             report['state'] = 'T1_CLEANUP_INCOMPLETE'

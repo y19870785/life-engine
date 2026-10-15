@@ -31,8 +31,10 @@ py -3.12 -X utf8 -m unittest discover -s tests -p 'test_hermes*.py' -v
 
 本轮修复将依赖导入、安装、激活及 SessionDB 初始化纳入统一失败记录与清理。新增缺依赖、World 初始化失败、激活后 DB 初始化失败检查；使用真实安装/恢复及 World 初始化/停用验证回收，Host 导入用合成模块。六项本地检查通过，包含两种 setup 故障子场景；未知导入探针正文、路径、摘要及 schema 均拒绝。插件回退保留空目录，V2 配置停用而非删除，合成 World 与报告保留。
 
+第三轮辅助修复的七项本地检查通过（含可选版本查询模拟原生捕获、未知 git 参数/cwd/调用来源拒绝）；这些检查不执行真实 Host 模型，也不将版本降级标为版本检查成功。
+
 ## T1 / T2 与阶段结论
 
-T1 V1：`host-t1-v1-002` 已执行但 ENVIRONMENT_BLOCKED；隔离 Profile 未取得生产安装 facts，导致已安装 ruamel 未被加入导入路径，并非 Host 未安装依赖。后续显式绑定既有依赖的 `host-t1-v1-003` 由 C 报告受限 PASS（退出 0）：真实 dispatcher 的卡片组装、工具拒绝、隔离和 rollback/reinstall。此结果不覆盖 V2 跨会话连续性。T1 V2：新版 helper 等待独立审核和派发。T2 真实 CLI 模型：NOT_EXECUTED；凭据合法引用与 provider 请求持久硬上限仍是门禁。当前 provider 请求累计 0，渠道发送 0。
+T1 V1：`host-t1-v1-002` 已执行但 ENVIRONMENT_BLOCKED；隔离 Profile 未取得生产安装 facts，导致已安装 ruamel 未被加入导入路径，并非 Host 未安装依赖。后续显式绑定既有依赖的 `host-t1-v1-003` 由 C 报告受限 PASS（退出 0）：真实 dispatcher 的卡片组装、工具拒绝、隔离和 rollback/reinstall。此结果不覆盖 V2 跨会话连续性。T1 V2：`host-t1-v2-001` 在 SessionDB 导入所需的可选版本查询处被 T1_CHILD_DENIED 阻断，尚未安装角色插件或初始化 World；失败报告已写入且清理无错误。第三轮辅助修复仍禁止所有 git 子进程：仅对实际 Host version_info 模块、固定 Host cwd 下七条明确版本查询抛 PermissionError，让 Host 原生 OSError 分支降级；动态 git 查询及其他调用继续拒绝。report 保留拒绝命令和元数据不可用状态，不能用该 API 的 unknown/None 证明 Host 身份，身份依赖 C 的外部固定 SHA 与文件摘要核验。新版 helper 等待独立审核和一次派发，不扩充后续动态权限。T2 真实 CLI 模型：NOT_EXECUTED；凭据合法引用与 provider 请求持久硬上限仍是门禁。当前 provider 请求累计 0，渠道发送 0。
 
 W0 独立审核：W0-REVIEW_COMPLETE（B 于 2026-10-14 收口，累计 #59 代码准入及 c8e2397 文档校准审核；不授予各 Draft 发布/合并资格）。W1 总体：PENDING。代码未改变现有 12 条/48,000 字节语义；结构化纠正/遗忘、工具轮经历与超窗口检索均 EXPECTED_GAP。provider 请求与退出记录由 C 另行提交，核验后更新本记录。
