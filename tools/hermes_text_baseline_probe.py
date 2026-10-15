@@ -18,6 +18,15 @@ CHILD_GUARD = ('import sys; sys.dont_write_bytecode=True; sys.addaudithook(lambd
                'if e.startswith("socket.") or e in '
                '("subprocess.Popen","os.system","os.posix_spawn","os.exec","os.fork") else None); ')
 
+# Exact offline import probe emitted by durable.probe_release in this snapshot.
+IMPORT_PROBE = ('import sys; sys.path.insert(0, sys.argv[1]); from life_engine import cli, deploy_cli, durable\n'
+                'if durable.DATA_SCHEMA != int(sys.argv[2]): raise ValueError("SchemaMismatch")\n'
+                'if int(sys.argv[2]) >= 3: from life_engine.world_sqlite_repository import SQLiteWorldRepository\n'
+                'if int(sys.argv[2]) >= 4: from life_engine.memory_runtime import MemoryRuntime\n'
+                'if int(sys.argv[2]) >= 5: from life_engine.lore_runtime import LoreRuntime\n'
+                'if int(sys.argv[2]) >= 6: from life_engine.story_runtime import StoryRuntime\n'
+                'if int(sys.argv[2]) >= 7: from life_engine.bridge_runtime import BridgeRuntime\n')
+
 
 def tree_digest(folder):
     digest = hashlib.sha256()
@@ -51,11 +60,23 @@ def restrict_processes(config, profile):
                            config['runtime'], 'character-continuity']
         expected_suffix = ['--root', config['root'], '--profile-home', str(profile),
                            '--card', str(profile / 'plugins/life-engine-character-card/card.json')]
-        if (not isinstance(command, list) or len(command) != 15 or command[:8] != expected_prefix
-                or command[8] not in ('context', 'commit') or command[9:] != expected_suffix
-                or kwargs.get('shell') or args):
+        if not isinstance(command, list) or kwargs.get('shell') or args:
             raise RuntimeError('T1_CHILD_DENIED')
-        command = list(command); command[5] = CHILD_GUARD + RUNNER
+        command = list(command)
+        if (len(command) == 15 and command[:8] == expected_prefix
+                and command[8] in ('context', 'commit') and command[9:] == expected_suffix):
+            command[5] = CHILD_GUARD + RUNNER
+        elif (len(command) == 5 and command[:3] == [config['python'], '-c', IMPORT_PROBE]
+              and command[4] == '8'):
+            runtime = Path(command[3])
+            releases = Path(config['root']) / 'releases'
+            if (runtime.name != 'runtime' or runtime.parent.parent != releases
+                    or runtime.resolve() != runtime.absolute()
+                    or tree_digest(runtime) != config.get('runtime_sha256')):
+                raise RuntimeError('T1_CHILD_DENIED')
+            command[2] = CHILD_GUARD + IMPORT_PROBE
+        else:
+            raise RuntimeError('T1_CHILD_DENIED')
         kwargs['env'] = dict(os.environ)
         allowed[:] = [command]
         try:
@@ -70,6 +91,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--host-root', required=True)
     parser.add_argument('--root', required=True)
+    parser.add_argument('--dependency-site', required=True)
+    parser.add_argument('--expected-dependency-sha256', required=True)
     parser.add_argument('--expected-runtime-sha256', required=True)
     args = parser.parse_args()
     package = Path(__file__).resolve().parents[1]
@@ -88,41 +111,57 @@ def main():
     host = Path(args.host_root).resolve()
     sys.path.insert(0, str(host)); sys.path.insert(0, str(runtime))
     # Block network/processes during Host imports and plugin discovery too.
-    config = {'python': sys.executable, 'runtime': '', 'root': str(root / 'world')}
+    config = {'python': sys.executable, 'runtime': '', 'root': str(root / 'world'),
+              'runtime_sha256': args.expected_runtime_sha256}
     restrict_processes(config, profile)
-    from pm.environments import committed_venv, site_packages
-    environment = committed_venv(host)
-    if environment is not None:
-        sys.path.insert(0, str(site_packages(environment)))
-    from life_engine import hermes_card_import as ci, character_continuity as cc
-    (profile / 'config.yaml').write_text('plugins:\n  enabled: [life-engine-character-card]\n', encoding='utf-8')
-    source = root / 'source.json'
-    source.write_bytes(ci.json_bytes({'name': '岚', 'description': '灯塔管理员。', 'first_mes': '灯刚亮。'}))
-    plan_path = root / 'plan.json'; ci.preview(source, plan_path, 'native')
-    plan = json.loads(plan_path.read_bytes())
-    plan['options']['acknowledged'] = [issue['id'] for issue in plan['issues']]
-    plan_path.write_bytes(ci.json_bytes(plan))
-    receipt = ci.apply(plan_path, profile, ci.digest(plan_path.read_bytes()))['receipt']
-    card = profile / 'plugins/life-engine-character-card/card.json'
-    sha = cc.digest(card.read_bytes())
-    cc.init(root / 'world', profile, card, package)
-    cc.activation(root / 'world', profile, sha, True, host)
-    config.update(json.loads((profile / '.life-engine-continuity.json').read_bytes()))
-    if tree_digest(Path(config['runtime'])) != args.expected_runtime_sha256:
-        raise ValueError('FROZEN_RUNTIME_HASH_MISMATCH')
-    from hermes_state import SessionDB
-    from agent.message_metadata import stamp_message_uid
-    from hermes_constants import get_hermes_home
-    from hermes_cli import plugins
-    from hermes_cli.middleware import apply_llm_request_middleware
-    if get_hermes_home().resolve() != profile:
-        raise ValueError('HOST_HOME_MISMATCH')
+    dependency = Path(args.dependency_site).absolute()
     report = {'state': 'PENDING', 'scope': 'T1 real dispatcher; synthetic lifecycle and rows; no model/CLI turn',
-              'runtime_sha256': args.expected_runtime_sha256, 'host_files': config['host_files'],
-              'model_requests': 0, 'real_send': False, 'events': []}
-    db = SessionDB(db_path=profile / 'state.db')
-    manager = None
+              'runtime_sha256': args.expected_runtime_sha256, 'model_requests': 0,
+              'real_send': False, 'events': []}
+    db = manager = receipt = None
+    ci = cc = None
     try:
+        marker = dependency / 'ruamel/yaml/__init__.py'
+        for part in (marker, *marker.parents):
+            if part.is_symlink() or (part.exists() and getattr(part.lstat(), 'st_file_attributes', 0) & 0x400):
+                raise ValueError('LINKED_DEPENDENCY_REFUSED')
+        if hashlib.sha256(marker.read_bytes()).hexdigest() != args.expected_dependency_sha256:
+            raise ValueError('DEPENDENCY_HASH_MISMATCH')
+        if dependency.parent.name != 'python' + str(sys.version_info.major) + '.' + str(sys.version_info.minor):
+            raise ValueError('DEPENDENCY_PYTHON_VERSION_MISMATCH')
+        sys.path.insert(0, str(dependency))
+        import ruamel.yaml
+        if Path(ruamel.yaml.__file__).resolve() != marker.resolve():
+            raise ValueError('DEPENDENCY_IMPORT_PATH_MISMATCH')
+        from hermes_state import SessionDB
+        from agent.message_metadata import stamp_message_uid
+        from hermes_constants import get_hermes_home
+        from hermes_cli import plugins
+        from hermes_cli.middleware import apply_llm_request_middleware
+        if get_hermes_home().resolve() != profile:
+            raise ValueError('HOST_HOME_MISMATCH')
+        report.update(dependency_site=str(dependency), dependency_marker_sha256=args.expected_dependency_sha256,
+                      loaded_modules={name: str(Path(sys.modules[name].__file__).resolve())
+                                      for name in ('ruamel.yaml', 'hermes_state', 'agent.message_metadata',
+                                                   'hermes_cli.plugins', 'hermes_cli.middleware')})
+        from life_engine import hermes_card_import as ci, character_continuity as cc
+        (profile / 'config.yaml').write_text('plugins:\n  enabled: [life-engine-character-card]\n', encoding='utf-8')
+        source = root / 'source.json'
+        source.write_bytes(ci.json_bytes({'name': '岚', 'description': '灯塔管理员。', 'first_mes': '灯刚亮。'}))
+        plan_path = root / 'plan.json'; ci.preview(source, plan_path, 'native')
+        plan = json.loads(plan_path.read_bytes())
+        plan['options']['acknowledged'] = [issue['id'] for issue in plan['issues']]
+        plan_path.write_bytes(ci.json_bytes(plan))
+        receipt = ci.apply(plan_path, profile, ci.digest(plan_path.read_bytes()))['receipt']
+        card = profile / 'plugins/life-engine-character-card/card.json'
+        sha = cc.digest(card.read_bytes())
+        cc.init(root / 'world', profile, card, package)
+        cc.activation(root / 'world', profile, sha, True, host)
+        config.update(json.loads((profile / '.life-engine-continuity.json').read_bytes()))
+        if tree_digest(Path(config['runtime'])) != args.expected_runtime_sha256:
+            raise ValueError('FROZEN_RUNTIME_HASH_MISMATCH')
+        report['host_files'] = config['host_files']
+        db = SessionDB(db_path=profile / 'state.db')
         plugins.discover_plugins(); manager = plugins.get_plugin_manager()
         if not manager.has_middleware('llm_request'):
             raise ValueError('MIDDLEWARE_MISSING')
@@ -170,10 +209,11 @@ def main():
     finally:
         cleanup_errors = []
         for name, action in (
-            ('db_close', db.close),
+            ('db_close', lambda: db.close() if db is not None else None),
             ('plugin_unload', lambda: manager.unload() if manager is not None else None),
-            ('disable_v2', lambda: cc.activation(root / 'world', profile, sha, False)),
-            ('restore_plugin', lambda: ci.restore(profile, receipt)),
+            ('disable_v2', lambda: cc.activation(root / 'world', profile, sha, False)
+             if cc is not None and (profile / '.life-engine-continuity.json').exists() else None),
+            ('restore_plugin', lambda: ci.restore(profile, receipt) if receipt is not None else None),
         ):
             try:
                 action()
@@ -182,7 +222,7 @@ def main():
         report['cleanup'] = {'errors': cleanup_errors, 'synthetic_evidence_retained': True}
         if cleanup_errors:
             report['state'] = 'T1_CLEANUP_INCOMPLETE'
-        (root / 'report.json').write_bytes(ci.json_bytes(report))
+        (root / 'report.json').write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding='utf-8')
         if cleanup_errors and sys.exc_info()[0] is None:
             raise RuntimeError('T1_CLEANUP_INCOMPLETE')
     print(json.dumps(report, ensure_ascii=False, indent=2))

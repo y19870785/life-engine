@@ -38,11 +38,74 @@ class T1ProbeTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             target = Path(temp) / 'new'
             result = subprocess.run([sys.executable, '-B', str(HELPER), '--host-root', temp,
-                                     '--root', str(target), '--expected-runtime-sha256', 'bad'],
+                                     '--root', str(target), '--expected-runtime-sha256', 'bad',
+                                     '--dependency-site', temp, '--expected-dependency-sha256', 'bad'],
                                     capture_output=True, text=True, timeout=10)
             self.assertNotEqual(result.returncode, 0)
             self.assertIn('RUNTIME_HASH_MISMATCH', result.stderr)
             self.assertFalse(target.exists())
+
+    def test_missing_dependency_writes_failure_report_without_installing(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / 'new'
+            result = subprocess.run(
+                [sys.executable, '-B', str(HELPER), '--host-root', temp, '--root', str(root),
+                 '--expected-runtime-sha256', probe.tree_digest(HELPER.parents[1] / 'runtime'),
+                 '--dependency-site', temp, '--expected-dependency-sha256', 'bad'],
+                capture_output=True, text=True, timeout=10)
+            self.assertNotEqual(result.returncode, 0)
+            report = json.loads((root / 'report.json').read_text(encoding='utf-8'))
+            self.assertEqual(report['state'], 'T1_FAILED')
+            self.assertEqual(report['error_type'], 'FileNotFoundError')
+            self.assertEqual(report['cleanup']['errors'], [])
+            self.assertFalse((root / 'profiles/synthetic/plugins').exists())
+
+    def test_setup_failures_restore_plugin_and_disable_activation(self):
+        # Synthetic module imports only; tests cleanup after real ci.apply succeeds.
+        with tempfile.TemporaryDirectory() as temp:
+            script = r"""
+import importlib.util,hashlib,os,pathlib,sys,types
+h=pathlib.Path(sys.argv[1]);base=pathlib.Path(sys.argv[2]);root=base/'new'
+spec=importlib.util.spec_from_file_location('probe',h);p=importlib.util.module_from_spec(spec);spec.loader.exec_module(p)
+site=base/('python'+str(sys.version_info.major)+'.'+str(sys.version_info.minor))/'site-packages'
+marker=site/'ruamel/yaml/__init__.py';marker.parent.mkdir(parents=True);marker.write_text('',encoding='utf-8')
+def module(name,**values):
+ m=types.ModuleType(name);m.__file__=str(base/(name+'.py'));m.__dict__.update(values);sys.modules[name]=m;return m
+ruamel=module('ruamel');ruamel.yaml=module('ruamel.yaml');ruamel.yaml.__file__=str(marker)
+def db_fail(**kwargs): raise OSError('synthetic DB initialization failure')
+module('hermes_state',SessionDB=db_fail)
+module('agent');module('agent.message_metadata',stamp_message_uid=lambda value: None)
+module('hermes_constants',get_hermes_home=lambda:pathlib.Path(os.environ['HERMES_HOME']))
+cli=module('hermes_cli');cli.plugins=module('hermes_cli.plugins')
+module('hermes_cli.middleware',apply_llm_request_middleware=lambda *a,**k: None)
+sys.path.insert(0,str(h.parents[1]/'runtime'))
+from life_engine import character_continuity as cc
+def fail(*a,**k): raise OSError('synthetic world initialization failure')
+if sys.argv[3] == 'world_init':
+ cc.init=fail
+else:
+ for name in cc.HOST_FILES:
+  f=base/name;f.parent.mkdir(parents=True,exist_ok=True);f.write_text('# synthetic host file',encoding='utf-8')
+sys.argv=[str(h),'--host-root',str(base),'--root',str(root),'--expected-runtime-sha256',p.tree_digest(h.parents[1]/'runtime'),'--dependency-site',str(site),'--expected-dependency-sha256',hashlib.sha256(marker.read_bytes()).hexdigest()]
+p.main()
+"""
+            for stage in ('world_init', 'session_db'):
+                with self.subTest(stage=stage), tempfile.TemporaryDirectory() as scenario:
+                    result = subprocess.run([sys.executable, '-B', '-X', 'utf8', '-c', script,
+                                             str(HELPER), scenario, stage],
+                                            capture_output=True, text=True, timeout=30)
+                    self.assertNotEqual(result.returncode, 0)
+                    root = Path(scenario) / 'new'
+                    report = json.loads((root / 'report.json').read_text(encoding='utf-8'))
+                    self.assertEqual(report['error_type'], 'OSError', result.stderr)
+                    self.assertEqual(report['cleanup']['errors'], [])
+                    plugin = root / 'profiles/synthetic/plugins/life-engine-character-card'
+                    self.assertEqual(list(plugin.iterdir()), [])
+                    activation = root / 'profiles/synthetic/.life-engine-continuity.json'
+                    if stage == 'world_init':
+                        self.assertFalse(activation.exists())
+                    else:
+                        self.assertFalse(json.loads(activation.read_text(encoding='utf-8'))['enabled'])
 
     def test_parent_and_exact_child_deny_network_and_other_processes(self):
         # Audit hooks are permanent: install only inside this fresh worker.
@@ -62,7 +125,11 @@ root=pathlib.Path(sys.argv[2]);profile=root/'profiles/synthetic'
 c={'python':sys.executable,'runtime':str(root/'runtime'),'root':str(root/'world')}
 p.restrict_processes(c,profile)
 denied=[]
-for action in (lambda: socket.socket(),lambda: subprocess.run([sys.executable,'-c','print(1)'])):
+for action in (lambda: socket.socket(),lambda: subprocess.run([sys.executable,'-c','print(1)']),
+ lambda: subprocess.run([sys.executable,'-c',p.IMPORT_PROBE+'# changed',c['runtime'],'8']),
+ lambda: subprocess.run([sys.executable,'-c',p.IMPORT_PROBE,c['runtime'],'8']),
+ lambda: subprocess.run([sys.executable,'-c',p.IMPORT_PROBE,c['runtime'],'9']),
+ lambda: subprocess.run([sys.executable,'-c',p.IMPORT_PROBE,str(root/'world/releases/unverified/runtime'),'8'])):
  try: action()
  except RuntimeError: denied.append(True)
 cmd=[sys.executable,'-I','-X','utf8','-c',p.RUNNER,c['runtime'],'character-continuity','context','--root',c['root'],'--profile-home',str(profile),'--card',str(profile/'plugins/life-engine-character-card/card.json')]
@@ -73,7 +140,7 @@ print(json.dumps({'denied':denied,'child':json.loads(r.stdout),'returncode':r.re
                                     capture_output=True, text=True, timeout=20)
             self.assertEqual(result.returncode, 0, result.stderr)
             value = json.loads(result.stdout)
-            self.assertEqual(value['denied'], [True, True])
+            self.assertEqual(value['denied'], [True] * 6)
             self.assertEqual(value['child'], {'network_denied': True, 'no_bytecode': True})
             self.assertEqual(value['returncode'], 0)
             self.assertEqual(list(runtime.rglob('__pycache__')), [])
