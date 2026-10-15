@@ -39,20 +39,33 @@ VERSION_QUERIES = (
 )
 
 
+def unlinked_identity(value):
+    """Canonical existing path; short Windows names are aliases, links are not."""
+    path = Path(value).absolute()
+    for part in (path, *path.parents):
+        if part.is_symlink() or (part.exists() and getattr(part.lstat(), 'st_file_attributes', 0) & 0x400):
+            raise ValueError('LINKED_IDENTITY_REFUSED')
+    return path.resolve(strict=True)
+
+
 def optional_version_query(command, kwargs, config):
     host = config.get('host_root')
-    if (not host or tuple(command) not in VERSION_QUERIES
-            or kwargs.get('cwd') != host or kwargs.get('executable') is not None):
+    if not host or tuple(command) not in VERSION_QUERIES or kwargs.get('executable') is not None:
         return False
-    # Only the real optional version module may consume this recoverable denial.
-    frame = sys._getframe(1)
-    while frame is not None:
-        filename = Path(frame.f_code.co_filename).absolute()
-        if (filename == filename.resolve() == Path(host) / 'hermes_cli/version_info.py'
-                and frame.f_globals.get('__file__') == str(filename)
-                and frame.f_code.co_name in ('_run_git', '_git_version_info')):
-            return True
-        frame = frame.f_back
+    try:
+        expected = unlinked_identity(Path(host) / 'hermes_cli/version_info.py')
+        if unlinked_identity(kwargs.get('cwd', '')) != unlinked_identity(host):
+            return False
+        # Only the real optional version module may consume this recoverable denial.
+        frame = sys._getframe(1)
+        while frame is not None:
+            if (frame.f_code.co_name in ('_run_git', '_git_version_info')
+                    and unlinked_identity(frame.f_code.co_filename) == expected
+                    and unlinked_identity(frame.f_globals.get('__file__', '')) == expected):
+                return True
+            frame = frame.f_back
+    except (OSError, ValueError, TypeError):
+        return False
     return False
 
 
@@ -71,11 +84,12 @@ def new_root(value):
             raise ValueError('LINKED_ROOT_REFUSED')
     if path.exists() or not path.parent.is_dir():
         raise ValueError('NEW_ROOT_REQUIRED')
-    return path
+    return path.resolve()
 
 
 def restrict_processes(config, profile):
     original = subprocess.Popen
+    interpreter = Path(config['python']).resolve(strict=True)
     allowed = []
     def audit(event, args):
         if event.startswith('socket.') or event in ('os.system', 'os.posix_spawn', 'os.exec', 'os.fork'):
@@ -84,7 +98,7 @@ def restrict_processes(config, profile):
             raise RuntimeError('T1_CHILD_DENIED')
     sys.addaudithook(audit)
     def spawn(command, *args, **kwargs):
-        expected_prefix = [config['python'], '-I', '-X', 'utf8', '-c', RUNNER,
+        expected_prefix = [str(interpreter), '-I', '-X', 'utf8', '-c', RUNNER,
                            config['runtime'], 'character-continuity']
         expected_suffix = ['--root', config['root'], '--profile-home', str(profile),
                            '--card', str(profile / 'plugins/life-engine-character-card/card.json')]
@@ -94,10 +108,20 @@ def restrict_processes(config, profile):
         if optional_version_query(command, kwargs, config):
             config.setdefault('version_query_denials', []).append(command)
             raise PermissionError('T1_OPTIONAL_VERSION_QUERY_DENIED')
+        # durable and activation resolve the interpreter; accept only aliases of
+        # the same existing file, then launch the pinned canonical path.
+        try:
+            if not Path(command[0]).is_absolute() or not Path(command[0]).samefile(interpreter):
+                raise RuntimeError('T1_CHILD_DENIED')
+        except (OSError, IndexError, TypeError):
+            raise RuntimeError('T1_CHILD_DENIED') from None
+        if kwargs.get('executable') is not None:
+            raise RuntimeError('T1_CHILD_DENIED')
+        command[0] = str(interpreter)
         if (len(command) == 15 and command[:8] == expected_prefix
                 and command[8] in ('context', 'commit') and command[9:] == expected_suffix):
             command[5] = CHILD_GUARD + RUNNER
-        elif (len(command) == 5 and command[:3] == [config['python'], '-c', IMPORT_PROBE]
+        elif (len(command) == 5 and command[:3] == [str(interpreter), '-c', IMPORT_PROBE]
               and command[4] == '8'):
             runtime = Path(command[3])
             releases = Path(config['root']) / 'releases'

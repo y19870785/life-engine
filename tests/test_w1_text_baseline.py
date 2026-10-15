@@ -1,6 +1,7 @@
 """Offline admission checks for the bounded T1 helper; never import Hermes."""
 import importlib.util
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -17,7 +18,7 @@ class T1ProbeTests(unittest.TestCase):
     def test_new_root_refuses_existing_or_missing_parent(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
-            self.assertEqual(probe.new_root(root / 'new'), root / 'new')
+            self.assertEqual(probe.new_root(root / 'new'), (root / 'new').resolve())
             self.assertFalse((root / 'new').exists())
             for path in (root, root / 'missing/new'):
                 with self.assertRaisesRegex(ValueError, 'NEW_ROOT_REQUIRED'):
@@ -72,24 +73,40 @@ marker=site/'ruamel/yaml/__init__.py';marker.parent.mkdir(parents=True);marker.w
 def module(name,**values):
  m=types.ModuleType(name);m.__file__=str(base/(name+'.py'));m.__dict__.update(values);sys.modules[name]=m;return m
 ruamel=module('ruamel');ruamel.yaml=module('ruamel.yaml');ruamel.yaml.__file__=str(marker)
-def db_fail(**kwargs): raise OSError('synthetic DB initialization failure')
+def db_fail(**kwargs):
+ (root/'reached-stage').write_text('session_db',encoding='utf-8')
+ raise OSError('synthetic DB initialization failure')
 module('hermes_state',SessionDB=db_fail)
 module('agent');module('agent.message_metadata',stamp_message_uid=lambda value: None)
-module('hermes_constants',get_hermes_home=lambda:pathlib.Path(os.environ['HERMES_HOME']))
+stage=sys.argv[3]
+module('hermes_constants',get_hermes_home=lambda:root/'different-profile' if stage=='host_mismatch' else pathlib.Path(os.environ['HERMES_HOME']))
 cli=module('hermes_cli');cli.plugins=module('hermes_cli.plugins')
 module('hermes_cli.middleware',apply_llm_request_middleware=lambda *a,**k: None)
 sys.path.insert(0,str(h.parents[1]/'runtime'))
 from life_engine import character_continuity as cc
-def fail(*a,**k): raise OSError('synthetic world initialization failure')
+def fail(*a,**k):
+ (root/'reached-stage').write_text('world_init',encoding='utf-8')
+ raise OSError('synthetic world initialization failure')
 if sys.argv[3] == 'world_init':
  cc.init=fail
 else:
  for name in cc.HOST_FILES:
   f=base/name;f.parent.mkdir(parents=True,exist_ok=True);f.write_text('# synthetic host file',encoding='utf-8')
 sys.argv=[str(h),'--host-root',str(base),'--root',str(root),'--expected-runtime-sha256',p.tree_digest(h.parents[1]/'runtime'),'--dependency-site',str(site),'--expected-dependency-sha256',hashlib.sha256(marker.read_bytes()).hexdigest()]
+# Capture the actual durable command without replacing its implementation.
+import subprocess,json
+original_restrict=p.restrict_processes
+def observe(config,profile):
+ original_restrict(config,profile)
+ guarded=subprocess.Popen
+ def record(command,*a,**k):
+  (root/'actual-child.json').write_text(json.dumps({'argv':command,'startup':sys.executable,'base':getattr(sys,'_base_executable',None)}),encoding='utf-8')
+  return guarded(command,*a,**k)
+ subprocess.Popen=record
+p.restrict_processes=observe
 p.main()
 """
-            for stage in ('world_init', 'session_db'):
+            for stage in ('world_init', 'session_db', 'host_mismatch'):
                 with self.subTest(stage=stage), tempfile.TemporaryDirectory() as scenario:
                     result = subprocess.run([sys.executable, '-B', '-X', 'utf8', '-c', script,
                                              str(HELPER), scenario, stage],
@@ -97,7 +114,14 @@ p.main()
                     self.assertNotEqual(result.returncode, 0)
                     root = Path(scenario) / 'new'
                     report = json.loads((root / 'report.json').read_text(encoding='utf-8'))
+                    if stage == 'host_mismatch':
+                        self.assertEqual(report['error_type'], 'ValueError', result.stderr)
+                        self.assertIn('HOST_HOME_MISMATCH', result.stderr)
+                        self.assertFalse((root/'reached-stage').exists())
+                        self.assertFalse((root/'profiles/synthetic/plugins').exists())
+                        continue
                     self.assertEqual(report['error_type'], 'OSError', result.stderr)
+                    self.assertEqual((root/'reached-stage').read_text(encoding='utf-8'), stage)
                     self.assertEqual(report['cleanup']['errors'], [])
                     plugin = root / 'profiles/synthetic/plugins/life-engine-character-card'
                     self.assertEqual(list(plugin.iterdir()), [])
@@ -105,6 +129,10 @@ p.main()
                     if stage == 'world_init':
                         self.assertFalse(activation.exists())
                     else:
+                        child = json.loads((root/'actual-child.json').read_text(encoding='utf-8'))
+                        self.assertTrue(Path(child['argv'][0]).samefile(child['startup']))
+                        self.assertEqual(Path(child['argv'][0]), Path(child['base']).resolve())
+                        self.assertIn('from life_engine import cli, deploy_cli, durable', child['argv'][2])
                         self.assertFalse(json.loads(activation.read_text(encoding='utf-8'))['enabled'])
 
     def test_optional_version_queries_are_denied_with_native_fallback(self):
@@ -145,6 +173,47 @@ print(json.dumps({'results':results,'denied':denied,'logged':c['version_query_de
             self.assertEqual(report['denied'], [True] * 6)
             self.assertEqual(report['logged'], [list(q) for q in probe.VERSION_QUERIES])
 
+    @unittest.skipUnless(os.name == 'nt', 'Windows short names only')
+    def test_real_windows_short_paths_reach_setup_and_version_fallback(self):
+        import ctypes
+        with tempfile.TemporaryDirectory(prefix='w1 long path identity ') as temp:
+            buffer = ctypes.create_unicode_buffer(32768)
+            if not ctypes.windll.kernel32.GetShortPathNameW(temp, buffer, len(buffer)):
+                self.skipTest('Windows short-path API unavailable')
+            short = Path(buffer.value)
+            if str(short) == str(Path(temp)):
+                self.skipTest('Filesystem does not supply distinct short names')
+            self.assertTrue(short.samefile(temp))
+            self.assertNotEqual(str(short), str(short.resolve()))
+            script = """
+import sys,tempfile,unittest
+sys.path.insert(0,sys.argv[1]);tempfile.tempdir=sys.argv[2]
+from test_w1_text_baseline import T1ProbeTests
+suite=unittest.TestSuite(T1ProbeTests(name) for name in ('test_setup_failures_restore_plugin_and_disable_activation','test_optional_version_queries_are_denied_with_native_fallback'))
+r=unittest.TextTestRunner(verbosity=2).run(suite);sys.exit(not r.wasSuccessful())
+"""
+            result = subprocess.run([sys.executable, '-B', '-X', 'utf8', '-c', script,
+                                     str(HELPER.parents[1]/'tests'), str(short)],
+                                    capture_output=True, text=True, timeout=60)
+            self.assertEqual(result.returncode, 0, result.stderr)
+
+    @unittest.skipIf(os.name == 'nt', 'Unix interpreter symlink regression')
+    def test_real_interpreter_alias_reaches_durable_and_db_fault(self):
+        with tempfile.TemporaryDirectory() as temp:
+            alias = Path(temp)/'python-alias'
+            alias.symlink_to(Path(sys.executable).resolve())
+            self.assertTrue(alias.samefile(sys.executable))
+            script = """
+import sys,unittest
+sys.path.insert(0,sys.argv[1])
+from test_w1_text_baseline import T1ProbeTests
+r=unittest.TextTestRunner(verbosity=2).run(T1ProbeTests('test_setup_failures_restore_plugin_and_disable_activation'));sys.exit(not r.wasSuccessful())
+"""
+            result = subprocess.run([str(alias), '-B', '-X', 'utf8', '-c', script,
+                                     str(HELPER.parents[1]/'tests')],
+                                    capture_output=True, text=True, timeout=60)
+            self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_parent_and_exact_child_deny_network_and_other_processes(self):
         # Audit hooks are permanent: install only inside this fresh worker.
         with tempfile.TemporaryDirectory() as temp:
@@ -161,9 +230,11 @@ import importlib.util,json,pathlib,socket,subprocess,sys
 spec=importlib.util.spec_from_file_location('probe',sys.argv[1]);p=importlib.util.module_from_spec(spec);spec.loader.exec_module(p)
 root=pathlib.Path(sys.argv[2]);profile=root/'profiles/synthetic'
 c={'python':sys.executable,'runtime':str(root/'runtime'),'root':str(root/'world')}
+(root/'foreign-python').write_text('not the pinned interpreter',encoding='utf-8')
 p.restrict_processes(c,profile)
 denied=[]
 for action in (lambda: socket.socket(),lambda: subprocess.run([sys.executable,'-c','print(1)']),
+ lambda: subprocess.run([str(root/'foreign-python'),'-c',p.IMPORT_PROBE,c['runtime'],'8']),
  lambda: subprocess.run([sys.executable,'-c',p.IMPORT_PROBE+'# changed',c['runtime'],'8']),
  lambda: subprocess.run([sys.executable,'-c',p.IMPORT_PROBE,c['runtime'],'8']),
  lambda: subprocess.run([sys.executable,'-c',p.IMPORT_PROBE,c['runtime'],'9']),
@@ -171,6 +242,8 @@ for action in (lambda: socket.socket(),lambda: subprocess.run([sys.executable,'-
  try: action()
  except RuntimeError: denied.append(True)
 cmd=[sys.executable,'-I','-X','utf8','-c',p.RUNNER,c['runtime'],'character-continuity','context','--root',c['root'],'--profile-home',str(profile),'--card',str(profile/'plugins/life-engine-character-card/card.json')]
+try: subprocess.run(cmd,executable=str(root/'foreign-python'))
+except RuntimeError: denied.append(True)
 r=subprocess.run(cmd,capture_output=True,text=True,timeout=10,shell=False)
 print(json.dumps({'denied':denied,'child':json.loads(r.stdout),'returncode':r.returncode}))
 '''
@@ -178,7 +251,7 @@ print(json.dumps({'denied':denied,'child':json.loads(r.stdout),'returncode':r.re
                                     capture_output=True, text=True, timeout=20)
             self.assertEqual(result.returncode, 0, result.stderr)
             value = json.loads(result.stdout)
-            self.assertEqual(value['denied'], [True] * 6)
+            self.assertEqual(value['denied'], [True] * 8)
             self.assertEqual(value['child'], {'network_denied': True, 'no_bytecode': True})
             self.assertEqual(value['returncode'], 0)
             self.assertEqual(list(runtime.rglob('__pycache__')), [])
