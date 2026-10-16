@@ -46,6 +46,12 @@ T0 是本地合成；T1 是真实 Hermes 插件调度与合成请求、不调用
 
 既有指南中的实机观察属于其原固定对象的历史证据，不能自动移用到本批。结束时 C 记录退出、受控停用和漂移核验，保留世界与失败现场；主协调汇总代码、审核、CI、Host 与体验结果。
 
-## 本批收口（2026-10-16）
+## 初批历史收口（2026-10-16，w0w1-20261014-01）
 
 W0-REVIEW_COMPLETE；W1 EVIDENCE_PARTIAL。T0 合成与 V1 受限真实 dispatcher 获得证据，V2 辅助工具仍有 Host 接线阻断、两次尝试失败，T2 BLOCKED / NOT_EXECUTED；provider 请求 0。固定对象、清理和根因推断见 [验证记录](../validation/W1-HERMES-TEXT-BASELINE.md)。保留失败现场和当前代码，以 Draft 交付供后续修复；本批不继续改 helper 或扩大执行范围。
+
+## 路径薄任务收口（2026-10-16，w1-path-20261016-01）
+
+用户另行授权的路径薄任务 codeHead 为 d1df0f4。本地复现与独立测试已证明同文件解释器别名及 Windows 短路径修复；唯一真实 T1 越过原阻断、完成 World/SessionDB/V2 激活至 pre_llm_call，但 Host 自动依赖准备被拒后 exit 1，无 COMMITTED 或新会话投影。结论 PATH_FIX_VALIDATED、T1_NOT_PASSED / HOST_DEPENDENCY_GAP，W1 仍为 EVIDENCE_PARTIAL。raw report=PENDING 不代表仍运行；退出清理、保留现场与解释边界见 [验证记录](../validation/W1-HERMES-TEXT-BASELINE.md)。
+
+T1 预算 1/1、provider 0；T2 BLOCKED。新最终 Head CI 待一次 push 后独立核验，旧失败记录不覆盖。本轮不再改 helper、不启动 Host 自动修复、不扩依赖权限；后续依赖接线工作需单独界定任务。#60 保持 Draft，Ready/Merge、W2—W4、正式 M1 未解锁。

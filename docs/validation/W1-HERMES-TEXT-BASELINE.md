@@ -21,7 +21,7 @@ py -3.12 -X utf8 -m unittest discover -s tests -p 'test_hermes*.py' -v
 
 ## T1 辅助工具的本地准入检查
 
-新增 `tools/hermes_text_baseline_probe.py`，仅由 C 在 B 审核固定提交后运行。**当前该辅助工具尚不能在本次真实 Host 完成 V2 验证，仍待修复；本地准入通过不等于功能 PASS。**工具校验整个 `runtime/**/*.py` 的路径与内容 SHA-256，要求全新测试目录，清理继承的凭据/代理环境；只使用真实 Host 的 UID 分配、SessionDB 和插件 dispatcher。生命周期完成参数与文本由工具合成，不代表真实模型 finalizer 或真实 CLI turn。
+新增 `tools/hermes_text_baseline_probe.py`，仅由 C 在 B 审核固定提交后运行。**该辅助工具仍未在真实 Host 完成 V2 验证；路径修复后出现的新依赖接线缺口见文末薄任务结果。本地准入通过不等于功能 PASS。**工具校验整个 `runtime/**/*.py` 的路径与内容 SHA-256，要求全新测试目录，清理继承的凭据/代理环境；只使用真实 Host 的 UID 分配、SessionDB 和插件 dispatcher。生命周期完成参数与文本由工具合成，不代表真实模型 finalizer 或真实 CLI turn。
 
 父进程和明确允许的 continuity CLI 子进程禁止 Python socket 网络动作；World 初始化还允许固定的 durable 导入探针，其命令正文、schema 8、冻结 Runtime 路径与摘要均须匹配，同样注入禁网与禁子进程的 guard；其他子进程拒绝。子进程仍执行冻结的真实 continuity CLI，额外加入禁网 audit hook；不是 mock Core 写回。父子进程都禁写 bytecode。此约束面向本批已审代码，不声称是可抵御任意原生扩展的 OS sandbox。
 
@@ -33,7 +33,7 @@ py -3.12 -X utf8 -m unittest discover -s tests -p 'test_hermes*.py' -v
 
 第三轮辅助修复的七项本地检查通过（含可选版本查询模拟原生捕获、未知 git 参数/cwd/调用来源拒绝）；这些检查不执行真实 Host 模型，也不将版本降级标为版本检查成功。
 
-## T1 / T2 与阶段结论
+## 初批历史结论（w0w1-20261014-01）
 
 本批结论：**W0-REVIEW_COMPLETE；W1 EVIDENCE_PARTIAL；T1 V2 FAILED；T2 BLOCKED / NOT_EXECUTED**。helper 准入是允许隔离执行的审核结论，不是 V2 功能通过。未修改产品 Runtime，也未修改最近 12 条/48,000 字节语义。
 
@@ -55,3 +55,31 @@ V2 两次执行的 Runtime 路径/内容 SHA-256 均为 `489ce764f39b2a94ec06cfc
 T2 凭据合法引用与实际 provider 请求持久硬上限尚未满足准入，状态 BLOCKED / NOT_EXECUTED。本批 provider 请求累计 **0/12**，渠道发送 **0**，无 SENT/ACK。W0 收口来自 B 于 2026-10-14 对累计 #59 代码准入及 c8e2397 文档校准的独立审核，不授予各 Draft 发布/合并资格。
 
 本批按修复轮次边界收口，不再修改 helper 或继续 Host 重跑。下一轮提案仅为对齐真实 durable 初始化命令与解释器身份的薄验证：从真实调用捕获并核验参数，覆盖启动路径与 resolve 路径差异，避免测试 fixture 重复错误假设；经独立审核后再决定是否重试。该提案未在本批执行，T2、W2—W4、正式 M1 和合并均未解锁。结构化纠正/遗忘、工具轮经历和超窗口检索继续 EXPECTED_GAP。
+
+## 路径身份薄任务结果（w1-path-20261016-01）
+
+本轮在用户另行授权后执行；Base `f99963bdad61d100486dff9670923815370ebcbb`，固定 codeHead `d1df0f4c72df9e87a16cc46ef8b84ade6525e1d3`。上节初批失败原件与退出记录保留，不改写为通过。本轮结论：**PATH_FIX_VALIDATED；T1_NOT_PASSED / HOST_DEPENDENCY_GAP；W1 EVIDENCE_PARTIAL；T2 BLOCKED / NOT_EXECUTED**。本轮唯一无模型 T1 已用 **1/1**，不重试、不扩大依赖或子进程权限。
+
+### 改前复现与代码验证
+
+初批 CI run `38768822634` 的精确 Head f99963b 四矩阵均失败：Ubuntu 每项 680 测试/1 失败/2 跳过；Windows 每项 680 测试/3 失败/1 跳过。它们是测试失败，不是基础设施失败，未重跑覆盖。
+
+A 在改前重现相同失败：Windows 通过真实 GetShortPathNameW 获得短目录名，源码帧和 Profile 的短/长路径指向同一对象，samefile=True，但原绝对路径字符串比较拒绝；重现版本查询和两个 setup 子场景三项失败。Linux 实际 durable 初始化输出 argv 首项 `/usr/bin/python3.12`，启动解释器为 `/usr/bin/python3`，samefile=True；在预定 DB 故障点前复现导入探针拒绝。C 另只读确认 Host 的 `bin/python3` 与 `bin/python3.14` 为同文件。上述 T0 复现不导入 Hermes，也不使用生产依赖。
+
+修复仅涉及 helper 和测试：新根及版本源码/cwd 先拒绝链接，再规范化 Windows 短名称作完整路径比较；Python 子进程只接受与固定解释器 samefile 的绝对路径，随后使用固定规范化路径执行。不同 Profile、错误源码来源、未知解释器、executable 覆盖、脚本/schema/Runtime 摘要不匹配仍拒绝。Git 和网络零放行，未知子进程仍禁止。
+
+A Windows 与 Linux 各运行 9 项测试，均为 8 通过/1 项另一平台专属跳过（4.388 秒/10.583 秒）。B 独立 archive 在 Windows Python 3.12 与 WSL 系统 Python 3.12 各运行 9 项，均为 8 通过/1 平台专属跳过（4.905 秒/17.629 秒）。Windows 真实 8.3 别名和 Linux 真实解释器 symlink 回归均在对应平台执行通过；setup 回归真实经过 durable 初始化，记录真实 argv，并以 reached-stage 标记证明到达指定 world_init/session_db 注入点。B 给出 HOST_T1_CODE_ADMISSION_PASS，仅准入一次隔离实测。
+
+### 唯一 T1 的实际结果
+
+Action `path-host-t1-001` 使用 B 的 d1df0f4 独立快照。helper SHA-256 为 `E30C404B0E0F85246D0B5AA4E0E5E63F44B19E3A65575A184E1382296CCFA17C`；Runtime 摘要仍为 `489ce764f39b2a94ec06cfcf6413a77b4144cbb50b354705352acc3d5daba2d0`。使用既有只读依赖、managed Python 3.14.7 和全新隔离根 `/home/hechao/life-engine-w1-path-20261016-01`，没有修改产品 Runtime 或 Host 源码。
+
+本次越过此前路径阻断，实际完成 World 安装、SessionDB 建立、V2 激活，并记录唯一 `pre_llm_call`。随后 Host 自动尝试准备新数据根的依赖，子进程被 `T1_CHILD_DENIED` 拒绝；日志报告该根没有 committed 依赖环境，最终 **exit 1**。没有 COMMITTED 写回或跨会话投影证据。不能把前序步骤执行成功记作完整 T1 通过，也不能把环境缺口当成产品连续性断言失败。
+
+原始 report 的 state 是 **PENDING**，保持原样：进程已退出且无残留进程，不能据此误判仍在运行。源码表明 helper 只捕获 Exception，而 Host bootstrap 可抛 SystemExit；这一解释由源码及日志支持，但未采到完整运行时调用链或 traceback，不能宣称已准确定位触发来源。该报告状态限制仍保留，判断结果必须同时核验退出码与原始日志。
+
+Host 自动依赖准备**确曾尝试**，没有成功完成；不能将未手动调用 launcher/update/repair 写成没有副作用。隔离根中的 world、profiles、installs、cache、`.hermes-update-in-progress.lock` 和报告均保留，不删除或补修。cleanup.errors=[]，V2 enabled=false，插件目录无文件，无测试进程；六个 Host 生命周期文件执行前后摘要不变。锁文件残留不代表进程仍在运行。
+
+本轮 provider 请求 **0**、渠道发送 **0**，无 SENT/ACK。T2 合法凭据引用和实际请求持久硬上限门禁仍未满足。依赖接线缺口不在本薄任务修复范围内，已到唯一 T1 预算边界；后续仅交付证据，未经新任务授权不继续执行。
+
+本文收口提交只改文档，继承 d1df0f4 的 helper/tests/Runtime 字节。新最终 Head 的四矩阵 CI 在此记录写入时尚待一次正常 push 触发；旧 f99963b 的失败不能代表新 Head，代码准入和本地测试也不能代替远端结果。终态由 PR 与阶段报告另行记录，不为更新状态反复生成提交。Draft、Ready/Merge、W2—W4 和正式 M1 的边界不变。
