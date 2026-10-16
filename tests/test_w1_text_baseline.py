@@ -75,6 +75,10 @@ def module(name,**values):
 ruamel=module('ruamel');ruamel.yaml=module('ruamel.yaml');ruamel.yaml.__file__=str(marker)
 def db_fail(**kwargs):
  (root/'reached-stage').write_text('session_db',encoding='utf-8')
+ if stage == 'exit7':
+  try: subprocess.run([sys.executable,'-c',"raise RuntimeError('SYNTHETIC_SECRET_TOKEN')",'--api-key','SYNTHETIC_SECRET_TOKEN'],env={'PRIVATE_KEY':'SYNTHETIC_ENV_SECRET'})
+  except RuntimeError: raise SystemExit(7)
+ if stage == 'exit0': raise SystemExit(0)
  raise OSError('synthetic DB initialization failure')
 module('hermes_state',SessionDB=db_fail)
 module('agent');module('agent.message_metadata',stamp_message_uid=lambda value: None)
@@ -92,6 +96,12 @@ if sys.argv[3] == 'world_init':
 else:
  for name in cc.HOST_FILES:
   f=base/name;f.parent.mkdir(parents=True,exist_ok=True);f.write_text('# synthetic host file',encoding='utf-8')
+original_activation=cc.activation
+def activation(*args,**kwargs):
+ result=original_activation(*args,**kwargs)
+ if stage=='cleanup_exit' and args[3] is False: raise SystemExit(9)
+ return result
+cc.activation=activation
 sys.argv=[str(h),'--host-root',str(base),'--root',str(root),'--expected-runtime-sha256',p.tree_digest(h.parents[1]/'runtime'),'--dependency-site',str(site),'--expected-dependency-sha256',hashlib.sha256(marker.read_bytes()).hexdigest()]
 # Capture the actual durable command without replacing its implementation.
 import subprocess,json
@@ -100,18 +110,22 @@ def observe(config,profile):
  original_restrict(config,profile)
  guarded=subprocess.Popen
  def record(command,*a,**k):
-  (root/'actual-child.json').write_text(json.dumps({'argv':command,'startup':sys.executable,'base':getattr(sys,'_base_executable',None)}),encoding='utf-8')
+  if not (root/'actual-child.json').exists():
+   (root/'actual-child.json').write_text(json.dumps({'argv':command,'startup':sys.executable,'base':getattr(sys,'_base_executable',None)}),encoding='utf-8')
   return guarded(command,*a,**k)
  subprocess.Popen=record
 p.restrict_processes=observe
 p.main()
 """
-            for stage in ('world_init', 'session_db', 'host_mismatch'):
+            for stage in ('world_init', 'session_db', 'host_mismatch', 'exit7', 'exit0', 'cleanup_exit'):
                 with self.subTest(stage=stage), tempfile.TemporaryDirectory() as scenario:
                     result = subprocess.run([sys.executable, '-B', '-X', 'utf8', '-c', script,
                                              str(HELPER), scenario, stage],
                                             capture_output=True, text=True, timeout=30)
-                    self.assertNotEqual(result.returncode, 0)
+                    if stage == 'exit0':
+                        self.assertEqual(result.returncode, 0)
+                    else:
+                        self.assertNotEqual(result.returncode, 0)
                     root = Path(scenario) / 'new'
                     report = json.loads((root / 'report.json').read_text(encoding='utf-8'))
                     if stage == 'host_mismatch':
@@ -120,9 +134,34 @@ p.main()
                         self.assertFalse((root/'reached-stage').exists())
                         self.assertFalse((root/'profiles/synthetic/plugins').exists())
                         continue
-                    self.assertEqual(report['error_type'], 'OSError', result.stderr)
-                    self.assertEqual((root/'reached-stage').read_text(encoding='utf-8'), stage)
-                    self.assertEqual(report['cleanup']['errors'], [])
+                    expected_type = 'SystemExit' if stage.startswith('exit') else 'OSError'
+                    self.assertEqual(report['error_type'], expected_type, result.stderr)
+                    self.assertEqual(report['state'], 'T1_CLEANUP_INCOMPLETE' if stage=='cleanup_exit' else 'T1_FAILED')
+                    failed_stage = 'session_db' if stage.startswith('exit') or stage=='cleanup_exit' else stage
+                    self.assertEqual((root/'reached-stage').read_text(encoding='utf-8'), failed_stage)
+                    self.assertEqual(report['failure']['stage'], failed_stage)
+                    self.assertIn({'stage': failed_stage, 'event': 'enter'}, report['stages'])
+                    self.assertNotIn({'stage': failed_stage, 'event': 'return'}, report['stages'])
+                    self.assertTrue(all(set(frame)=={'file','function','line'} for frame in report['failure']['stack']))
+                    if stage.startswith('exit'):
+                        self.assertEqual(result.returncode, int(stage[4:]))
+                        self.assertEqual(report['failure']['exit_code'], int(stage[4:]))
+                    if stage == 'exit7':
+                        raw = json.dumps(report)
+                        self.assertNotIn('SYNTHETIC_SECRET_TOKEN', raw)
+                        self.assertNotIn('SYNTHETIC_ENV_SECRET', raw)
+                        denial = report['denied_processes'][0]
+                        self.assertIn('db_fail', [frame['function'] for frame in denial['stack']])
+                        self.assertTrue(all(set(frame)=={'file','function','line'} for frame in denial['stack']))
+                        self.assertEqual(denial['argv']['arguments'][1]['token'], '-c')
+                        self.assertNotIn('token', denial['argv']['arguments'][2])
+                    if stage == 'cleanup_exit':
+                        self.assertEqual(result.returncode, 1)  # Original OSError wins over cleanup SystemExit(9).
+                        self.assertEqual(report['cleanup']['errors'][0]['exit_code'], 9)
+                        self.assertEqual(report['cleanup']['errors'][0]['step'], 'disable_v2')
+                        self.assertIn({'stage':'cleanup_restore_plugin','event':'return'},report['stages'])
+                    else:
+                        self.assertEqual(report['cleanup']['errors'], [])
                     plugin = root / 'profiles/synthetic/plugins/life-engine-character-card'
                     self.assertEqual(list(plugin.iterdir()), [])
                     activation = root / 'profiles/synthetic/.life-engine-continuity.json'
@@ -134,6 +173,17 @@ p.main()
                         self.assertEqual(Path(child['argv'][0]), Path(child['base']).resolve())
                         self.assertIn('from life_engine import cli, deploy_cli, durable', child['argv'][2])
                         self.assertFalse(json.loads(activation.read_text(encoding='utf-8'))['enabled'])
+
+    def test_diagnostic_values_do_not_expose_opaque_text(self):
+        value = probe.safe_argv(['/tmp/secret-path/unknown-executable', '-c', 'install',
+                                 '--token=SYNTHETIC_SECRET', 'SYNTHETIC_SECRET'])
+        rendered = json.dumps(value)
+        self.assertNotIn('secret-path', rendered)
+        self.assertNotIn('SYNTHETIC_SECRET', rendered)
+        self.assertNotIn('token', value['arguments'][2])
+        self.assertEqual(value['arguments'][2]['bytes'], len('install'))
+        self.assertEqual(len(value['arguments'][2]['sha256']), 64)
+        self.assertNotIn('SYNTHETIC_SECRET', json.dumps(probe.safe_value('SYNTHETIC_SECRET')))
 
     def test_optional_version_queries_are_denied_with_native_fallback(self):
         with tempfile.TemporaryDirectory() as temp:
