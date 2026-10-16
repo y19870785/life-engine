@@ -1,6 +1,6 @@
 # W1 普通文本体验基线验证
 
-更新：2026-10-16；run ID `w0w1-20261014-01`。范围与固定 Base 见 [W0/W1 基线](../planning/W0-W1-CHARACTER-BASELINE.md)。本文件只记录本批实际取得的结果，不覆盖历史验证原件。
+更新：2026-10-17；初批 run ID `w0w1-20261014-01`。范围与固定 Base 见 [W0/W1 基线](../planning/W0-W1-CHARACTER-BASELINE.md)。本文件只记录本批实际取得的结果，不覆盖历史验证原件。
 
 ## T0 本地合成
 
@@ -21,7 +21,7 @@ py -3.12 -X utf8 -m unittest discover -s tests -p 'test_hermes*.py' -v
 
 ## T1 辅助工具的本地准入检查
 
-新增 `tools/hermes_text_baseline_probe.py`，仅由 C 在 B 审核固定提交后运行。**该辅助工具仍未在真实 Host 完成 V2 验证；路径修复后出现的新依赖接线缺口见文末薄任务结果。本地准入通过不等于功能 PASS。**工具校验整个 `runtime/**/*.py` 的路径与内容 SHA-256，要求全新测试目录，清理继承的凭据/代理环境；只使用真实 Host 的 UID 分配、SessionDB 和插件 dispatcher。生命周期完成参数与文本由工具合成，不代表真实模型 finalizer 或真实 CLI turn。
+新增 `tools/hermes_text_baseline_probe.py`，仅由 C 在 B 审核固定提交后运行。**该辅助工具仍未在真实 Host 完成 V2 验证；路径修复后出现的依赖缺口及其直接运行时定位见文末薄任务和诊断结果。本地准入通过不等于功能 PASS。**工具校验整个 `runtime/**/*.py` 的路径与内容 SHA-256，要求全新测试目录，清理继承的凭据/代理环境；只使用真实 Host 的 UID 分配、SessionDB 和插件 dispatcher。生命周期完成参数与文本由工具合成，不代表真实模型 finalizer 或真实 CLI turn。
 
 父进程和明确允许的 continuity CLI 子进程禁止 Python socket 网络动作；World 初始化还允许固定的 durable 导入探针，其命令正文、schema 8、冻结 Runtime 路径与摘要均须匹配，同样注入禁网与禁子进程的 guard；其他子进程拒绝。子进程仍执行冻结的真实 continuity CLI，额外加入禁网 audit hook；不是 mock Core 写回。父子进程都禁写 bytecode。此约束面向本批已审代码，不声称是可抵御任意原生扩展的 OS sandbox。
 
@@ -83,3 +83,27 @@ Host 自动依赖准备**确曾尝试**，没有成功完成；不能将未手�
 本轮 provider 请求 **0**、渠道发送 **0**，无 SENT/ACK。T2 合法凭据引用和实际请求持久硬上限门禁仍未满足。依赖接线缺口不在本薄任务修复范围内，已到唯一 T1 预算边界；后续仅交付证据，未经新任务授权不继续执行。
 
 本文收口提交只改文档，继承 d1df0f4 的 helper/tests/Runtime 字节。新最终 Head 的四矩阵 CI 在此记录写入时尚待一次正常 push 触发；旧 f99963b 的失败不能代表新 Head，代码准入和本地测试也不能代替远端结果。终态由 PR 与阶段报告另行记录，不为更新状态反复生成提交。Draft、Ready/Merge、W2—W4 和正式 M1 的边界不变。
+
+## 无模型诊断结果（w1-diag-20261016-01）
+
+本轮单独获准定位依赖准备入口，不修复 Host、不放行依赖子进程。Base 为 `a58c36312c51b4cfd63c503c7f0261feba6afa8d`，该历史 Head 的 CI run `38857002392` 四矩阵已通过（每项 682 tests / 0 fail）。诊断 codeHead 为 `da8beacdf5ee443958de41094fc11513ccba19e7`，helper SHA-256 `09DC43E0303C32C69919278C3219256AA7DC37CA915AE3A8AA7B6C363C6CD347`；Runtime 摘要仍为 `489ce764f39b2a94ec06cfcf6413a77b4144cbb50b354705352acc3d5daba2d0`。
+
+诊断只增加阶段 enter/return、拒绝 Popen 当场结构化调用栈及外层退出栈。栈仅文件/函数/行号；不透明 argv、脚本和字符串退出信息仅保留类型、长度与摘要，不采集 locals、环境字典、源码行或异常消息。主体 BaseException 记失败后重新抛出；逐项清理继续执行并保留原主体异常优先级。SystemExit(0) 仍保留实际退出 0，但报告为失败，不能只凭退出码判断通过。原 Git/网络/未知子进程拒绝规则不变。
+
+A 两平台各 10 项测试为 9 通过/1 另一平台专属跳过（Windows 12.608 秒、Linux 40.088 秒）；B 独立 archive 两平台同为 9 通过/1 跳过（14.966 秒、60.564 秒）。合成普通异常、SystemExit(7)/(0)、清理中的 SystemExit、拒绝点调用链及敏感参数不进入报告的检查均通过；路径及安全负例回归保留。B 仅准入一次无模型诊断。
+
+### 实际定位与限制
+
+唯一 action `diag-host-001` 已执行，2026-10-17 恢复时只读对账，预算 **1/1**；使用新根 `/home/hechao/life-engine-w1-diag-20261016-01` 和上述固定快照。结果为 **DIAGNOSTIC_LOCATION_CONFIRMED；T1_FAILED / HOST_DEPENDENCY_GAP；SystemExit(1) / exit 1**。原始 report 已准确记录 T1_FAILED，上一轮 PENDING 原件未改写。
+
+`world_init`、`activate_v2`、`session_db`、插件发现、首会话建立、`pre_llm_call`、`request_first` 和 `uid_user` 均返回。`persist_user` 只有 enter，没有 return。UID 标记返回不代表用户行已写入数据库；没有 assistant 持久化、post_llm_call、COMMITTED 或跨会话投影成功证据。
+
+外层实际异常栈为：`hermes_state_messages.append_message` → `_message_row_params` → `_display_dedupe_key` → `context_compressor.split_user_originated_turn` → `_is_real_user_turn` → `_is_synthetic_compression_user_turn` → 导入 `conversation_loop` / `process_bootstrap` → `hermes_bootstrap` 退出。拒绝当场栈补齐准备路径：bootstrap → `venv_sync.prepare_launch` → `_prepare_borrowed_launch` → `_sync_source_dependencies` → `pm.client.ensure_tools_for_sync` → runtime staging → environment 创建/运行 → helper 拒绝进程。
+
+安全参数结构识别程序 `uv` 及固定标记 `venv`、`--no-project`、`--python`，其他参数仍为类型/长度/摘要，不猜测或还原其内容。现在有直接运行时证据证明触发点是**用户行持久化中的显示去重分类**，不是已经返回的 request middleware。Host 自动依赖准备确有尝试且被拒；未手动 update/repair、未完成依赖修复。诊断定位成功不等于连续性完成，也未证明任何合法既有依赖绑定方案。
+
+### 退出与交付边界
+
+`db_close`、`plugin_unload`、`disable_v2`、`restore_plugin` 四步均 return，cleanup.errors=[]。退出后 V2 enabled=false、插件无文件、任务进程为 0。预先绑定的 **12 个源文件**摘要执行前后相同；新涉及的 **8 个源文件只有退出后观察摘要**，不追认为执行前后一致。隔离 world/profiles/installs/cache/更新锁和报告均保留，不能描述为没有副作用。
+
+provider 请求 **0**、渠道发送 **0**，无 SENT/ACK；T2 仍 BLOCKED。本轮不重放诊断，不修改 Host、依赖绑定或 Runtime。文档收口继承 da8beac 代码字节；新最终 Head 的 CI 在此记录写入时待一次 push 触发，不能沿用 a58c363 的历史通过替代。后续依赖绑定评估必须另行界定任务，#60 保持 Draft，Ready/Merge、W2—W4、正式 M1 不由此次定位解锁。

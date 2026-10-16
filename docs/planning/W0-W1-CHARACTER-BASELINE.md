@@ -55,3 +55,9 @@ W0-REVIEW_COMPLETE；W1 EVIDENCE_PARTIAL。T0 合成与 V1 受限真实 dispatch
 用户另行授权的路径薄任务 codeHead 为 d1df0f4。本地复现与独立测试已证明同文件解释器别名及 Windows 短路径修复；唯一真实 T1 越过原阻断、完成 World/SessionDB/V2 激活至 pre_llm_call，但 Host 自动依赖准备被拒后 exit 1，无 COMMITTED 或新会话投影。结论 PATH_FIX_VALIDATED、T1_NOT_PASSED / HOST_DEPENDENCY_GAP，W1 仍为 EVIDENCE_PARTIAL。raw report=PENDING 不代表仍运行；退出清理、保留现场与解释边界见 [验证记录](../validation/W1-HERMES-TEXT-BASELINE.md)。
 
 T1 预算 1/1、provider 0；T2 BLOCKED。新最终 Head CI 待一次 push 后独立核验，旧失败记录不覆盖。本轮不再改 helper、不启动 Host 自动修复、不扩依赖权限；后续依赖接线工作需单独界定任务。#60 保持 Draft，Ready/Merge、W2—W4、正式 M1 未解锁。
+
+## 无模型诊断收口（2026-10-17，w1-diag-20261016-01）
+
+另行授权的诊断 codeHead da8beac 已取得 DIAGNOSTIC_LOCATION_CONFIRMED：用户行持久化中的显示去重分类导入 Host bootstrap，准备 uv venv 时被拒。request middleware 与 UID 标记已返回，persist_user 未返回；无用户行持久化完成、COMMITTED 或跨会话成功证据。完整 T1 仍 T1_FAILED / HOST_DEPENDENCY_GAP，W1 EVIDENCE_PARTIAL，T2 BLOCKED。
+
+唯一诊断预算 1/1、provider 0；四项清理均返回、V2 已停用，12 个预绑定源摘要无漂移，新 8 源仅退出后观察。详细固定对象、调用链和现场边界见 [验证记录](../validation/W1-HERMES-TEXT-BASELINE.md)。本轮只定位，不修 Host 或依赖绑定，不重试；新最终 Head 的 CI 单独核验。后续绑定方案需另行界定任务，既有发布和阶段权限不变。

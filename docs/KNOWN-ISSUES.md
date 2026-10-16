@@ -1,6 +1,6 @@
 # v0.3 已知问题与历史记录
 
-## CURRENT — 2026-10-16 角色基线与正式主线边界
+## CURRENT — 2026-10-17 角色基线与正式主线边界
 
 当前状态入口见 [W0/W1 角色基线](planning/W0-W1-CHARACTER-BASELINE.md)。#56—#59 是未合并 Draft 链，本分支实现 Base 为 #59，不冒充 canonical main。以下既有治理边界仍保留，SHA 标识历史实现对象。
 
@@ -18,7 +18,9 @@ W1 当前为 EVIDENCE_PARTIAL：V1 受限 dispatcher 验证通过，V2 尚无 CO
 
 路径薄任务 d1df0f4 已复现并修复解释器同文件别名、Windows 8.3 源码帧/Profile 路径差异。本地及独立跨平台测试通过，唯一实机尝试也已越过 World 安装、SessionDB 和 V2 激活；随后 Host 自动依赖准备因未审子进程被拒绝，缺少新隔离根的 committed 环境而 exit 1，结论 T1_NOT_PASSED / HOST_DEPENDENCY_GAP。此新缺口未在本轮扩权处理。
 
-原始 report=PENDING，但进程已退出；helper 未捕获 SystemExit 是源码支持解释，未获得完整触发调用链，不能将报告状态单独视作运行或成功。自动准备留下的隔离 installs/cache/update-lock 等现场保留。清理无错误、V2 已停用、插件文件已恢复、Host 六个生命周期文件无漂移。详见 [W1 验证记录](validation/W1-HERMES-TEXT-BASELINE.md)。本轮唯一 T1 预算 1/1，不重跑；旧四矩阵失败保留，新最终 Head CI 单独核验，不解锁 T2 或合并。
+上一轮 raw report=PENDING/exit1 的历史原件保留。诊断提交 da8beac 已补阶段和 BaseException 报告、拒绝点安全调用栈，唯一新诊断明确记录 T1_FAILED/SystemExit(1)：persist_user 中 append_message 的显示去重分类导入 context_compressor → conversation_loop/process_bootstrap，触发 bootstrap 准备 uv venv 被拒。request_first 与 uid_user 已返回，用户行持久化未返回；不能归因于 middleware，也不能称为已完成用户行写入。
+
+诊断结论 DIAGNOSTIC_LOCATION_CONFIRMED，但完整 T1 仍失败，依赖绑定尚未修复。四项清理均返回、V2 停用、插件无文件、进程为 0；12 个预绑定源摘要前后相同，新 8 源仅退出后观察。隔离 installs/cache/update-lock 等现场保留。详见 [W1 验证记录](validation/W1-HERMES-TEXT-BASELINE.md)。诊断预算 1/1、provider 0，不重跑或放行依赖准备；新最终 Head CI 独立核验，不解锁 T2 或合并。
 
 ### Deferred Host Integration Issues
 
