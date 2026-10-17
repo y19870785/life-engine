@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 import json
 from pathlib import Path
 import sqlite3
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -265,6 +266,64 @@ class ContinuityTests(unittest.TestCase):
                 whole=json.dumps(result,ensure_ascii=False)
                 self.assertIn('面试',whole); self.assertIn('candidate',whole)
                 self.assertNotIn('灯刚亮',whole)
+
+
+
+    def test_w1_fresh_process_reopens_world_and_rejects_previous_lease(self):
+        """B/G: separate CLI processes, not an in-process cache or resume."""
+        def cli(action, payload):
+            result = subprocess.run(
+                [sys.executable, '-I', '-X', 'utf8', str(PACKAGE / 'tools/hermes_continuity.py'),
+                 action, '--root', str(self.root), '--profile-home', str(self.profile),
+                 '--card', str(self.card)], input=json.dumps(payload, ensure_ascii=False),
+                capture_output=True, encoding='utf-8', timeout=30)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            return json.loads(result.stdout)
+        first = cli('context', {'session_id': 'day0'})
+        frame = self.frame(); self.persist(frame)
+        payload = {'frame': frame, 'lease': first['lease']}
+        committed = cli('commit', payload)
+        self.assertEqual(cli('commit', payload), committed)
+        future = cli('context', {'session_id': 'day1'})
+        self.assertEqual(first['world'], future['world'])
+        self.assertNotEqual(first['lease']['session'], future['lease']['session'])
+        self.assertEqual(len(future['records']), 1)
+        self.assertEqual(future['records'][0]['user_said'], frame['user_text'])
+        self.assertEqual(future['records'][0]['generated_scene'], frame['assistant_text'])
+        self.assertEqual(future['records'][0]['user_reality'], 'user_claimed_fact')
+        self.assertEqual(future['records'][0]['scene_canon'], 'candidate')
+        with self.assertRaisesRegex(ValueError, 'SESSION_STALE'):
+            cc.commit(self.root, self.profile, self.sha, frame, first['lease'])
+        self.assertEqual(cc.status(self.root, self.profile, self.sha)['turns'], {'COMMITTED': 1})
+
+    def test_w1_recent_window_does_not_claim_long_term_retrieval(self):
+        """H: older durable turns remain stored but leave the 12-turn view."""
+        lease = cc.context(self.root, self.profile, self.sha, 'day0')['lease']
+        for n in range(13):
+            frame = self.frame(suffix=str(n))
+            frame['user_text'] = '合成事实编号：' + str(n)
+            self.persist(frame); cc.commit(self.root, self.profile, self.sha, frame, lease)
+        future = cc.context(self.root, self.profile, self.sha, 'day1')
+        self.assertEqual([r['user_said'] for r in future['records']],
+                         ['合成事实编号：' + str(n) for n in range(1, 13)])
+        self.assertEqual(cc.status(self.root, self.profile, self.sha)['turns'], {'COMMITTED': 13})
+
+    def test_w1_utf8_budget_preserves_complete_recent_records(self):
+        """H: byte budget, no partial/truncated utterance or generated scene."""
+        lease = cc.context(self.root, self.profile, self.sha, 'day0')['lease']
+        frames = []
+        for n in range(3):
+            frame = self.frame(suffix=str(n))
+            frame['user_text'] = str(n) + '雨' * 3500
+            frame['assistant_text'] = str(n) + '灯' * 3500
+            frames.append(frame)
+            self.persist(frame); cc.commit(self.root, self.profile, self.sha, frame, lease)
+        records = cc.context(self.root, self.profile, self.sha, 'day1')['records']
+        self.assertEqual(len(records), 2)
+        self.assertLessEqual(sum(len(cc.json_bytes(r)) for r in records), 48000)
+        self.assertEqual([r['user_said'] for r in records], [f['user_text'] for f in frames[1:]])
+        self.assertEqual([r['generated_scene'] for r in records],
+                         [f['assistant_text'] for f in frames[1:]])
 
 
 if __name__=='__main__': unittest.main()
