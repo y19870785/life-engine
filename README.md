@@ -1,16 +1,16 @@
 # Life Engine
 
-角色卡接入 Hermes 的实验工具：见[角色卡预览、导入、验证与回退](docs/HERMES-CHARACTER-CARD-IMPORT.md)。原生 V1 在独立命名 Profile 的 CLI / Chat Completions 请求中运行原卡提示、开场、示例对白和世界书兼容子集；可另行启用 [V2 跨会话连续性试用](docs/HERMES-CHARACTER-CONTINUITY-V2.md)，将可靠保存的用户原话与候选剧情接入独立 World、Memory 和 Story。脚本、变量与语义记忆整理仍需后续实现。
+角色卡接入 Hermes 的实验工具：见[角色卡预览、导入、验证与回退](docs/HERMES-CHARACTER-CARD-IMPORT.md)。原生 V1 在独立命名 Profile 的 CLI / Chat Completions 请求中运行原卡提示、开场、示例对白和世界书兼容子集；可另行启用 [V2 跨会话连续性试用](docs/HERMES-CHARACTER-CONTINUITY-V2.md)，将可靠保存的用户原话与候选剧情接入独立 World、Memory 和 Story。[统一创建角色故事入口](docs/HERMES-CHARACTER-ONBOARDING.md) 支持故事介绍、开场选择和新 Profile 的能力与连续性安装。脚本、变量与语义记忆整理仍需后续实现。
 
 > **X1 体验试用入口**：如果要试“跨会话记忆与 Agent 虚拟日常”，先按 [X1 本地试用说明](docs/planning/EXPERIENCE-FIRST-X1-TRIAL.md)使用隔离合成实例。`hermes-prompt` 只生成可手动复制到独立 Hermes 测试 Profile 的提示；这不是自动 Host 接入。下文 v0.2/legacy 安装步骤不能用于把 X1 样机接入现有 Hermes 主 Profile，也不授权插件加载、Gateway 重启或真实发送。
 
-> **CURRENT — Soul Continuity Plan V2 = APPROVED_PLANNING_BASELINE / NOT_EXECUTION_AUTHORIZATION**：[后续开发计划](docs/planning/SOUL-CONTINUITY-DEVELOPMENT-PLAN.md)已通过独立规划审核。[SP-006S0 架构合同](docs/architecture/SP-006S0-SOUL-CONTINUITY-ARCHITECTURE.md)已完成仓库治理，`SP-006S0 = DONE`。`M1 = ACTIVE_STAGE` 仅表示阶段进入；当前仅授权 [M1-P0 持久化协议冻结](docs/architecture/M1-P0-CONTINUITY-PERSISTENCE-PROTOCOL.md)的文档与只读审计，`M1-P0 = AUTHORIZED / PROTOCOL_FREEZE_ONLY`；Schema、Migration、Soul Identity/Continuity Writer 等 M1 实施及 M1.x、M2 均 `NOT AUTHORIZED`。
+> **CURRENT — 2026-10-14 有界状态入口**：主线观察值为 PR #55 的 `1758f3e8e82cd5cc5b385f545fee1df45742bdd6`；本分支基于 #59 `1d1ec6b7681684cbc44458e94344c261c5a2011b`，包含尚未合并的 #56—#59 角色试用链。状态、来源与 W0/W1 范围统一见 [角色体验基线](docs/planning/W0-W1-CHARACTER-BASELINE.md)。此处 SHA 是本次观察与实现 Base，不是永久指向最新 main。
 
 **让同一个 Agent 跨会话、重启、长期关系和未来 Host 迁移，持续生活在同一时间线中。**
 
 Life Engine 是 Host-neutral 的长期 Personal Agent Runtime。当前开发主线是 Soul Continuity：使同一个 Agent 的身份、经历、记忆、关系、自我叙事和生活状态跨会话与进程重启保持可验证的连续性，并为未来模型变化和 Host 迁移建立可靠边界。已有 Hermes / OpenClaw 接入与世界、记忆、故事、主动行为能力继续保留。
 
-> **v0.3 开发预览 · CURRENT**：Soul Continuity = **ACTIVE_MAINLINE**；Host Integration / Real Delivery = **DEFERRED**；Full Private RP = **FROZEN_EXTERNAL_BLOCKER**。SP-006S0 已完成；M1-P0 仅设计持久化协议，不实施 Runtime；A2-R1 本地 provider transport 已 DONE（implementation commit `a552a2d0846ff024b930d0d802228b863a6da74f`），真实 Host plugin load、delivery、SENT 与 ACK 仍未取得，`REAL_SEND = NO`。此前治理决定见[历史记录](docs/architecture/GOV-SOUL-ROADMAP1-SOUL-CONTINUITY-MAINLINE.md)。
+> **v0.3 开发预览 · CURRENT**：Soul Continuity = **ACTIVE_MAINLINE**；Host Integration / Real Delivery = **DEFERRED**；Full Private RP = **FROZEN_EXTERNAL_BLOCKER**。SP-006S0 与 M1-P0 文档已完成；M1-A 原语探针为 E0_SYNTHETIC_PARTIAL，正式实施准入仍待证明；A2-R1 本地 provider transport 已 DONE（implementation commit `a552a2d0846ff024b930d0d802228b863a6da74f`），真实 Host plugin load、delivery、SENT 与 ACK 仍未取得，`REAL_SEND = NO`。此前治理决定见[历史记录](docs/architecture/GOV-SOUL-ROADMAP1-SOUL-CONTINUITY-MAINLINE.md)。
 
 | 能力 | 当前状态 |
 | --- | --- |
@@ -27,14 +27,14 @@ ACK_VALIDATOR = HOST_GAP；Hermes Living只读/生命周期/fake dry-run已确�
 
 ## 当前阶段
 
-- Current Mainline: Soul Continuity = ACTIVE_MAINLINE；SP-006S0 = DONE；M1 = ACTIVE_STAGE；M1-P0 = AUTHORIZED / PROTOCOL_FREEZE_ONLY
+- Current Mainline: Soul Continuity = ACTIVE_MAINLINE；SP-006S0 = DONE；M1-P0 文档已完成；M1-A_PRIMITIVE_GATE_PENDING。W0/W1 为独立的有界角色试用验证。
 - Current Completed Gate: HLV0～HLV3、HLV4-R0/R1/A0/A1/A2-R0/A2-R1 = DONE
 - GOV-SOUL-ROADMAP1 Governance Base: `a552a2d0846ff024b930d0d802228b863a6da74f`（治理 PR 开工时的 canonical main）
 - Architecture Content: APPROVED_ARCHITECTURE_BASELINE；M1 Runtime / Schema / Migration、M1.x、M2 = NOT AUTHORIZED
 - Long-term Roadmap: [长期路线与阶段治理](docs/planning/LIFE-ENGINE-DEVELOPMENT-ROADMAP.md)
 - Soul Continuity 已审规划基线：[后续开发计划](docs/planning/SOUL-CONTINUITY-DEVELOPMENT-PLAN.md)（M1 与 M2 之间的 Continuity Proof / Simulation Gate；`NOT_EXECUTION_AUTHORIZATION`）
 
-Roadmap state != execution authorization。SP-006S0 DONE 只解锁已授权的 M1-P0 架构/协议文档，不授权 M1 实施；M1-P0 文档审核或未来 DONE 也不自动授权 M1-A。P1 已重排但未授权；Memory Evolution V1 属 Soul Continuity 主线、PLANNED / NOT AUTHORIZED；阶段顺序见[SP-006S0 实施计划](docs/planning/SP-006S0-IMPLEMENTATION-PLAN.md)。DATA_SCHEMA=8、Schema Signature=SP-005A-living-runtime-v1、Prompt Template=SP-004K-prompt-v1、PROMPT_TEMPLATE_UPGRADE_REQUIRED=YES 保持不变；本轮不操作 Host 或 REAL_SEND。
+Roadmap state != execution authorization。SP-006S0、M1-P0 文档完成，以及 M1-A 隔离原语探针，都不等于正式 M1-A 实施或准入通过。P1 已重排但未授权；Memory Evolution V1 属 Soul Continuity 主线、PLANNED / NOT AUTHORIZED；阶段顺序见[SP-006S0 实施计划](docs/planning/SP-006S0-IMPLEMENTATION-PLAN.md)。DATA_SCHEMA=8、Schema Signature=SP-005A-living-runtime-v1、Prompt Template=SP-004K-prompt-v1、PROMPT_TEMPLATE_UPGRADE_REQUIRED=YES 保持不变；W0/W1 仅允许已审对象在新隔离 Profile 中受控验证，REAL_SEND = NO。
 
 ## 用起来是什么感觉？
 
