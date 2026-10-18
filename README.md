@@ -4,7 +4,7 @@
 
 > **X1 体验试用入口**：如果要试“跨会话记忆与 Agent 虚拟日常”，先按 [X1 本地试用说明](docs/planning/EXPERIENCE-FIRST-X1-TRIAL.md)使用隔离合成实例。`hermes-prompt` 只生成可手动复制到独立 Hermes 测试 Profile 的提示；这不是自动 Host 接入。下文 v0.2/legacy 安装步骤不能用于把 X1 样机接入现有 Hermes 主 Profile，也不授权插件加载、Gateway 重启或真实发送。
 
-> **CURRENT — 2026-10-14 有界状态入口**：主线观察值为 PR #55 的 `1758f3e8e82cd5cc5b385f545fee1df45742bdd6`；本分支基于 #59 `1d1ec6b7681684cbc44458e94344c261c5a2011b`，包含尚未合并的 #56—#59 角色试用链。状态、来源与 W0/W1 范围统一见 [角色体验基线](docs/planning/W0-W1-CHARACTER-BASELINE.md)。此处 SHA 是本次观察与实现 Base，不是永久指向最新 main。
+> **CURRENT — 角色代码与 Host 证据**：原生卡片、普通文本连续性、工具权限交集和统一导入入口属于有明确范围的角色试用代码。完整 W1 T1 仍为 `T1_FAILED / HOST_DEPENDENCY_GAP`，T2 `BLOCKED`；代码合并与 CI 不代表真实 Host 或完整角色体验验收。来源、历史固定对象和限制见 [角色体验基线](docs/planning/W0-W1-CHARACTER-BASELINE.md)；最新合并状态以 [#56](https://github.com/y19870785/life-engine/pull/56)、[#57](https://github.com/y19870785/life-engine/pull/57)、[#58](https://github.com/y19870785/life-engine/pull/58)、[#59](https://github.com/y19870785/life-engine/pull/59) 和 [main](https://github.com/y19870785/life-engine/tree/main) 为准。
 
 **让同一个 Agent 跨会话、重启、长期关系和未来 Host 迁移，持续生活在同一时间线中。**
 

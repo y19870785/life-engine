@@ -1,8 +1,14 @@
 # W0/W1：角色体验基线
 
-日期：2026-10-14。本文是当前能力与证据索引，不是长期自主执行授权。
+初版日期：2026-10-14；状态入口校准：2026-10-18。本文区分当前能力边界与各批历史证据，不是长期自主执行授权。
 
-## 固定对象与来源
+## 当前能力与代码状态入口
+
+角色试用提供原生卡片、普通文本跨会话、工具权限交集、故事/开场选择及统一新 Profile 导入代码；功能范围见下文。W1 仍 `EVIDENCE_PARTIAL`，完整 T1 为 `T1_FAILED / HOST_DEPENDENCY_GAP`，T2 `BLOCKED`，真实 venv 隔离与共享恢复写入边界尚未解决。代码审核、CI 和合并不升级这些 Host 证据。
+
+2026-10-18 用户另行授权 #56→#57→#58→#59 顺序整理和合并；本次任务不运行 Host、模型或渠道，不扩展为后续隔离实施。实时合并状态见 [#56](https://github.com/y19870785/life-engine/pull/56)、[#57](https://github.com/y19870785/life-engine/pull/57)、[#58](https://github.com/y19870785/life-engine/pull/58)、[#59](https://github.com/y19870785/life-engine/pull/59) 与 [main](https://github.com/y19870785/life-engine/tree/main)，不在本文预写未来合并 SHA。
+
+## HISTORICAL — 2026-10-14 启动固定对象与来源
 
 | 对象 | 本次观察／实现 Base | 含义 |
 | --- | --- | --- |
@@ -12,7 +18,7 @@
 | #58 | `8bd2313a69cb87d9053d0b9641253d78f7aafa57` | Host 工具权限交集，Draft |
 | #59 | `1d1ec6b7681684cbc44458e94344c261c5a2011b` | 统一入口，Draft；本批实现 Base |
 
-依赖顺序为 main → #56 → #57 → #58 → #59。本分支继承这条未合并链；累计代码通过不替代每个 PR 的独立审核、Ready 授权、合并与 exact main CI。当前分支新增 Head 由提交记录确定，不将 Base 写成新 Head。
+启动时依赖顺序为 main → #56 → #57 → #58 → #59，表中 Draft 仅描述当时状态。累计代码通过不替代每个 PR 的独立审核、Ready 授权、合并与 exact main CI；后续实际状态以顶部链接和各次提交/CI 对象为准。
 
 ## 能力与阶段边界
 
@@ -23,9 +29,9 @@
 - 结构化纠正/遗忘、工具轮经历和超窗口检索均为 EXPECTED_GAP。原生卡片/世界书组装尚未收敛到正式 Core Prompt/Lore。
 - Living Real Delivery 仍 DEFERRED，Full Private RP 仍 FROZEN_EXTERNAL_BLOCKER；本批 REAL_SEND = NO，不取得 SENT/ACK。
 
-## 本批合同与协作
+## HISTORICAL — 初批合同与协作
 
-run ID：`w0w1-20261014-01`。用户已批准 W0-REVIEW_COMPLETE 与 W1 有界执行；Ready/Merge、W2—W4、schema/workflow 和正式 Soul 实施不在范围内。主协调维护唯一动作记录；A 单写仓库、B 独立审核、C 单写测试 Host。新增 Head 必须经 B 审核和主协调派发后才能部署。
+run ID：`w0w1-20261014-01`。当时用户批准 W0-REVIEW_COMPLETE 与 W1 有界执行；Ready/Merge、W2—W4、schema/workflow 和正式 Soul 实施不在该批范围内。下述预算与部署约束均属于该批合同；不覆盖后来单独授权的代码合并。主协调维护唯一动作记录；A 单写仓库、B 独立审核、C 单写测试 Host。新增 Head 必须经 B 审核和主协调派发后才能部署。
 
 W0 修正状态入口与历史标记，不重写历史验证原件。W1 先建立支持范围内基线，只有明确缺陷才修改产品实现。新隔离 Profile 不复制主身份、历史、任务或凭据；使用 Host 已有合法认证途径。真实模型工具集合为空；失败、重试在内的 provider 请求累计最多 12 次，由 C 持久计数。计数不可确认即停止，禁止渠道发送或生产 Gateway/cron 操作。
 
@@ -50,13 +56,13 @@ T0 是本地合成；T1 是真实 Hermes 插件调度与合成请求、不调用
 
 W0-REVIEW_COMPLETE；W1 EVIDENCE_PARTIAL。T0 合成与 V1 受限真实 dispatcher 获得证据，V2 辅助工具仍有 Host 接线阻断、两次尝试失败，T2 BLOCKED / NOT_EXECUTED；provider 请求 0。固定对象、清理和根因推断见 [验证记录](../validation/W1-HERMES-TEXT-BASELINE.md)。保留失败现场和当前代码，以 Draft 交付供后续修复；本批不继续改 helper 或扩大执行范围。
 
-## 路径薄任务收口（2026-10-16，w1-path-20261016-01）
+## HISTORICAL — 路径薄任务收口（2026-10-16，w1-path-20261016-01）
 
 用户另行授权的路径薄任务 codeHead 为 d1df0f4。本地复现与独立测试已证明同文件解释器别名及 Windows 短路径修复；唯一真实 T1 越过原阻断、完成 World/SessionDB/V2 激活至 pre_llm_call，但 Host 自动依赖准备被拒后 exit 1，无 COMMITTED 或新会话投影。结论 PATH_FIX_VALIDATED、T1_NOT_PASSED / HOST_DEPENDENCY_GAP，W1 仍为 EVIDENCE_PARTIAL。raw report=PENDING 不代表仍运行；退出清理、保留现场与解释边界见 [验证记录](../validation/W1-HERMES-TEXT-BASELINE.md)。
 
 T1 预算 1/1、provider 0；T2 BLOCKED。新最终 Head CI 待一次 push 后独立核验，旧失败记录不覆盖。本轮不再改 helper、不启动 Host 自动修复、不扩依赖权限；后续依赖接线工作需单独界定任务。#60 保持 Draft，Ready/Merge、W2—W4、正式 M1 未解锁。
 
-## 无模型诊断收口（2026-10-17，w1-diag-20261016-01）
+## HISTORICAL — 无模型诊断收口（2026-10-17，w1-diag-20261016-01）
 
 另行授权的诊断 codeHead da8beac 已取得 DIAGNOSTIC_LOCATION_CONFIRMED：用户行持久化中的显示去重分类导入 Host bootstrap，准备 uv venv 时被拒。request middleware 与 UID 标记已返回，persist_user 未返回；无用户行持久化完成、COMMITTED 或跨会话成功证据。完整 T1 仍 T1_FAILED / HOST_DEPENDENCY_GAP，W1 EVIDENCE_PARTIAL，T2 BLOCKED。
 
