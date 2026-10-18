@@ -7,10 +7,12 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from contextlib import contextmanager
 from pathlib import Path
 import sqlite3
 import sys
+import tempfile
 import time
 
 from isolation import fixture_path
@@ -257,6 +259,18 @@ def classify(db: sqlite3.Connection, *, target: str = "B0", registry_data: str |
     return "COMMITTED", verdict, state, "DENIED"
 
 
+def _publish_ready(ready: Path, payload: dict) -> None:
+    """Publish one complete IPC message; this is not a durability guarantee."""
+    descriptor, name = tempfile.mkstemp(prefix=f".{ready.name}.", suffix=".tmp", dir=ready.parent)
+    os.close(descriptor)
+    temporary = Path(name)
+    try:
+        temporary.write_text(json.dumps(payload), encoding="utf-8")
+        os.replace(temporary, ready)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
 def worker(path: Path, mode: str, operation: str, transition_id: str,
            start: Path, ready: Path, result: Path) -> None:
     path = fixture_path(path)
@@ -293,9 +307,9 @@ def worker(path: Path, mode: str, operation: str, transition_id: str,
         else:
             raise ValueError(operation)
         prepared = prepare(db, item)
-        ready.write_text(json.dumps({"expected_revision": expected,
-                                     "expected_source": source,
-                                     "prepared_record": prepared}), encoding="utf-8")
+        _publish_ready(ready, {"expected_revision": expected,
+                               "expected_source": source,
+                               "prepared_record": prepared})
         deadline = time.monotonic() + 8
         while not start.exists() and time.monotonic() < deadline:
             time.sleep(0.005)
