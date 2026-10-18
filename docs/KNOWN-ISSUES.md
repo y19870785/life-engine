@@ -2,7 +2,7 @@
 
 ## CURRENT — 角色代码与真实 Host 证据边界
 
-当前能力与历史来源见 [W0/W1 角色基线](planning/W0-W1-CHARACTER-BASELINE.md)。角色试用代码的最新合并状态见 [#56](https://github.com/y19870785/life-engine/pull/56)、[#57](https://github.com/y19870785/life-engine/pull/57)、[#58](https://github.com/y19870785/life-engine/pull/58)、[#59](https://github.com/y19870785/life-engine/pull/59) 与 [main](https://github.com/y19870785/life-engine/tree/main)。代码审核、CI 和合并不替代真实 Host 验收。以下既有治理边界仍保留，SHA 标识历史实现对象。
+当前能力以[项目现状](PROJECT-STATUS.md)为准，历史来源与更新范围见[文档索引](DOCUMENTATION-INDEX.md)和[本周复盘](reports/WEEKLY-REVIEW-2026-10-18.md)。#56—#59 与测试修复 #61 已合并；#60 先合入 #59 分支，再随 #59 进入 main。最近代码基线 `baa59729babf9ac56a17e02c682de2e3086e3575` 的 [exact main CI](https://github.com/y19870785/life-engine/actions/runs/39138679747) 四矩阵各684项、0失败，包含平台跳过。代码审核、CI 和合并不替代真实 Host 验收。以下治理边界仍保留，SHA 标识历史对象。
 
 既有治理见 [Soul Continuity 主线记录](architecture/GOV-SOUL-ROADMAP1-SOUL-CONTINUITY-MAINLINE.md)：A2-R1 canonical implementation commit `a552a2d0846ff024b930d0d802228b863a6da74f`；`SP-005A4-HLV4-A2-R1 = DONE`，但 `REAL_HOST_PLUGIN_LOAD / REAL_HOST_DELIVERY_BOUNDARY_PASS / REAL_HOST_SENT / ACKNOWLEDGED = NOT_ACQUIRED`，`ACK_VALIDATOR = HOST_GAP`，`REAL_SEND = NO`。
 
@@ -21,6 +21,12 @@ W1 当前为 EVIDENCE_PARTIAL：V1 受限 dispatcher 验证通过；本批 W1 �
 上一轮 raw report=PENDING/exit1 的历史原件保留。诊断提交 da8beac 已补阶段和 BaseException 报告、拒绝点安全调用栈，唯一新诊断明确记录 T1_FAILED/SystemExit(1)：persist_user 中 append_message 的显示去重分类导入 context_compressor → conversation_loop/process_bootstrap，触发 bootstrap 准备 uv venv 被拒。request_first 与 uid_user 已返回，用户行持久化未返回；不能归因于 middleware，也不能称为已完成用户行写入。
 
 诊断结论 DIAGNOSTIC_LOCATION_CONFIRMED，但完整 T1 仍失败，依赖绑定尚未修复。四项清理均返回、V2 停用、插件无文件、进程为 0；12 个预绑定源摘要前后相同，新 8 源仅退出后观察。隔离 installs/cache/update-lock 等现场保留。详见 [W1 验证记录](validation/W1-HERMES-TEXT-BASELINE.md)。该诊断批预算 1/1、provider 0，其授权不包括重跑或放行依赖准备；诊断 Head CI 单独核验，不解锁 T2。2026-10-18 的 #56—#59 顺序合并另有用户授权，合并门禁与 Host 验收分开。
+
+### 真实 venv 隔离仍未证明
+
+2026-10-18 的只读静态核验没有启动 Host，也未消耗真实 T1：既有 venv 的 .pth/editable finder 注册 63 个顶层映射并回指生产 generation/workspace；官方禁懒安装开关未覆盖更早的共享更新恢复。标记当前不存在、路径前后摘要和协调锁不能保证整个运行期间禁止共享写入；只读 bind 也不等于不可变快照。不能仅增加 site-packages 或 resolve 解释器路径就宣布隔离完成。
+
+[下一步计划](planning/NEXT-DEVELOPMENT-PLAN-2026-10.md)建议先验证纯合成隔离 fixture，再明确加载闭包与版本稳定性；状态 `PROPOSED / NOT_EXECUTION_AUTHORIZATION`。不在本次文档更新中复制生产环境、修改 .pth、安装/提权或继续 Host 实测。
 
 ### Deferred Host Integration Issues
 

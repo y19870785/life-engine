@@ -1,6 +1,6 @@
 # Hermes 角色连续性 V2（试用）
 
-> **状态范围（2026-10-14）**：本文描述 #56—#59 堆叠 Draft 的试用能力；本轮固定实现 Base 为 #59 `1d1ec6b7681684cbc44458e94344c261c5a2011b`，不是已合并主线承诺。当前能力、历史证据和 W0/W1 验收状态见 [统一基线](planning/W0-W1-CHARACTER-BASELINE.md)。以下安装示例不单独授予 Host 操作权限；本轮仅新隔离 Profile、工具集合为空、REAL_SEND = NO。
+> **状态范围（2026-10-18）**：本页试用代码已通过 [#57](https://github.com/y19870785/life-engine/pull/57) 进入 main；#60 的验证辅助工具与诊断先并入 #59，再随其进入主线。当前能力与证据见[项目现状](PROJECT-STATUS.md)、[统一基线](planning/W0-W1-CHARACTER-BASELINE.md)和[本周复盘](reports/WEEKLY-REVIEW-2026-10-18.md)，文档用途见[索引](DOCUMENTATION-INDEX.md)。W1 完整 T1 仍 `T1_FAILED / HOST_DEPENDENCY_GAP`，T2 `BLOCKED`；代码合并不是 Host/媒体/模型体验验收。[后续计划](planning/NEXT-DEVELOPMENT-PLAN-2026-10.md)为 `PROPOSED / NOT_EXECUTION_AUTHORIZATION`。以下示例不单独授予 Host 操作权限，继续使用隔离 Profile；历史 W1 无模型测试的工具为空、provider/渠道发送为0，不把该次限制当作产品能力配置。
 
 本版在原生角色卡 V1 上增加后台连续性，不改写作者正文与世界书。适用于独立命名 Profile 的普通文本 CLI / Chat Completions；暂未接通 Telegram、Gateway、子 Agent、工具轮次、压缩后轮次或多模态消息。没有启用 V2 的 Profile 仍按 V1 运行。
 

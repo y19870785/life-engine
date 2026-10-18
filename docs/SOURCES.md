@@ -1,5 +1,7 @@
 # 接口来源
 
+> **来源边界**：下文日期是各接口资料当时的检查时间，本次文档复盘未重新联网验收上游；不能据此声称支持今天所有 Host 版本。当前项目证据见 [项目状态](PROJECT-STATUS.md)，角色原生接线另见 [卡片指南](HERMES-CHARACTER-CARD-IMPORT.md)。
+
 于 2026-09-13 读取下列官方仓库文档和公开接口代码。原生插件 API 可能随宿主版本变化，本包没有用源码 HEAD 代替真实宿主联调，也没有声明一个未经测试的全版本兼容范围。
 
 Hermes 的用户插件目录、显式启用与工具注册依据 [Plugins](https://github.com/NousResearch/hermes-agent/blob/main/website/docs/user-guide/features/plugins.md)。Profile 作用域与 PluginContext 依据 [hermes_cli/plugins.py](https://github.com/NousResearch/hermes-agent/blob/main/hermes_cli/plugins.py)。每轮 pre_llm_call 的上下文返回值、sender_id/platform 参数及回调失败语义依据 [Event Hooks](https://github.com/NousResearch/hermes-agent/blob/main/website/docs/user-guide/features/hooks.md)。原生周期任务及静默输出依据 [Cron](https://github.com/NousResearch/hermes-agent/blob/main/website/docs/user-guide/features/cron.md)。

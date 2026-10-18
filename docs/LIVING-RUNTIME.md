@@ -1,12 +1,18 @@
 # Living Runtime Core 操作与迁移
 
-> CURRENT GOVERNANCE NOTE：Living Core 已 DONE，Soul Continuity 是当前 `ACTIVE_MAINLINE`；Host Integration 后续已 `DEFERRED / NOT AUTHORIZED`。本页下列 B1 时点的 Base、A3 blocker 与 Host 状态为历史说明，当前状态见 [GOV-SOUL-ROADMAP1](architecture/GOV-SOUL-ROADMAP1-SOUL-CONTINUITY-MAINLINE.md)。
+> **CURRENT GOVERNANCE NOTE — 2026-10-18**：Living Core 与 A3 Host-neutral Binding/受信 routing/capability/permit 的本地实现已完成；已有 HLV0—HLV3 历史受限验证，但本地模拟成功不等于当前真实 Host delivery 或受信 ACK。Soul Continuity 为 `ACTIVE_MAINLINE`，Host Integration 后续 `DEFERRED`，Full Private RP `FROZEN_EXTERNAL_BLOCKER`。角色试用已进入 main，W1 完整 T1 仍 `T1_FAILED / HOST_DEPENDENCY_GAP`。
+
+当前矩阵见[项目现状](PROJECT-STATUS.md)，文档角色见[文档索引](DOCUMENTATION-INDEX.md)，本周合并与修复见[复盘](reports/WEEKLY-REVIEW-2026-10-18.md)。[后续计划](planning/NEXT-DEVELOPMENT-PLAN-2026-10.md)为 `PROPOSED / NOT_EXECUTION_AUTHORIZATION`；不改变正式 Soul 阶段顺序、Schema 8 或 Host 操作权限。
+
+## HISTORICAL — A1/B1 实现基线
+
+下列 A3 BLOCKED/未实现与事实 Base 均为原 A1/B1 时点说明；保留原文以解释旧 gate，不覆盖当前已实现的本地 A3。
 
 SP-005A1 已合并至 canonical main `84493be98d7ed675de6b859cafdb014a900325ca`，exact main push CI 四矩阵通过，Core 实施阶段 DONE。数据版本为 `DATA_SCHEMA = 8`、`SP-005A-living-runtime-v1`；`SP-004K-prompt-v1` 保持不变。规范见 [冻结架构](architecture/SP-005A-LIVING-RUNTIME.md)，验收逐项对应 [48 项自动测试映射](SP-005A1-VALIDATION.md)。
 
 [A2 Host Binding 架构](architecture/SP-005A2-LIVING-HOST-BINDING.md)、A2-R1、B0 与 B1 均已完成。当前事实基线为 `f83d36c76fea6de1a31b449535d5df6cea3909b5`，B1 增加 Core 只读 recovery API；完整 A3 仍 BLOCKED，剩余 Host 实施须重新授权。旧插件不能自动接管 enrolled 实例。Living 正式 Prompt 拼装仍需单独 P1 授权，真实 Host Living 尚未上线。
 
-## B1 后的能力边界
+## HISTORICAL — B1 后的能力边界
 
 `LivingRuntime.query_operation_recovery(context, request)` 使用同一只读快照验证授权、generation、Scope、原 operation identity / fingerprint 和 Attempt association。session-bound 路径先校验 Session / WriterEpoch / World revision；历史 receipt 不能绕过 WORLD_STALE。authority-bound 的 `LivingRecoveryContext` / `RecoveryDelegation` 是受信本地 Core 断言，不是 Host credential、token 或 `LivingContext(session=None)` 管理后门。
 

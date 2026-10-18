@@ -1,6 +1,14 @@
 # Hermes / OpenClaw Host Sandbox 测试指南
 
-## CURRENT CANONICAL STATE — GOV-SOUL-ROADMAP1
+## CURRENT CANONICAL STATE — 2026-10-18 测试入口
+
+[项目现状](PROJECT-STATUS.md)区分 Core、合成验证、真实 Host、模型体验与投递证据；[文档索引](DOCUMENTATION-INDEX.md)标明本页后续历史指南。#56—#59 与 #61 已进入 main，#60 的诊断随 #59 交付；代码和四矩阵 CI 不解锁新一轮 Host 测试。
+
+W1 `EVIDENCE_PARTIAL`，完整 T1 `T1_FAILED / HOST_DEPENDENCY_GAP`，T2 `BLOCKED`。当前缺口为真实 venv 启动映射回指生产环境及共享恢复写入缺乏隔离保证；已有官方开关或测试数据根不足以证明解决。诊断预算与历史失败不可重置或覆盖。旧 HLV0—HLV3 有各自受限证据，不等于当前环境完整验收。
+
+[本周复盘](reports/WEEKLY-REVIEW-2026-10-18.md)记录证据与合并；[下一步计划](planning/NEXT-DEVELOPMENT-PLAN-2026-10.md)为 `PROPOSED / NOT_EXECUTION_AUTHORIZATION`，建议先纯合成隔离 fixture 和加载闭包方案，未准入 Host 启动。任何新 Host/模型/凭据/渠道操作仍需其具体范围和隔离条件，不从文档示例或旧授权继承。正式 Soul、Real Delivery `DEFERRED`、Full Private RP `FROZEN_EXTERNAL_BLOCKER` 与 `REAL_SEND = NO` 边界保持。
+
+## HISTORICAL — GOV-SOUL-ROADMAP1 沙箱治理快照
 
 [Soul Continuity 主线](architecture/GOV-SOUL-ROADMAP1-SOUL-CONTINUITY-MAINLINE.md)已设为 `ACTIVE_MAINLINE`；Soul Continuity Sandbox 仍可在**单独明确授权**下受控测试，本治理任务不授权任何 Host 操作。A2 retry / HLV4-B 已转入 `DEFERRED Host Integration Track / NOT AUTHORIZED`，不再是默认下一阶段。Full Private RP = `FROZEN_EXTERNAL_BLOCKER / NOT FOR PRODUCTION`；其 Core RP Runtime 保留。
 

@@ -1,12 +1,10 @@
 # Life Engine 后续开发路线 — 2026-09
 
-> **Soul Continuity Plan V2 = APPROVED_PLANNING_BASELINE / NOT_EXECUTION_AUTHORIZATION（已通过独立规划审核）**：当前主线的后续阶段与 M1.x Continuity Proof / Simulation Gate 见[开发计划](SOUL-CONTINUITY-DEVELOPMENT-PLAN.md)，SP-006S0 的设计范围见[架构冻结任务书候选](SP-006S0-ARCHITECTURE-FREEZE-TASK.md)。本页 2026-09 历史顺序与证据保持原时点语义；`SP-006S0 = NEXT / NOT AUTHORIZED`，本规划不授权 Host 操作。
+**2026-10-18 状态校准**：本周代码及实际 CI、Host 证据边界统一见 [项目当前状态](../PROJECT-STATUS.md)。`SP-006S0 = DONE`，M1-P0 文档已完成；M1-A 设计和原语探针已有交付，仍 `E0_SYNTHETIC_PARTIAL / M1-A_PRIMITIVE_GATE_PENDING`。#55—#61 的角色试用代码已按各自合并路径进入 main，完整 W1 T1 仍失败；正式 M1 writer/verdict、M1.x、M2 不因此获实施授权。近期建议见 [后续开发计划](NEXT-DEVELOPMENT-PLAN-2026-10.md)，状态 `PROPOSED / NOT_EXECUTION_AUTHORIZATION`，不改变正式主线顺序。
 
-## CURRENT GOVERNANCE OVERRIDE — GOV-SOUL-ROADMAP1
+## 本页的历史用途
 
-本页是 2026-09 阶段规划的历史记录；当前治理以 [GOV-SOUL-ROADMAP1](../architecture/GOV-SOUL-ROADMAP1-SOUL-CONTINUITY-MAINLINE.md) 为准。A2-R1 canonical implementation commit = `a552a2d0846ff024b930d0d802228b863a6da74f`，A2-R1 = DONE。Soul Continuity = `ACTIVE_MAINLINE`，唯一 NEXT 为 `SP-006S0 Soul Continuity Architecture Freeze / NOT AUTHORIZED`；Host Integration = `DEFERRED`，Full Private RP = `FROZEN_EXTERNAL_BLOCKER`。旧 HLV4 → Adapter Stabilization → P1 → Memory Evolution 顺序已被取代，下面表格及说明只表达当时计划，不构成当前执行顺序或授权。
-
-`SP-005A2-P1 = RESEQUENCED_UNDER_SOUL_CONTINUITY_MAINLINE / NOT AUTHORIZED`；Memory Evolution V1 = `SOUL_CONTINUITY_MAINLINE / PLANNED / NOT AUTHORIZED`，具体依赖由 SP-006S0 评审。`REAL_HOST_SENT / ACKNOWLEDGED = NOT_ACQUIRED`，`ACK_VALIDATOR = HOST_GAP`，`REAL_SEND = NO`。
+本页保留 2026-09 的阶段顺序与后续历史覆盖。SP-006S0 的 NEXT、HLV4 后的局部顺序及当时未授权结论均是对应时点记录，不作为今天下一步。当前正式阶段见 [长期路线](LIFE-ENGINE-DEVELOPMENT-ROADMAP.md)；后续 Host/发送和 M1 实施仍需具体任务准入。本次没有重新核验官方上游能力，Full Private RP / ACK blocker 保留。
 
 ## HISTORICAL — Post-HLV3 / GOV-ARCHGATE1 当前状态快照（2026-10-03）
 

@@ -1,5 +1,7 @@
 # Soul Continuity 后续开发计划
 
+**2026-10-18 状态校准**：本周代码及实际 CI、Host 证据边界统一见 [项目当前状态](../PROJECT-STATUS.md)。`SP-006S0 = DONE`，M1-P0 文档已完成；M1-A 设计和原语探针已有交付，仍 `E0_SYNTHETIC_PARTIAL / M1-A_PRIMITIVE_GATE_PENDING`。#55—#61 的角色试用代码已按各自合并路径进入 main，完整 W1 T1 仍失败；正式 M1 writer/verdict、M1.x、M2 不因此获实施授权。近期建议见 [后续开发计划](NEXT-DEVELOPMENT-PLAN-2026-10.md)，状态 `PROPOSED / NOT_EXECUTION_AUTHORIZATION`，不改变正式主线顺序。
+
 ## 地位、基线与授权
 
 Roadmap Stage: Soul Continuity Mainline / 已审阶段规划基线。
@@ -7,7 +9,7 @@ Why Now: GOV-SOUL-ROADMAP1 已确立主线，需要将长期目标细化成可�
 
 Planning Governance Base 为 `11b5e51ea0033351b6d21cc56a75caa665a8cb4f`（PR #47 的 Squash commit）；它只标识本规划开工前的固定基线，不声明未来合并后的 canonical main。Soul Continuity Plan V2 已通过独立规划审核，状态为 `APPROVED_PLANNING_BASELINE / NOT_EXECUTION_AUTHORIZATION`。**HISTORICAL SNAPSHOT — 规划编制时的 SP-006S0 生命周期：**其审计基线为 `5f04caf5050efb4742a8f6cb1f8546544d935b64`；[架构合同](../architecture/SP-006S0-SOUL-CONTINUITY-ARCHITECTURE.md)、[验证矩阵](SP-006S0-CONTINUITY-VALIDATION-MATRIX.md)与[实施计划](SP-006S0-IMPLEMENTATION-PLAN.md)的内容曾获 `APPROVED_ARCHITECTURE_BASELINE / NOT_IMPLEMENTATION_AUTHORIZATION`；当时仓库任务仍需 Ready、Squash Merge、exact main push CI 与合并后核验，M1/M1.x/M2 均未获授权。这是当时真实状态，不作为当前授权声明。
 
-**CURRENT stage override：**`SP-006S0 = DONE`（其 Execution Base 仍是上述历史审计 SHA）；`M1 = ACTIVE_STAGE`；仅 [M1-P0 Continuity Persistence Protocol Freeze](../architecture/M1-P0-CONTINUITY-PERSISTENCE-PROTOCOL.md) 为 `AUTHORIZED / PROTOCOL_FREEZE_ONLY`。该 Gate 的[Crash / Recovery Matrix](M1-P0-CRASH-RECOVERY-MATRIX.md)及[Implementation Gate](M1-P0-IMPLEMENTATION-GATE.md)均只设计，不实施。M1 Schema、Migration、Record/Anchor writer、SoulInstance enrollment、M1-A 及后续实施、M1.x、M2 全部 `NOT AUTHORIZED`。
+**CURRENT stage override：**`SP-006S0 = DONE`；M1-P0 协议文档已完成，M1-A 设计及合成探针已有交付，但 `E0_SYNTHETIC_PARTIAL / M1-A_PRIMITIVE_GATE_PENDING` 未改变。其[证据与缺口](M1-A-PRIMITIVE-ADMISSION-EVIDENCE.md)、[Crash / Recovery Matrix](M1-P0-CRASH-RECOVERY-MATRIX.md)和[Implementation Gate](M1-P0-IMPLEMENTATION-GATE.md)分层保留。正式 Schema、Migration、Record/Anchor writer、SoulInstance enrollment、M1.x/M2 均不由本次文档更新授权。
 
 [GOV-SOUL-ROADMAP1](../architecture/GOV-SOUL-ROADMAP1-SOUL-CONTINUITY-MAINLINE.md)的三轨治理继续有效：Soul Continuity = `ACTIVE_MAINLINE`；Host Integration / Real Delivery = `DEFERRED`；Full Private RP = `FROZEN_EXTERNAL_BLOCKER`。本文补强原规划的 Continuity Proof / Simulation Gate，不覆盖既有 World、Memory、Story、Living、Host authority 或 delivery 安全合同。
 
@@ -21,7 +23,7 @@ Host-neutral 方向保持为 `Life Engine → Host Adapter Contract → Hermes /
 
 ## 建议阶段与完成门
 
-M0～M6 是规划语义标签，不是新 SP 编号或执行授权。`M1.x` 仅表示 M1 与 M2 之间不可跳过的 Gate；正式编号由 SP-006S0 Architecture Freeze 冻结，本规划基线不预定 M1.5、SP-006S1 或 SP-006S2。SP-006S0 的已完成架构文档不延伸授权 M1 Runtime、M1.x 或 M2 实施；当前仅 M1-P0 文档 Gate 获单独授权。
+M0～M6 是规划语义标签，不是新 SP 编号或执行授权。`M1.x` 仅表示 M1 与 M2 之间不可跳过的 Gate；正式编号由 SP-006S0 Architecture Freeze 冻结，本规划基线不预定 M1.5、SP-006S1 或 SP-006S2。SP-006S0 的已完成架构文档不延伸授权 M1 Runtime、M1.x 或 M2 实施；M1-P0 文档与 M1-A 设计/合成探针的既有交付不等于产品实施准入通过。
 
 | 里程碑 | 工作范围与依赖 | 必须交付的能力或证据 |
 | --- | --- | --- |
@@ -68,6 +70,6 @@ Full Private RP 保持 `FROZEN_EXTERNAL_BLOCKER`；H1/H2 blocker、RP Core 与�
 
 每个实施切片写清固定 Base、实际体验、依赖、范围、禁止范围、验证证据、停止条件及可回滚边界，按可验收结果推进，不预设完成日期。流程保持 Draft PR → 独立审核 → 明确授权 Ready → 轻量终审 → 明确授权 Squash Merge → exact main push CI → 独立核验 → DONE。作者自检、PR CI、Merge 均不自动升级下一阶段授权；失败或取消的 CI 重试需当次明确授权。
 
-**治理流程调整（条件生效）：** [阶段自主开发方案](CODEX-STAGE-AUTONOMY-PLAN.md) R2 已获规划复审 PASS；[审核记录](CODEX-STAGE-AUTONOMY-R2-REVIEW.md)只确认方案完整。承载本段的治理 PR 自身继续执行上段旧流程；只有该 PR 合并、exact main CI 与独立收口后，且未来切片取得明确有效的阶段授权合同，才可在合同内由 Codex 自主拆解、实施、测试、独立审核、修复及使用预授权 CI 重试额度。指定独立审核者可以重新裁定提交变化后的审核适用性，不必逐轮交还 ChatGPT；阶段终审仍由 ChatGPT / 用户进行。首轮 M1-A 实施建议停在 `REVIEW_COMPLETE_AWAITING_HUMAN_GATE`，PR 保持 Draft；后续条件式 Ready/Squash Merge 需要在阶段合同中单列，且须满足 Base 竞争控制和独立合并后核验。未被合同列明的动作默认拒绝，M1.x/M2、Host/发送及架构 Gate 不因本流程获授权。
+**治理流程调整（条件生效）：** [阶段自主开发方案](CODEX-STAGE-AUTONOMY-PLAN.md) R2 已获规划复审 PASS；[审核记录](CODEX-STAGE-AUTONOMY-R2-REVIEW.md)只确认方案完整。治理内容已随 #51 合并，但未来切片仍须取得明确有效的阶段授权合同及相应准入证据，才可在合同内由 Codex 自主拆解、实施、测试、独立审核、修复及使用预授权 CI 重试额度。指定独立审核者可以重新裁定提交变化后的审核适用性，不必逐轮交还 ChatGPT；阶段终审仍由 ChatGPT / 用户进行。首轮 M1-A 实施建议停在 `REVIEW_COMPLETE_AWAITING_HUMAN_GATE`，PR 保持 Draft；后续条件式 Ready/Squash Merge 需要在阶段合同中单列，且须满足 Base 竞争控制和独立合并后核验。未被合同列明的动作默认拒绝，M1.x/M2、Host/发送及架构 Gate 不因本流程获授权。
 
 [SP-006S0 架构冻结任务书候选](SP-006S0-ARCHITECTURE-FREEZE-TASK.md)记录本规划获批时的历史候选状态；后续独立授权已指定架构任务 Execution Base `5f04caf5050efb4742a8f6cb1f8546544d935b64`，不沿用本规划编制 Base，也不授权 M1 实施。
