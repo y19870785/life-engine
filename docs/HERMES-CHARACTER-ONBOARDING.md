@@ -1,6 +1,6 @@
 # Hermes 自助创建角色故事（试用）
 
-> **状态范围（2026-10-14）**：本文描述 #56—#59 堆叠 Draft 的试用能力；本轮固定实现 Base 为 #59 `1d1ec6b7681684cbc44458e94344c261c5a2011b`，不是已合并主线承诺。当前能力、历史证据和 W0/W1 验收状态见 [统一基线](planning/W0-W1-CHARACTER-BASELINE.md)。以下安装示例不单独授予 Host 操作权限；本轮仅新隔离 Profile、工具集合为空、REAL_SEND = NO。
+> **状态范围（2026-10-18）**：本页试用代码已通过 [#59](https://github.com/y19870785/life-engine/pull/59) 进入 main；#60 的验证辅助工具与诊断先并入 #59，再随其进入主线。当前能力与证据见[项目现状](PROJECT-STATUS.md)、[统一基线](planning/W0-W1-CHARACTER-BASELINE.md)和[本周复盘](reports/WEEKLY-REVIEW-2026-10-18.md)，文档用途见[索引](DOCUMENTATION-INDEX.md)。W1 完整 T1 仍 `T1_FAILED / HOST_DEPENDENCY_GAP`，T2 `BLOCKED`；代码合并不是 Host/媒体/模型体验验收。[后续计划](planning/NEXT-DEVELOPMENT-PLAN-2026-10.md)为 `PROPOSED / NOT_EXECUTION_AUTHORIZATION`。以下示例不单独授予 Host 操作权限，继续使用隔离 Profile；历史 W1 无模型测试的工具为空、provider/渠道发送为0，不把该次限制当作产品能力配置。
 
 统一入口将原卡检查、开场选择、独立 Profile 配置、World/Memory/Story 与宿主工具许可串起来。角色卡默认 user 身份由作者正文和开场承担，用户可选 Persona 补充；不默认改成现实主人身份。原卡源文件保持不变。
 

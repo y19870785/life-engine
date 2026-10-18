@@ -1,18 +1,20 @@
 # Life Engine 长期开发路线与阶段治理
 
+**2026-10-18 状态校准**：本周代码及实际 CI、Host 证据边界统一见 [项目当前状态](../PROJECT-STATUS.md)。`SP-006S0 = DONE`，M1-P0 文档已完成；M1-A 设计和原语探针已有交付，仍 `E0_SYNTHETIC_PARTIAL / M1-A_PRIMITIVE_GATE_PENDING`。#55—#61 的角色试用代码已按各自合并路径进入 main，完整 W1 T1 仍失败；正式 M1 writer/verdict、M1.x、M2 不因此获实施授权。近期建议见 [后续开发计划](NEXT-DEVELOPMENT-PLAN-2026-10.md)，状态 `PROPOSED / NOT_EXECUTION_AUTHORIZATION`，不改变正式主线顺序。
+
 ## 阶段内自主开发治理切换（条件生效）
 
-[阶段自主开发方案 R2](CODEX-STAGE-AUTONOMY-PLAN.md)及[独立规划复审记录](CODEX-STAGE-AUTONOMY-R2-REVIEW.md)拟将未来**明确授权的阶段内部**工作改为 Codex 自主拆任务、实施、测试、独立 Agent 审核、修复和证据验证；ChatGPT 编写/审核阶段任务书并负责阶段终审，用户定义目标与授权范围。R2 的 `PLANNING_PASS` 不等于治理 PR 已完成，也不等于 M1-A 或任何 Runtime 实施获权。
+[阶段自主开发方案 R2](CODEX-STAGE-AUTONOMY-PLAN.md)及[独立规划复审记录](CODEX-STAGE-AUTONOMY-R2-REVIEW.md)拟将未来**明确授权的阶段内部**工作改为 Codex 自主拆任务、实施、测试、独立 Agent 审核、修复和证据验证；ChatGPT 编写/审核阶段任务书并负责阶段终审，用户定义目标与授权范围。R2 的规划内容与复审记录已随 [#51](https://github.com/y19870785/life-engine/pull/51) 进入历史主线；`PLANNING_PASS` 不等于任何未来阶段已获实施或合并权限。
 
-承载本段的治理 PR 仍遵守下文 §18 的逐次 Draft / Ready / Squash Merge / exact main CI / 独立核验旧流程。只有该 PR 完成独立合并后收口，且后续阶段合同单独生效时，才依 R2 §10 映射适用新流程。首轮 M1-A 建议保留人工 Ready/Merge；未来自动合并如无法证明服务端 Base 竞争控制，降级人工。M1-P0 独立 DONE、协调保护实现、M1-A 存储/Schema 评审与实施权限仍是各自准入门。原主线顺序、Host/发送与 Full Private RP 门禁均不改变。
+后续执行仍须满足下文 §18 及 R2 §10 对有效阶段合同的条件；#51 已合并的历史事实不能替代任一具体阶段的独立准入和动作授权。本周 #56—#61 依据另行授权完成代码收口，见 [周报](../reports/WEEKLY-REVIEW-2026-10-18.md)，不扩大未来自动合并权限。首轮 M1-A 建议保留人工 Ready/Merge；未来自动合并如无法证明服务端 Base 竞争控制，降级人工。M1-P0 独立 DONE、协调保护实现、M1-A 存储/Schema 评审与实施权限仍是各自准入门。原主线顺序、Host/发送与 Full Private RP 门禁均不改变。
 
 ## Soul Continuity Plan V2 — APPROVED_PLANNING_BASELINE / NOT_EXECUTION_AUTHORIZATION
 
 [后续开发计划](SOUL-CONTINUITY-DEVELOPMENT-PLAN.md)保留当前三轨方向，并把顺序细化为 M0 架构冻结 → M1 Soul Identity Core V1 → **M1.x Continuity Proof / Simulation Gate** → M2 Memory Evolution V1 + Read-only Prompt Projection → M3 Relationship + Autobiographical Memory → M4 Soul / Relationship Continuity Evolution + Living Integration → M5 Proactive Life / Routine + Media → M6 Voice + Host Expansion。`M1.x` 是显式门禁，后续实施任务编号仍须独立冻结；[SP-006S0 架构合同](../architecture/SP-006S0-SOUL-CONTINUITY-ARCHITECTURE.md)内容状态为 `APPROVED_ARCHITECTURE_BASELINE / NOT_IMPLEMENTATION_AUTHORIZATION`，M1/M1.x/M2 均未获实施授权。
 
-**CURRENT stage override：**`SP-006S0 = DONE`；`M1 = ACTIVE_STAGE`；仅 [M1-P0 Continuity Persistence Protocol Freeze](../architecture/M1-P0-CONTINUITY-PERSISTENCE-PROTOCOL.md) 获 `AUTHORIZED / PROTOCOL_FREEZE_ONLY`。M1 Schema、Migration、Soul Identity/Continuity Write Path、M1-A 及后续实施，M1.x 与 M2 均 `NOT AUTHORIZED`。M1-P0 的[崩溃矩阵](M1-P0-CRASH-RECOVERY-MATRIX.md)和[实施门禁](M1-P0-IMPLEMENTATION-GATE.md)是设计文档，不是测试 PASS 或执行许可；下文旧状态属于其明确标注的历史快照。
+**CURRENT stage override：**`SP-006S0 = DONE`；M1-P0 协议文档已完成；M1-A 存储设计与合成原语探针已交付，正式准入仍为 `M1-A_PRIMITIVE_GATE_PENDING`，见 [证据与缺口](M1-A-PRIMITIVE-ADMISSION-EVIDENCE.md)。[崩溃矩阵](M1-P0-CRASH-RECOVERY-MATRIX.md)和[实施门禁](M1-P0-IMPLEMENTATION-GATE.md)继续有效；产品 Schema/Migration、Soul Identity/Continuity writer、M1.x/M2 未获本次实施授权。下文已标历史的阶段状态保留原时点语义。
 
-M0 已冻结六种 Continuity、机械 verdict / evidence、离线 Simulation Harness 与 Minimal Prompt Projection Contract；M1.x 必须在大规模 Memory Evolution 前提供 continuation、fork、mismatch、unknown 的可验证边界，`UNKNOWN` 默认 fail-closed。M2 才从可信 Identity、Memory、World 和 Relationship Context 派生只读投影；完整 SP-005A2-P1 不自动前移。首个产品里程碑同时验证身份和记忆连续性，数据库恢复成功不能替代 Soul Continuity PASS。Host 回归只在实质官方能力证据出现后进入独立评审，Full Private RP 继续封存。规划状态仍为 `APPROVED_PLANNING_BASELINE / NOT_EXECUTION_AUTHORIZATION`；本轮仅授权 M1-P0 协议文档，不授权 Runtime。
+M0 已冻结六种 Continuity、机械 verdict / evidence、离线 Simulation Harness 与 Minimal Prompt Projection Contract；M1.x 必须在大规模 Memory Evolution 前提供 continuation、fork、mismatch、unknown 的可验证边界，`UNKNOWN` 默认 fail-closed。M2 才从可信 Identity、Memory、World 和 Relationship Context 派生只读投影；完整 SP-005A2-P1 不自动前移。首个产品里程碑同时验证身份和记忆连续性，数据库恢复成功不能替代 Soul Continuity PASS。Host 回归只在实质官方能力证据出现后进入独立评审，Full Private RP 继续封存。规划状态仍为 `APPROVED_PLANNING_BASELINE / NOT_EXECUTION_AUTHORIZATION`；本次复盘只校准文档，不授权任何后续 Runtime 或 Host 实施。
 
 ## HISTORICAL GOVERNANCE SNAPSHOT — GOV-SOUL-ROADMAP1 / Soul Continuity Mainline
 

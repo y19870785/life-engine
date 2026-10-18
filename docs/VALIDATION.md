@@ -1,6 +1,23 @@
 # v0.3 验证记录
 
-## CURRENT CANONICAL STATE — GOV-SOUL-ROADMAP1
+## CURRENT CANONICAL STATE — 2026-10-18 代码基线与证据分层
+
+最近已确认代码基线为 [#59](https://github.com/y19870785/life-engine/pull/59) 合并提交 `baa59729babf9ac56a17e02c682de2e3086e3575`。[exact main push CI #39138679747](https://github.com/y19870785/life-engine/actions/runs/39138679747) 为 `push / main / exact SHA / completed / success`，四矩阵均成功。此处固定的是本次文档更新前代码基线，不预报后续文档提交的 CI。
+
+| 矩阵 | 实际完整测试结果 |
+| --- | --- |
+| Ubuntu / Python 3.11 | 684 tests / 257.888s / OK，3 skipped |
+| Ubuntu / Python 3.12 | 684 tests / 285.627s / OK，3 skipped |
+| Windows / Python 3.11 | 684 tests / 1378.199s / OK，2 skipped |
+| Windows / Python 3.12 | 684 tests / 1740.109s / OK，2 skipped |
+
+每项均 0 failure / 0 error；684 是总运行数，包含平台跳过。#55—#59 已进入 main；#60 于 2026-10-17 先合入 #59 分支，再随 #59 入 main。#57 原 main `b1fbfc2` 的 run39107386322 Windows 3.11 ready JSON 竞态失败仍保留，#61 在新 main `f5a6cbf` 修复后取得 run39110579882 四矩阵成功，不追认旧 SHA 通过。旧 #59 source `2dc4349` 的 Windows 3.11 超时历史也不被新 Head 的绿覆盖。
+
+代码 CI 不证明真实 Host / 模型 / 投递。W1 `EVIDENCE_PARTIAL`，完整 T1 `T1_FAILED / HOST_DEPENDENCY_GAP`，T2 `BLOCKED`；诊断请求/provider 0、渠道发送 0，无 SENT/ACK。SP-006S0 与 M1-P0 文档已完成；M1-A 仍 `E0_SYNTHETIC_PARTIAL / M1-A_PRIMITIVE_GATE_PENDING`。历史阶段的治理偏差、失败、测试计数与授权原样保留，均不得升级成当前 Host PASS。
+
+当前结论见[项目现状](PROJECT-STATUS.md)，范围与来源见[本周复盘](reports/WEEKLY-REVIEW-2026-10-18.md)和[文档索引](DOCUMENTATION-INDEX.md)；[后续计划](planning/NEXT-DEVELOPMENT-PLAN-2026-10.md)仅为 `PROPOSED / NOT_EXECUTION_AUTHORIZATION`。
+
+## HISTORICAL — GOV-SOUL-ROADMAP1 验证与治理快照
 
 A2-R1 canonical implementation commit = `a552a2d0846ff024b930d0d802228b863a6da74f`。[PR #46](https://github.com/y19870785/life-engine/pull/46) Squash Merge 后，[exact main push CI #37297156541](https://github.com/y19870785/life-engine/actions/runs/37297156541) 的有效 attempt 3 为 `push / main / exact SHA / completed / success`，Ubuntu、Windows × Python 3.11、3.12 全部 SUCCESS；`SP-005A4-HLV4-A2-R1 = DONE`。attempt 1、2 均 CANCELLED；attempt 2 后继续执行 attempt 3 构成 `CI_RECOVERY_GOVERNANCE_DEVIATION = YES`，详见[治理记录](architecture/GOV-SOUL-ROADMAP1-SOUL-CONTINUITY-MAINLINE.md)。技术证据未失效，但该偏差不抹去。
 

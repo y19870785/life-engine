@@ -1,5 +1,7 @@
 # Life Engine
 
+> **项目入口**：[当前状态与证据](docs/PROJECT-STATUS.md) · [近一周进展](docs/reports/WEEKLY-REVIEW-2026-10-18.md) · [开发方式复盘](docs/planning/DEVELOPMENT-WORKFLOW-REVIEW-2026-10.md) · [近期计划（提案）](docs/planning/NEXT-DEVELOPMENT-PLAN-2026-10.md) · [全部文档](docs/DOCUMENTATION-INDEX.md)。角色链代码已合入 main；完整 Hermes T1 仍 `HOST_DEPENDENCY_GAP`。
+
 角色卡接入 Hermes 的实验工具：见[角色卡预览、导入、验证与回退](docs/HERMES-CHARACTER-CARD-IMPORT.md)。原生 V1 在独立命名 Profile 的 CLI / Chat Completions 请求中运行原卡提示、开场、示例对白和世界书兼容子集；可另行启用 [V2 跨会话连续性试用](docs/HERMES-CHARACTER-CONTINUITY-V2.md)，将可靠保存的用户原话与候选剧情接入独立 World、Memory 和 Story。[统一创建角色故事入口](docs/HERMES-CHARACTER-ONBOARDING.md) 支持故事介绍、开场选择和新 Profile 的能力与连续性安装。脚本、变量与语义记忆整理仍需后续实现。
 
 > **X1 体验试用入口**：如果要试“跨会话记忆与 Agent 虚拟日常”，先按 [X1 本地试用说明](docs/planning/EXPERIENCE-FIRST-X1-TRIAL.md)使用隔离合成实例。`hermes-prompt` 只生成可手动复制到独立 Hermes 测试 Profile 的提示；这不是自动 Host 接入。下文 v0.2/legacy 安装步骤不能用于把 X1 样机接入现有 Hermes 主 Profile，也不授权插件加载、Gateway 重启或真实发送。
@@ -34,7 +36,7 @@ ACK_VALIDATOR = HOST_GAP；Hermes Living只读/生命周期/fake dry-run已确�
 - Long-term Roadmap: [长期路线与阶段治理](docs/planning/LIFE-ENGINE-DEVELOPMENT-ROADMAP.md)
 - Soul Continuity 已审规划基线：[后续开发计划](docs/planning/SOUL-CONTINUITY-DEVELOPMENT-PLAN.md)（M1 与 M2 之间的 Continuity Proof / Simulation Gate；`NOT_EXECUTION_AUTHORIZATION`）
 
-Roadmap state != execution authorization。SP-006S0、M1-P0 文档完成，以及 M1-A 隔离原语探针，都不等于正式 M1-A 实施或准入通过。P1 已重排但未授权；Memory Evolution V1 属 Soul Continuity 主线、PLANNED / NOT AUTHORIZED；阶段顺序见[SP-006S0 实施计划](docs/planning/SP-006S0-IMPLEMENTATION-PLAN.md)。DATA_SCHEMA=8、Schema Signature=SP-005A-living-runtime-v1、Prompt Template=SP-004K-prompt-v1、PROMPT_TEMPLATE_UPGRADE_REQUIRED=YES 保持不变；W0/W1 仅允许已审对象在新隔离 Profile 中受控验证，REAL_SEND = NO。
+Roadmap state != execution authorization。SP-006S0、M1-P0 文档完成，以及 M1-A 隔离原语探针，都不等于正式 M1-A 实施或准入通过。P1 已重排但未授权；Memory Evolution V1 属 Soul Continuity 主线、PLANNED / NOT AUTHORIZED；阶段顺序见[SP-006S0 实施计划](docs/planning/SP-006S0-IMPLEMENTATION-PLAN.md)。DATA_SCHEMA=8、Schema Signature=SP-005A-living-runtime-v1、Prompt Template=SP-004K-prompt-v1、PROMPT_TEMPLATE_UPGRADE_REQUIRED=YES 保持不变；W0/W1 的历史受控验证权限不自动延续；后续 Host 验证需绑定新任务、隔离环境及预算，REAL_SEND = NO。
 
 ## 用起来是什么感觉？
 
@@ -174,7 +176,7 @@ python "/永久目录/manage.py" connect --instance "实例ID"
 | 了解当前缺陷与历史测试记录 | [已知问题](docs/KNOWN-ISSUES.md) |
 | 查看当前 CI 与历史模拟宿主验证 | [验证记录](docs/VALIDATION.md) |
 | 了解 World Memory 架构 | [World Memory 架构](docs/architecture/SP-004B-WORLD-MEMORY.md) |
-| 查看当前开发路线 | [2026-09 后续路线](docs/planning/ROADMAP-2026-09.md) |
+| 查看当前开发路线 | [近期建议（提案）](docs/planning/NEXT-DEVELOPMENT-PLAN-2026-10.md) / [长期路线](docs/planning/LIFE-ENGINE-DEVELOPMENT-ROADMAP.md)；[2026-09 历史路线](docs/planning/ROADMAP-2026-09.md)保留 |
 | 查看 Soul Continuity 后续计划 | [开发计划与连续性验证 Gate](docs/planning/SOUL-CONTINUITY-DEVELOPMENT-PLAN.md) |
 | 查阅 SP-004 阶段实施历史 | [实施计划](docs/planning/SP-004-IMPLEMENTATION-PLAN.md) |
 | 理解私密 RP 的 Host 合同 | [Host Integration 架构](docs/architecture/SP-004H-HOST-INTEGRATION.md) |

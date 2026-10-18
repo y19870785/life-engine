@@ -1,6 +1,6 @@
 # 角色使用主 Agent 能力（试用）
 
-> **状态范围（2026-10-14）**：本文描述 #56—#59 堆叠 Draft 的试用能力；本轮固定实现 Base 为 #59 `1d1ec6b7681684cbc44458e94344c261c5a2011b`，不是已合并主线承诺。当前能力、历史证据和 W0/W1 验收状态见 [统一基线](planning/W0-W1-CHARACTER-BASELINE.md)。以下安装示例不单独授予 Host 操作权限；本轮仅新隔离 Profile、工具集合为空、REAL_SEND = NO。
+> **状态范围（2026-10-18）**：本页试用代码已通过 [#58](https://github.com/y19870785/life-engine/pull/58) 进入 main；#60 的验证辅助工具与诊断先并入 #59，再随其进入主线。当前能力与证据见[项目现状](PROJECT-STATUS.md)、[统一基线](planning/W0-W1-CHARACTER-BASELINE.md)和[本周复盘](reports/WEEKLY-REVIEW-2026-10-18.md)，文档用途见[索引](DOCUMENTATION-INDEX.md)。W1 完整 T1 仍 `T1_FAILED / HOST_DEPENDENCY_GAP`，T2 `BLOCKED`；代码合并不是 Host/媒体/模型体验验收。[后续计划](planning/NEXT-DEVELOPMENT-PLAN-2026-10.md)为 `PROPOSED / NOT_EXECUTION_AUTHORIZATION`。以下示例不单独授予 Host 操作权限，继续使用隔离 Profile；历史 W1 无模型测试的工具为空、provider/渠道发送为0，不把该次限制当作产品能力配置。
 
 角色卡决定故事身份、默认玩家身份、文风与世界。工具和技能由可信本地管理配置提供，卡片正文不能自行授予权限。角色可以自然描写走到电脑边或拿起手机，实际操作结果必须来自工具，不能把意图叙述当成执行成功。
 
@@ -29,4 +29,4 @@ python tools/hermes_capabilities.py \
 
 本版先解决能力可见与可用。**V2 跨会话连续性仍保守跳过包含工具中间消息的轮次**；同会话工具历史由 Hermes 保留。尚未验收跨会话媒体引用、统一工具结果记录、场景自动提取、固定角色脸/声线或 Telegram 媒体投递。不要把继承技能称为媒体闭环已完成，也不要宣称任何图片已生成或发送。
 
-后续入口将提供原卡故事介绍、默认 user 身份与开场选择；当前身份仍由原卡正文提示承担。选择其他开场的新故事需要独立存档，不能混入已有 World。
+[统一故事入口](HERMES-CHARACTER-ONBOARDING.md)已提供原卡故事介绍、默认 user 身份提示与开场选择。角色身份仍由原卡正文承担；选择其他开场的新故事使用新的独立 Profile/World，不能混入已有 World。

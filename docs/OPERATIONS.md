@@ -1,8 +1,12 @@
 # v0.3 运维说明
 
+> **CURRENT — 运维适用范围**：当前能力与 Host 证据以[项目现状](PROJECT-STATUS.md)为准，历史命令与验证分类见[文档索引](DOCUMENTATION-INDEX.md)。角色自助导入使用[统一入口](HERMES-CHARACTER-ONBOARDING.md)，不是本页 legacy Living 安装的自动升级。主线代码已包含 A3 Host-neutral Binding、受信 routing、capability/permit 与本地模拟验证；旧 Host 插件不会因此自动获得新 authority，真实 Host delivery、受信 ACK 和完整角色 T1 仍未验收。
+
+[本周复盘](reports/WEEKLY-REVIEW-2026-10-18.md)记录合并与测试修复；[后续计划](planning/NEXT-DEVELOPMENT-PLAN-2026-10.md)为 `PROPOSED / NOT_EXECUTION_AUTHORIZATION`。下列安装、备份、重载与发送命令只有在具体实例和操作授权明确时执行，本次文档更新不执行任何运维动作。
+
 日常维护使用永久目录中的 manage.py；运行能力使用同目录中的 life.py。实例 ID 由 adapter 与规范化 host_home 生成：不同 permanent root 使用同一 host_home 时可以得到同一 ID，数据仍按 root / generation 分开。运维与证据必须同时记录这些字段，不能把 instance_id 当成跨安装全局唯一。不要手工改 registry.json 的实例标识或路径，它负责原子选择已激活的代码和数据代次。
 
-当前 B1 Core recovery 已 DONE，事实基线 `f83d36c76fea6de1a31b449535d5df6cea3909b5`；版本保持 DATA_SCHEMA = 8、SP-005A-living-runtime-v1、SP-004K-prompt-v1。公开只读 recovery 查询不能触发 claim、reconcile、tick、transport 或新 Core incarnation，也不返回 execute。详见 [B1 映射](SP-005A3-B1-VALIDATION.md)。A3 Host Binding 尚未完成；以下旧 Host 业务命令不得用于 enrolled 实例，不得绕过 LIVING_HANDOFF_REQUIRED。副作用前 routing 的缺口见 [已知问题](KNOWN-ISSUES.md)，本次文档校准不执行运维命令。
+**HISTORICAL — B1 时点**：以下整段保留原实现与缺口用语，其中 A3 尚未完成只指该时点，不覆盖上文当前本地实现。B1 Core recovery 已 DONE，事实基线 `f83d36c76fea6de1a31b449535d5df6cea3909b5`；版本保持 DATA_SCHEMA = 8、SP-005A-living-runtime-v1、SP-004K-prompt-v1。公开只读 recovery 查询不能触发 claim、reconcile、tick、transport 或新 Core incarnation，也不返回 execute。详见 [B1 映射](SP-005A3-B1-VALIDATION.md)。A3 Host Binding 尚未完成；以下旧 Host 业务命令不得用于 enrolled 实例，不得绕过 LIVING_HANDOFF_REQUIRED。副作用前 routing 的缺口见 [已知问题](KNOWN-ISSUES.md)，本次文档校准不执行运维命令。
 
 ## 非交互安装
 

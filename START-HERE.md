@@ -1,5 +1,13 @@
 # 给本机 Hermes / OpenClaw 的接入任务
 
+> **CURRENT — 2026-10-18**：先读[项目现状](docs/PROJECT-STATUS.md)、[文档索引](docs/DOCUMENTATION-INDEX.md)和[本周复盘](docs/reports/WEEKLY-REVIEW-2026-10-18.md)。#55—#59 与测试修复 #61 已进入 main；#60 先合入 #59 开发分支，再随 #59 进入主线。角色 CLI 试用的代码交付不代表真实 Host 验收：W1 `EVIDENCE_PARTIAL`、完整 T1 `T1_FAILED / HOST_DEPENDENCY_GAP`、T2 `BLOCKED`，真实 venv 加载闭包与共享恢复写入隔离尚未解决。
+
+正式 Soul Continuity 仍为 `ACTIVE_MAINLINE`，SP-006S0 与 M1-P0 文档已完成，M1-A 仍 `E0_SYNTHETIC_PARTIAL / M1-A_PRIMITIVE_GATE_PENDING`；角色试用不授予正式 M1 Runtime/Schema/Migration、M1.x 或 M2 实施资格。[后续薄任务计划](docs/planning/NEXT-DEVELOPMENT-PLAN-2026-10.md)为 `PROPOSED / NOT_EXECUTION_AUTHORIZATION`，不授权 Host 安装、模型请求、渠道或生产 Gateway 操作。
+
+## HISTORICAL — Soul 规划批准时的权限快照
+
+以下两则 CURRENT 为原批准时点用语，M1-P0 的阶段权限不代表当前永久授权；当前能力与权限层级以上文为准。
+
 > **CURRENT — Soul Continuity Plan V2 = APPROVED_PLANNING_BASELINE / NOT_EXECUTION_AUTHORIZATION**：[后续开发计划](docs/planning/SOUL-CONTINUITY-DEVELOPMENT-PLAN.md)已通过独立规划审核，`SP-006S0 = DONE`。`M1 = ACTIVE_STAGE`，当前仅 [M1-P0 持久化协议冻结](docs/architecture/M1-P0-CONTINUITY-PERSISTENCE-PROTOCOL.md)获 `AUTHORIZED / PROTOCOL_FREEZE_ONLY`；M1 Runtime/Schema/Migration、M1.x、M2 均 `NOT AUTHORIZED`，不改变下文 Host 操作门禁。
 
 > **CURRENT — Soul Continuity 主线**：Soul Continuity 是 `ACTIVE_MAINLINE`。SP-006S0 已独立完成；M1-P0 是文档门禁，未来 Ready、Merge、M1 实施各需单独授权。受控 Host Sandbox = `TESTABLE / EXPLICIT_AUTHORIZATION_REQUIRED`；Real Delivery Host Integration（A2 retry、HLV4-B）= `DEFERRED / NOT AUTHORIZED`；Full Private RP = `FROZEN_EXTERNAL_BLOCKER / NOT FOR PRODUCTION`。下列接入步骤只有取得单独 Host 操作授权才能执行，本任务不授权安装、Gateway 或发送。
@@ -14,7 +22,7 @@
 
 首次真实接入默认使用空的测试 Session，不复制生产私密聊天历史，不修改原 Soul 或主模型，不开放 Full RP。若无法确认独立身份、数据目录或本人发送目标，先停止接入并报告。
 
-用户把本目录交给你，是希望在当前 Agent 上安装并接通 Life Engine。请先读取 README.md 和 docs/OPERATIONS.md，查看 setup.py --help，再使用真实本机环境操作。安装包不包含用户的模型密钥、照片工作流或聊天目标。
+只有用户明确要求安装或接入时，才执行下列 legacy 操作指南。先读取 README.md、docs/PROJECT-STATUS.md 和 docs/OPERATIONS.md，查看 setup.py --help，再按该次授权范围使用真实本机环境；仅阅读项目或文档更新不构成 Host 操作授权。安装包不包含用户的模型密钥、照片工作流或聊天目标。
 
 识别当前宿主、版本、实际 Profile/workspace、运行用户和执行环境；OpenClaw 还需核对真实 agentId 及其所属配置/Gateway，不能默认所有工作区都属于 main。保留原有 SOUL、IDENTITY、USER、模型、密钥和已有的插件配置。
 

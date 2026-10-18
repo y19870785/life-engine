@@ -6,7 +6,9 @@
 
 角色试用提供原生卡片、普通文本跨会话、工具权限交集、故事/开场选择及统一新 Profile 导入代码；功能范围见下文。W1 仍 `EVIDENCE_PARTIAL`，完整 T1 为 `T1_FAILED / HOST_DEPENDENCY_GAP`，T2 `BLOCKED`，真实 venv 隔离与共享恢复写入边界尚未解决。代码审核、CI 和合并不升级这些 Host 证据。
 
-2026-10-18 用户另行授权 #56→#57→#58→#59 顺序整理和合并；本次任务不运行 Host、模型或渠道，不扩展为后续隔离实施。实时合并状态见 [#56](https://github.com/y19870785/life-engine/pull/56)、[#57](https://github.com/y19870785/life-engine/pull/57)、[#58](https://github.com/y19870785/life-engine/pull/58)、[#59](https://github.com/y19870785/life-engine/pull/59) 与 [main](https://github.com/y19870785/life-engine/tree/main)，不在本文预写未来合并 SHA。
+2026-10-18 的顺序合并已完成：#56→#57→#61（测试 IPC 修复）→#58→#59；#60 于10-17先合入 #59 分支，再随 #59 进入主线。最终代码 main `baa59729babf9ac56a17e02c682de2e3086e3575` 的 [exact main CI #39138679747](https://github.com/y19870785/life-engine/actions/runs/39138679747) 四矩阵各684项、0失败，包含既有平台跳过；原 #57 main 失败与旧 #59 超时记录仍保留，不以新main通过覆盖旧对象。合并本身没有启动 Host、模型或渠道。
+
+全局现状与证据矩阵见[项目现状](../PROJECT-STATUS.md)，完整时间线见[本周复盘](../reports/WEEKLY-REVIEW-2026-10-18.md)，文档分类见[索引](../DOCUMENTATION-INDEX.md)。[后续计划](NEXT-DEVELOPMENT-PLAN-2026-10.md)为 `PROPOSED / NOT_EXECUTION_AUTHORIZATION`，不自动启动隔离 fixture 或真实 T1。下方各批合同、预算、失败和当时 Draft 用语为历史原件，不授予后来任务权限。
 
 ## HISTORICAL — 2026-10-14 启动固定对象与来源
 

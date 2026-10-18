@@ -1,6 +1,6 @@
 # SillyTavern 角色卡兼容性
 
-SP-004G 候选实现；导入兼容不等于 SillyTavern 运行时功能兼容。
+本页描述 SP-004G 的导入 IR、离线兼容扫描器及历史语料结果；相关 Core 实现已进入主线。导入兼容不等于 SillyTavern 运行时功能兼容；当前 Hermes 原生请求的兼容子集另见 [角色卡指南](../HERMES-CHARACTER-CARD-IMPORT.md)和[项目状态](../PROJECT-STATUS.md)。
 
 格式依据：[CCv3 规范](https://github.com/kwaroran/character-card-spec-v3/blob/main/SPEC_V3.md) 与 [CCv2 规范](https://github.com/malfoyslastname/character-card-spec-v2/blob/main/spec_v2.md)，检查日期 2026-09-16。V3 在 JSON 中保留来源标识，PNG 使用 ccv3 tEXt 的 base64 JSON，双载荷优先 ccv3。除此之外的支持范围由下表与测试限定。
 
@@ -67,4 +67,4 @@ duplicate_logical_cards 只计算规范源 JSON 完全相同的重复个数，�
 
 R1 回归：总数仍为 1,737，成功附警告从 1,298 变为 1,297，MALFORMED 从 11 变为 12，UNSUPPORTED 仍为 428，内部错误为 0。唯一新增拒绝为一个 V2 卡显式 null character_book，违反对象约束；识别的 V3 仍为 131 且全部成功往返。全部原始文件哈希未变。
 
-识别的 V3 全部通过解析/往返，不意味着未识别的超大卡片也经过验证。所有成功卡片均有至少一项兼容警告，不能宣传为“100% SillyTavern 语义兼容”。扩展执行、资产解析、背景知识触发、故事、宿主接入均未实现。
+识别的 V3 全部通过解析/往返，不意味着未识别的超大卡片也经过验证。所有成功卡片均有至少一项兼容警告，不能宣传为“100% SillyTavern 语义兼容”。本页的导入 IR / 离线扫描器不执行扩展、资产解析、背景知识触发、故事推进或宿主接入；其他模块已有的 Core Story、Host adapter 与原生卡片世界书子集不改变本扫描器的职责和兼容结论。

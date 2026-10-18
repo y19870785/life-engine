@@ -1,5 +1,7 @@
 # X1 本地试用：跨会话记忆与虚拟日常
 
+> **入口区分**：X1 是已合并的离线合成样机；原生 Hermes 角色与 V2 是另一条有界试用路径，见 [项目状态](../PROJECT-STATUS.md)及[统一导入](../HERMES-CHARACTER-ONBOARDING.md)。下列命令和 `MODEL_NOT_CONNECTED` 边界保持不变。
+
 这是一份**合成数据样机**，只验证 C01/C04 的 Core 状态和供模型使用的事实包。它不连接模型、真实 Host 或网络，输出固定标记 `MODEL_NOT_CONNECTED`；当前不能据此判定「活人感」通过。建议在 Windows PowerShell 中从仓库根目录运行，使用 Python 3.12。所有安装状态都建在系统临时目录下的新实例，不读取现有聊天或角色卡。
 
 ```powershell

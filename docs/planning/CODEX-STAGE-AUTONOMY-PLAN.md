@@ -1,5 +1,9 @@
 # Life Engine 阶段自主开发方案
 
+> **送审快照与后续状态（2026-10-18）**：下列 R2 正文保留 2026-10-09 送审时的日期、DRAFT/待复审和“当前”用语；复审原件见 [R2 Review](CODEX-STAGE-AUTONOMY-R2-REVIEW.md)，治理文档后随 [#51](https://github.com/y19870785/life-engine/pull/51) 合并。既有复审 hash 只绑定原提交内容，不绑定本次新增导航。具体阶段合同、独立审核及授权条件继续有效，不能据此自动执行或合并。实际运行得失见 [本周复盘](DEVELOPMENT-WORKFLOW-REVIEW-2026-10.md)，当前能力见 [状态入口](../PROJECT-STATUS.md)。
+
+## HISTORICAL — R2 送审正文
+
 日期：2026-10-09。版本：R2。状态：`DRAFT / RE_REVIEW_REQUIRED`。
 
 R1 独立审核：ChatGPT《调整开发规划》，2026-10-09，消息 `d327d361-7d0b-5453-b835-485335b3f55d`，结论 `CHANGES_REQUIRED`。R2 按 F01–F07 修订，尚未获复审 PASS。
