@@ -17,6 +17,7 @@ from .import_cards import parse_card, is_link
 FILES = ('SOUL.md', *(f'plugins/{hook.PLUGIN}/{name}' for name in
           ('__init__.py', 'plugin.yaml', 'binding.json', 'card.json')))
 NATIVE_FILE = f'plugins/{hook.PLUGIN}/hermes_card_runtime.py'
+PROOF_FILE = f'plugins/{hook.PLUGIN}/hermes_turn_proof.py'
 
 
 def digest(data):
@@ -143,7 +144,8 @@ def receipt_at(home, receipt):
     if receipt.name != 'receipt.json' or receipt.parent.parent != home / '.life-engine-card-backups':
         raise ValueError('INVALID_RECEIPT_LOCATION')
     data = json.loads(read(receipt))
-    if data.get('home') != str(home) or set(data.get('files', {})) not in (set(FILES), set(FILES) | {NATIVE_FILE}):
+    if data.get('home') != str(home) or set(data.get('files', {})) not in (
+            set(FILES), set(FILES) | {NATIVE_FILE}, set(FILES) | {NATIVE_FILE, PROOF_FILE}):
         raise ValueError('INVALID_RECEIPT')
     if not hmac.compare_digest(str(data.get('signature', '')), signed(home, data)['signature']):
         raise ValueError('RECEIPT_CHANGED')
@@ -213,7 +215,7 @@ def apply(plan_path, profile_home, expected):
         if folder.exists() and any(folder.iterdir()):
             # Updates require rolling back first, so user-owned plugin files are never overwritten.
             raise ValueError('PLUGIN_EXISTS_ROLL_BACK_FIRST')
-        for name in (*FILES, NATIVE_FILE) if is_native else FILES:
+        for name in (*FILES, NATIVE_FILE, PROOF_FILE) if is_native else FILES:
             safe(home / name)
         key = safe(home / '.life-engine-card-key')
         if not key.exists():
@@ -235,6 +237,7 @@ def apply(plan_path, profile_home, expected):
             payloads['SOUL.md'] = ('# 角色会话\n' + native.BOUNDARY).encode('utf-8')
             payloads[f'plugins/{hook.PLUGIN}/__init__.py'] = Path(__file__).with_name('hermes_card_native_hook.py').read_bytes()
             payloads[NATIVE_FILE] = Path(native.__file__).read_bytes()
+            payloads[PROOF_FILE] = Path(__file__).with_name('hermes_turn_proof.py').read_bytes()
             # Validate the actual example/greeting/placement path before touching SOUL.
             native.assemble(deployed, {'messages': []})
         backup = safe(home / '.life-engine-card-backups' / uuid4().hex)
