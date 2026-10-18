@@ -300,7 +300,8 @@ def restrict_tools(request, options):
             result.pop('tool_choice', None)
             result.pop('parallel_tool_calls', None)
         elif isinstance(result.get('tool_choice'), dict):
-            if result['tool_choice'].get('function', {}).get('name') not in options['allowed_tools']:
+            offered = {t['function']['name'] for t in result['tools']}
+            if result['tool_choice'].get('function', {}).get('name') not in offered:
                 result['tool_choice'] = 'auto'
     return result
 
