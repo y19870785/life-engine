@@ -9,13 +9,15 @@ import sqlite3
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import unittest
+from unittest.mock import patch
 import uuid
 
 PROBE = Path(__file__).parent / "m1a_probe"
 sys.path.insert(0, str(PROBE))
-from primitive import cas, classify, connect, initialise, prepare, record, root_value  # noqa: E402
+from primitive import cas, classify, connect, initialise, prepare, record, root_value, worker  # noqa: E402
 from isolation import evidence_sink, fixture_path, guard_evidence_root, guarded_files, register_fixture  # noqa: E402
 from collect_evidence import live_registered_workers, process_identity, settle_and_preserve  # noqa: E402
 
@@ -168,6 +170,59 @@ class ProbeTests(unittest.TestCase):
         self.assertEqual(sorted(r["outcome"] for r in results), ["CAS_FAIL", "COMMITTED"])
         self.observations.append({"mode": mode, "operations": operations, "trial": index, "results": results,
                                   "prepared": prepared, "fresh": self.fresh(path)})
+
+    def test_ready_is_not_visible_until_complete_json_is_published(self):
+        path = self.db()
+        ready = path.parent / "ready.json"
+        start = path.parent / "start"
+        result = path.parent / "result.json"
+        writing = threading.Event()
+        release = threading.Event()
+        failures = []
+        write_text = Path.write_text
+
+        def pause_json_write(target, data, *args, **kwargs):
+            if isinstance(data, str) and '"prepared_record"' in data:
+                # Exercise actual file creation and a concurrent read while the
+                # worker has written only the first byte of its ready payload.
+                with target.open("w", encoding="utf-8") as stream:
+                    stream.write(data[:1])
+                    stream.flush()
+                    writing.set()
+                    if not release.wait(5):
+                        raise TimeoutError("test writer release")
+                    stream.write(data[1:])
+                return len(data)
+            return write_text(target, data, *args, **kwargs)
+
+        def run_worker():
+            try:
+                worker(path, "WAL", "CREATE", "atomic-ready", start, ready, result)
+            except BaseException as error:
+                failures.append(error)
+
+        with patch.object(Path, "write_text", pause_json_write):
+            thread = threading.Thread(target=run_worker)
+            thread.start()
+            try:
+                self.assertTrue(writing.wait(5), "worker must reach the partial write")
+                try:
+                    snapshot = ready.read_text(encoding="utf-8")
+                except FileNotFoundError:
+                    snapshot = None
+                if snapshot is not None:
+                    json.loads(snapshot)
+                self.assertIsNone(snapshot, "ready must not publish a partial payload")
+            finally:
+                start.write_text("start", encoding="ascii")
+                release.set()
+                thread.join(timeout=5)
+        self.assertFalse(thread.is_alive(), "test worker must exit")
+        self.assertEqual(failures, [])
+        prepared = json.loads(ready.read_text(encoding="utf-8"))
+        self.assertIsNone(prepared["expected_revision"])
+        self.assertIsNone(prepared["expected_source"])
+        self.assertEqual(json.loads(result.read_text(encoding="utf-8"))["outcome"], "COMMITTED")
 
     def test_p02_fork_races_source_advance_and_retirement(self):
         for mode in ("WAL", "DELETE"):
