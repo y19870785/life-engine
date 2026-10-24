@@ -14,7 +14,7 @@ from .memory import (AudienceKind, MemoryAudience, MemoryCollectionRevision, Mem
 from .memory_control import fingerprint, scope_values
 from .memory_repository import MemoryFailure as MC, MemoryRuntimeError, deny
 from .world_codec import provenance_dump
-from .world_repository import WorldRuntimeError
+from .world_repository import FailureCode as WC, WorldRuntimeError
 
 
 def checked(method):
@@ -67,16 +67,37 @@ def validate_record(tx, record):
         SourceType.IMPORT: (RealityStatus.UNKNOWN,),
         SourceType.LEGACY: (RealityStatus.LEGACY_UNREVIEWED,),
         SourceType.OWNER_COMMAND: (RealityStatus.USER_CLAIMED,RealityStatus.FICTIONAL,RealityStatus.UNKNOWN),
+        # 角色扮演回忆只能以"虚构共同经历"存在，永远不能升级为现实事实。
+        SourceType.ROLEPLAY_RECALL: (RealityStatus.FICTIONAL_SHARED_EXPERIENCE,),
     }
     if p.source_type not in allowed or p.reality_status not in allowed[p.source_type]:
         deny(MC.INVALID_SOURCE)
-    if ((p.source_world_id is not None and p.source_world_id != scope.world_id) or
-            (p.source_timeline_id is not None and p.source_timeline_id != scope.timeline_id)):
-        deny(MC.INVALID_SOURCE)
-    if p.source_session_id is not None:
-        source_session = tx.world.get_session(p.source_session_id)
-        if source_session.scope != scope or source_session.principal != p.actor:
+    if p.source_type is SourceType.ROLEPLAY_RECALL:
+        # 回忆录必须指向**另一个**世界，且该世界由同一 Soul 持有。
+        # 这里只做结构校验、不查源世界：否则源 RP World 归档或删除后，
+        # 既有回忆录会在读路径被判为损坏。源世界的真实性在写入时校验。
+        if (p.source_world_id is None or p.source_timeline_id is None
+                or p.source_world_id == scope.world_id):
             deny(MC.INVALID_SOURCE)
+        if p.source_session_id is not None:
+            # 首版不携带源会话引用，避免读路径跨世界查表。
+            deny(MC.INVALID_SOURCE)
+        if world.world.kind is not WorldKind.SOUL:
+            deny(MC.INVALID_SOURCE)
+        if record.kind is not MemoryKind.SHARED_EXPERIENCE:
+            deny(MC.INVALID_ARGUMENT)
+        if record.audience != (MemoryAudience(AudienceKind.SOUL, scope.soul_id),):
+            deny(MC.AUTHORIZATION_DENIED)
+        if any(subject.kind is not SubjectKind.TEXT for subject in record.subjects):
+            deny(MC.INVALID_SOURCE)
+    else:
+        if ((p.source_world_id is not None and p.source_world_id != scope.world_id) or
+                (p.source_timeline_id is not None and p.source_timeline_id != scope.timeline_id)):
+            deny(MC.INVALID_SOURCE)
+        if p.source_session_id is not None:
+            source_session = tx.world.get_session(p.source_session_id)
+            if source_session.scope != scope or source_session.principal != p.actor:
+                deny(MC.INVALID_SOURCE)
     for a in record.audience:
         if a.kind is AudienceKind.CHARACTER_INSTANCE:
             if tx.world.get_character(a.target).scope != scope:
@@ -96,6 +117,37 @@ def validate_record(tx, record):
             deny(MC.AUTHORIZATION_DENIED)
         if s.kind is SubjectKind.SOUL and s.target != scope.soul_id:
             deny(MC.AUTHORIZATION_DENIED)
+
+
+
+def recall_source_identity(provenance):
+    """Canon/生命周期与正文修订不是换源；来源引用变化则必须重新验源。"""
+    return (provenance.actor, provenance.source_type, provenance.source_id,
+            provenance.source_world_id, provenance.source_timeline_id, provenance.source_session_id)
+
+
+def validate_recall_write(tx, record, old):
+    """与 CAS/insert 同一事务封闭泛入口；旧回忆的生命周期不依赖源继续存在。"""
+    p = record.provenance
+    old_recall = old is not None and old.provenance.source_type is SourceType.ROLEPLAY_RECALL
+    if old_recall and p.source_type is not SourceType.ROLEPLAY_RECALL:
+        # 不能先把回忆录脱壳成普通来源，再绕过虚构与受众约束。
+        deny(MC.INVALID_SOURCE)
+    if p.source_type is not SourceType.ROLEPLAY_RECALL:
+        return
+    if old_recall and recall_source_identity(p) == recall_source_identity(old.provenance):
+        return
+    try:
+        source = tx.world.get_world(p.source_world_id)
+    except WorldRuntimeError as exc:
+        if exc.code is WC.WORLD_NOT_FOUND:
+            deny(MC.INVALID_SOURCE)
+        raise
+    if (source.world.kind is not WorldKind.ROLEPLAY
+            or (source.world.owner_id, source.world.soul_id) != (record.scope.owner_id, record.scope.soul_id)
+            or source.timeline.scope.timeline_id != p.source_timeline_id):
+        deny(MC.INVALID_SOURCE)
+
 
 
 def available(tx, record, seen=None):
@@ -158,6 +210,40 @@ class MemoryRuntime:
         if provenance.source_type is SourceType.OBSERVATION:
             deny(MC.INVALID_SOURCE)
         return self._create(context, expected_revision, identity, content, kind, provenance, audience, subjects, lineage)
+
+    @checked
+    def create_roleplay_recall(self, context, expected_revision, identity, *, content, provenance,
+                               kind=None, audience=None, subjects=()):
+        """Owner 把一次角色扮演会话的派生摘要登记进 Soul World。
+
+        写入时确认源世界真实存在、属于同一 Owner/Soul 且为 ROLEPLAY，目标必须是
+        Soul World；读路径不回查源世界，因此源 RP World 归档后回忆录仍可读。
+        回忆录默认 CANDIDATE，须显式 accept 才进入正常会话检索。
+        subjects 只接受 TEXT：跨世界的 CHARACTER_INSTANCE/WORLD 主体会被拒绝。
+        """
+        if type(context) is not OwnerMemoryContext:
+            deny(MC.AUTHORIZATION_DENIED)
+        require(provenance, Provenance)
+        if provenance.actor != context.principal:
+            deny(MC.INVALID_SOURCE)
+        if provenance.source_type is not SourceType.ROLEPLAY_RECALL:
+            deny(MC.INVALID_SOURCE)
+        if provenance.source_world_id is None or provenance.source_timeline_id is None:
+            deny(MC.INVALID_SOURCE)
+        if kind is None:
+            kind = MemoryKind.SHARED_EXPERIENCE
+        require(kind, MemoryKind)
+        if kind is not MemoryKind.SHARED_EXPERIENCE:
+            deny(MC.INVALID_ARGUMENT)
+        soul_audience = (MemoryAudience(AudienceKind.SOUL, context.scope.soul_id),)
+        if audience is None:
+            audience = soul_audience
+        elif tuple(audience) != soul_audience:
+            # 回忆录只属于 Soul；不允许扩成 World 或角色受众。
+            deny(MC.AUTHORIZATION_DENIED)
+        return self._create(context, expected_revision, identity, content, kind, provenance,
+                            audience, subjects, ())
+
 
     def _create(self, context, expected, identity, content, kind, provenance, audience, subjects, lineage):
         record = MemoryRecord(DomainId.new(IdKind.MEMORY),context.scope,kind,content,1,provenance,audience,subjects,
@@ -245,6 +331,7 @@ class MemoryRuntime:
                         predecessor=old.memory_id,superseded_by=None,lifecycle=MemoryLifecycle.LIVE,
                         created_at=datetime.now(timezone.utc))
             validate_record(tx,record)
+            validate_recall_write(tx,record,old)
             p = record.provenance
             if tx.blocked(context.scope,source=(str(p.actor.principal_id),p.source_type.value,p.source_id)):
                 deny(MC.NOT_AVAILABLE)

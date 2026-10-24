@@ -132,6 +132,10 @@ class SourceType(Enum):
     BRIDGE = 'bridge'
     LEGACY = 'legacy'
     OWNER_COMMAND = 'owner_command'
+    # 角色扮演回忆：Owner 把一次 RP 会话的派生摘要写入 Soul World。
+    # 证明"曾在该 RP 世界经历过此事"，不提升为现实事实，也不复制 RP 原文。
+    # 与 BRIDGE 的 prompt-only 语义不同（Bridge 永不写目标 Memory）。
+    ROLEPLAY_RECALL = 'roleplay_recall'
 
 
 @dataclass(frozen=True)
