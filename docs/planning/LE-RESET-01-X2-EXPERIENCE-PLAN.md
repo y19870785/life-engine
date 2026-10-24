@@ -2,6 +2,8 @@
 
 执行状态与权限见 [STATUS](../STATUS.md)。本文是可供批准的具体范围，**不是已存在的工具说明**。目前可运行入口只有下文 A 段；B 段 X2 命令与页面均需实施。依据：[能力矩阵](../reviews/LE-RESET-01-CAPABILITY-EVIDENCE-MATRIX.md)、[路线](LE-RESET-01-REVISED-ROADMAP.md)。
 
+PR #64 Review 后的具体实施口径以[X2-A L1提案](LE-RESET-01-X2-A-L1-IMPLEMENTATION-PROPOSAL.md)为准：只复用三文件最小Core闭包与纯选择函数，排除整套provider/自动flush/迁移。真实模型先采用[六请求独立冒烟合同](LE-RESET-01-X2-A-MODEL-TRIAL-CONTRACT.md)，下文28请求仅保留为未授权的后续持续观察建议；不是本轮最小预算。
+
 ## 用户价值与首个垂直切片
 
 **X2-A：退出一次扮演，下次打开仍能接上，并说明那是扮演。** 用户只需一个入口，输入合成经历，看到“候选→接受→可召回”，关闭窗口后再来；查不到时能分清没记录、没接受、没命中或服务不可用。角色名只是可换显示名；不复制小雪生产 Persona、聊天历史或身份。
