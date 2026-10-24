@@ -1,18 +1,20 @@
 # Life Engine
 
+当前状态与权限以 [STATUS](docs/STATUS.md) 为准；本片可运行入口是 [X2-A 离线回忆试用卡](docs/trials/X2-A.md)。下文历史开发阶段说明保留原适用范围，不能替代当前实施许可或用户体验验收。
+
 角色卡接入 Hermes 的实验工具：见[角色卡预览、导入、验证与回退](docs/HERMES-CHARACTER-CARD-IMPORT.md)。原生 V1 在独立命名 Profile 的 CLI / Chat Completions 请求中运行原卡提示、开场、示例对白和世界书兼容子集；可另行启用 [V2 跨会话连续性试用](docs/HERMES-CHARACTER-CONTINUITY-V2.md)，将可靠保存的用户原话与候选剧情接入独立 World、Memory 和 Story。[统一创建角色故事入口](docs/HERMES-CHARACTER-ONBOARDING.md) 支持故事介绍、开场选择和新 Profile 的能力与连续性安装。脚本、变量与语义记忆整理仍需后续实现。
 
 > **X1 体验试用入口**：如果要试“跨会话记忆与 Agent 虚拟日常”，先按 [X1 本地试用说明](docs/planning/EXPERIENCE-FIRST-X1-TRIAL.md)使用隔离合成实例。`hermes-prompt` 只生成可手动复制到独立 Hermes 测试 Profile 的提示；这不是自动 Host 接入。下文 v0.2/legacy 安装步骤不能用于把 X1 样机接入现有 Hermes 主 Profile，也不授权插件加载、Gateway 重启或真实发送。
 
-> **CURRENT — 角色代码与 Host 证据**：原生卡片、普通文本连续性、工具权限交集和统一导入入口属于有明确范围的角色试用代码。完整 W1 T1 仍为 `T1_FAILED / HOST_DEPENDENCY_GAP`，T2 `BLOCKED`；代码合并与 CI 不代表真实 Host 或完整角色体验验收。来源、历史固定对象和限制见 [角色体验基线](docs/planning/W0-W1-CHARACTER-BASELINE.md)；最新合并状态以 [#56](https://github.com/y19870785/life-engine/pull/56)、[#57](https://github.com/y19870785/life-engine/pull/57)、[#58](https://github.com/y19870785/life-engine/pull/58)、[#59](https://github.com/y19870785/life-engine/pull/59) 和 [main](https://github.com/y19870785/life-engine/tree/main) 为准。
+> **历史阶段 — 角色代码与 Host 证据**：原生卡片、普通文本连续性、工具权限交集和统一导入入口属于有明确范围的角色试用代码。完整 W1 T1 仍为 `T1_FAILED / HOST_DEPENDENCY_GAP`，T2 `BLOCKED`；代码合并与 CI 不代表真实 Host 或完整角色体验验收。来源、历史固定对象和限制见 [角色体验基线](docs/planning/W0-W1-CHARACTER-BASELINE.md)；最新合并状态以 [#56](https://github.com/y19870785/life-engine/pull/56)、[#57](https://github.com/y19870785/life-engine/pull/57)、[#58](https://github.com/y19870785/life-engine/pull/58)、[#59](https://github.com/y19870785/life-engine/pull/59) 和 [main](https://github.com/y19870785/life-engine/tree/main) 为准。
 
 **让同一个 Agent 跨会话、重启、长期关系和未来 Host 迁移，持续生活在同一时间线中。**
 
-Life Engine 是 Host-neutral 的长期 Personal Agent Runtime。当前开发主线是 Soul Continuity：使同一个 Agent 的身份、经历、记忆、关系、自我叙事和生活状态跨会话与进程重启保持可验证的连续性，并为未来模型变化和 Host 迁移建立可靠边界。已有 Hermes / OpenClaw 接入与世界、记忆、故事、主动行为能力继续保留。
+Life Engine 是 Host-neutral 的长期 Personal Agent Runtime。此前 Soul Continuity 阶段的目标是：使同一个 Agent 的身份、经历、记忆、关系、自我叙事和生活状态跨会话与进程重启保持可验证的连续性，并为未来模型变化和 Host 迁移建立可靠边界。已有 Hermes / OpenClaw 接入与世界、记忆、故事、主动行为能力继续保留。
 
-> **v0.3 开发预览 · CURRENT**：Soul Continuity = **ACTIVE_MAINLINE**；Host Integration / Real Delivery = **DEFERRED**；Full Private RP = **FROZEN_EXTERNAL_BLOCKER**。SP-006S0 与 M1-P0 文档已完成；M1-A 原语探针为 E0_SYNTHETIC_PARTIAL，正式实施准入仍待证明；A2-R1 本地 provider transport 已 DONE（implementation commit `a552a2d0846ff024b930d0d802228b863a6da74f`），真实 Host plugin load、delivery、SENT 与 ACK 仍未取得，`REAL_SEND = NO`。此前治理决定见[历史记录](docs/architecture/GOV-SOUL-ROADMAP1-SOUL-CONTINUITY-MAINLINE.md)。
+> **v0.3 历史开发阶段记录**：Soul Continuity = **ACTIVE_MAINLINE**；Host Integration / Real Delivery = **DEFERRED**；Full Private RP = **FROZEN_EXTERNAL_BLOCKER**。SP-006S0 与 M1-P0 文档已完成；M1-A 原语探针为 E0_SYNTHETIC_PARTIAL，正式实施准入仍待证明；A2-R1 本地 provider transport 已 DONE（implementation commit `a552a2d0846ff024b930d0d802228b863a6da74f`），真实 Host plugin load、delivery、SENT 与 ACK 仍未取得，`REAL_SEND = NO`。此前治理决定见[历史记录](docs/architecture/GOV-SOUL-ROADMAP1-SOUL-CONTINUITY-MAINLINE.md)。
 
-| 能力 | 当前状态 |
+| 能力 | 该阶段记录 |
 | --- | --- |
 | World Runtime、World Memory、Lore、Story、Prompt Runtime、Controlled Bridge、Character Card Import | **DONE**（Core Runtime） |
 | Soul Continuity | **ACTIVE MAINLINE**（架构与 Runtime 后续阶段须分别授权；既有 Host Sandbox 可另行授权受控测试） |
@@ -25,10 +27,10 @@ Life Engine 是 Host-neutral 的长期 Personal Agent Runtime。当前开发主�
 
 ACK_VALIDATOR = HOST_GAP；Hermes Living只读/生命周期/fake dry-run已确认，真实Living发送尚未取得；OpenClaw real Host validation仍未取得；H1/H2 blocker保留。Full Private RP 的封存不删除 World / RP Core。DATA_SCHEMA = 8，Schema Signature = SP-005A-living-runtime-v1，Prompt Template = SP-004K-prompt-v1；SP-005A2-P1 = RESEQUENCED_UNDER_SOUL_CONTINUITY_MAINLINE / NOT AUTHORIZED，PROMPT_TEMPLATE_UPGRADE_REQUIRED = YES。
 
-## 当前阶段
+## 历史阶段基线（当前入口见 STATUS）
 
-- Current Mainline: Soul Continuity = ACTIVE_MAINLINE；SP-006S0 = DONE；M1-P0 文档已完成；M1-A_PRIMITIVE_GATE_PENDING。W0/W1 为独立的有界角色试用验证。
-- Current Completed Gate: HLV0～HLV3、HLV4-R0/R1/A0/A1/A2-R0/A2-R1 = DONE
+- Recorded Mainline: Soul Continuity = ACTIVE_MAINLINE；SP-006S0 = DONE；M1-P0 文档已完成；M1-A_PRIMITIVE_GATE_PENDING。W0/W1 为独立的有界角色试用验证。
+- Recorded Completed Gate: HLV0～HLV3、HLV4-R0/R1/A0/A1/A2-R0/A2-R1 = DONE
 - GOV-SOUL-ROADMAP1 Governance Base: `a552a2d0846ff024b930d0d802228b863a6da74f`（治理 PR 开工时的 canonical main）
 - Architecture Content: APPROVED_ARCHITECTURE_BASELINE；M1 Runtime / Schema / Migration、M1.x、M2 = NOT AUTHORIZED
 - Long-term Roadmap: [长期路线与阶段治理](docs/planning/LIFE-ENGINE-DEVELOPMENT-ROADMAP.md)

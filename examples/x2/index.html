@@ -1,0 +1,9 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>X2 · 灯塔回忆</title><link rel="stylesheet" href="/style.css"><script src="/app.js" defer></script></head>
+<body><main><header><span class="tag">Life Engine · X2-A</span><h1>离开故事，还记得一起经历的事。</h1><p>原创合成灯塔探险 · OFFLINE_REPLAY / MODEL_NOT_CONNECTED</p><p>本页没有真实模型、真实小雪、生产 Host 或消息发送。请只输入合成情节。</p></header>
+<aside id="identity"></aside><p id="message" role="status">正在连接本地 fixture…</p>
+<section><h2>1 · 扮演</h2><p>先新建故事，再输入：我们在蓝灯书店找到地图，约定明天去灯塔。</p><button id="new">新建扮演（最多 7 次）</button><div id="turns"></div><label for="input">合成情节（每次最多 1200 UTF-8 bytes，每故事 4 轮）</label><textarea id="input" rows="3"></textarea><button id="turn">记录一轮 · 离线回放</button><button id="finish">生成候选回忆</button></section>
+<section><h2>2 · 审阅与接受</h2><p>候选不会自动进入 Soul 召回。确认摘录与来源后单独接受，再结束扮演。</p><pre id="candidate">尚无候选</pre><button id="accept">明确接受当前候选</button><button id="end">结束扮演</button></section>
+<section><h2>3 · 重开与召回</h2><p>可先试查“蓝灯书店”。再停止服务，用下方命令重开同一 fixture，新地址口令会改变。</p><code id="reopen"></code><label for="query">词面查询（留空查看最近已接受回忆；不支持语义改写）</label><input id="query" value="蓝灯书店"><button id="search">召回并解释来源</button><div id="recalls"></div></section>
+<section><h2>4 · 反馈与诊断</h2><label for="rating">体验</label><select id="rating"><option value="useful">有帮助</option><option value="miss">没有召回</option><option value="confusing">看不明白</option></select><label for="reason">原因</label><select id="reason"><option value="none">无</option><option value="retrieval">检索</option><option value="source">来源</option><option value="recovery">恢复</option><option value="ui">页面</option></select><button id="feedback">保存反馈</button><button id="export">预览脱敏导出</button><pre id="exported"></pre><button id="stop">停止本次服务（保留数据）</button></section>
+</main></body></html>
