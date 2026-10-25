@@ -1,0 +1,106 @@
+{
+  "review_base": "baa59729babf9ac56a17e02c682de2e3086e3575",
+  "review_head": "e00778b300bfc84fc14b4ca982a23b7bc7ef6cc4",
+  "diff_command": "git diff --no-ext-diff --no-color --binary BASE HEAD",
+  "full_diff_sha256": "1ebf5745aed923d2b084f736bf4a3b2044727bc555752fa10da1adc138947b4e",
+  "core_diff_sha256": "e258f36cd481f7b01fc12bd902660bdc0833b778718c826233bf9a001eff3834",
+  "files": [
+    {
+      "path": "runtime/life_engine/domain.py",
+      "git_blob_sha256": "6552804abb344c8236c7b078c011a4ec52505af3bae36860b7a8f5dfcdaebb8b",
+      "local_bytes_sha256": "aabb98655fb9351fb9ad0e14fb0b015d2362b1e4379fea528b8dd5c5a2f7b606",
+      "lf_content_matches_git": true
+    },
+    {
+      "path": "runtime/life_engine/memory_runtime.py",
+      "git_blob_sha256": "6d08351dc7d448d101a40c35c2d065a6263e66dbf42544c19568addbc28b72d9",
+      "local_bytes_sha256": "1db160fb2774aa050698a6acc02ae58a1845e559decf258814579281d12abf5d",
+      "lf_content_matches_git": true
+    },
+    {
+      "path": "runtime/life_engine/roleplay_recall.py",
+      "git_blob_sha256": "04052e70cc0c5ce5e288815acbe21fc72022bfb21845e8592b918b61139c2cf0",
+      "local_bytes_sha256": "2871f94790afd5fac3d8f3daa392bd3ead8983b52fddf2849997be1d92c40faa",
+      "lf_content_matches_git": true
+    },
+    {
+      "path": "tools/experience_x2.py",
+      "git_blob_sha256": "72dcc20958ebf8091a582610d6513cc45b8fd7ff667e2eaebce1fc05dd0cdd8b",
+      "local_bytes_sha256": "ce3b317f0031c85e346f71b4d8ed64ce9af5169ce3e4d5ff4a639233bb316d26",
+      "lf_content_matches_git": true
+    },
+    {
+      "path": "tools/x2_runtime.py",
+      "git_blob_sha256": "75f12c6a38b388d5838788fc14fa0d267a9b00726c2b9670ed6a8d9ad662e8a8",
+      "local_bytes_sha256": "de802d38ece2268e749b01da26f3736f9b882181eb38e7ce77c5e1e9df9b89b8",
+      "lf_content_matches_git": true
+    },
+    {
+      "path": "tools/x2_selection.py",
+      "git_blob_sha256": "e0b307bcbed6fd196d6add7a699d50f531a675c1acd0c37d6d48018a7701d751",
+      "local_bytes_sha256": "f3798bc71ac07c36adeae1f7dd358031192239e8fd033d049e23ea4a6effe49c",
+      "lf_content_matches_git": true
+    },
+    {
+      "path": "tools/x2_web.py",
+      "git_blob_sha256": "309d341e2c2b74ebbdb46020e21e9ba0c6436f2a2794577107456eb622ef5f12",
+      "local_bytes_sha256": "0f24fa9d649b01f14a8931f42e1980c19edb7770f4b1fc2d0a9d5ba4062bc18f",
+      "lf_content_matches_git": true
+    },
+    {
+      "path": "examples/x2/app.js",
+      "git_blob_sha256": "4b5c994e6ffef1fc0053df07c18e139e00170af4c9dfa183fd17557584f9034b",
+      "local_bytes_sha256": "7a14289cd23b65e07d7c15aae0d31dd163d99c11403039f03b99d368bf82b9ca",
+      "lf_content_matches_git": true
+    },
+    {
+      "path": "examples/x2/fixture.json",
+      "git_blob_sha256": "d805c715a34fea922def895b011db3cc382dfd18b6ba64626b0b65326cd4adf4",
+      "local_bytes_sha256": "dfe53ec1711967bd791c79075d1fb4a13a77d515ae570d7822c3802337cf775b",
+      "lf_content_matches_git": true
+    },
+    {
+      "path": "examples/x2/index.html",
+      "git_blob_sha256": "8e74be08e80a2bbb4a1beaceaf293562e333271065ff5404f1f24f6d9bceb7c8",
+      "local_bytes_sha256": "2783dfb3d7a01efafdfb8c30839d4695ef8b9977584b6d83917c09767ea54c5e",
+      "lf_content_matches_git": true
+    },
+    {
+      "path": "examples/x2/style.css",
+      "git_blob_sha256": "73d11c51c0da4ceb40b8892ba773045ddda8488697e343f7612cb126fc4bc47d",
+      "local_bytes_sha256": "8462e7c859f9dbd0e26dc6c8d182a53cdfc58faf8ef13e282c1c6137a63388b2",
+      "lf_content_matches_git": true
+    },
+    {
+      "path": "tests/test_x2_process.py",
+      "git_blob_sha256": "4ee67dcb26a32bb8e228cc2970091639af27b6a21fa71e4e9195c0a5faa4a889",
+      "local_bytes_sha256": "b23546882e4014edd9e11b388e27ae7312fb8b25f870e357db97968c49167994",
+      "lf_content_matches_git": true
+    },
+    {
+      "path": "tests/test_x2_recall_core.py",
+      "git_blob_sha256": "7561f9bf38bd8e0d772117ed81316e4facebb8b877235cbb610ae57b3acd5f75",
+      "local_bytes_sha256": "e7d6c731515cda832f24e07bfb77d8891e86854041fcdb617a866c6dc06d8ccf",
+      "lf_content_matches_git": true
+    },
+    {
+      "path": "tests/test_x2_runtime.py",
+      "git_blob_sha256": "664aae477ab58199ef4a3af5f181d914816d6e8f7d95661e16c6564a13753658",
+      "local_bytes_sha256": "4893c9992e8d0873419701d4acfda17e4fd97363e149bf5af5a5b242ce6b368b",
+      "lf_content_matches_git": true
+    },
+    {
+      "path": "tests/test_x2_selection.py",
+      "git_blob_sha256": "1f424efdfb7b1696eccdc03b54a66578420565c1b4cec17cf852b8cdc81e10bf",
+      "local_bytes_sha256": "83c45e8398767e794a392f4d401dc53910e412fac16d991fb0043117fd435d6c",
+      "lf_content_matches_git": true
+    },
+    {
+      "path": "tests/test_x2_web.py",
+      "git_blob_sha256": "f67ebb7394f8fe23310c91eebbf6ca475d6488de75d5dd6c513870dd4ee14f09",
+      "local_bytes_sha256": "a8cca96b01d83b66a0d63f9fdbdd641b87b43a0dcee55f67a800d84d4aea2e27",
+      "lf_content_matches_git": true
+    }
+  ],
+  "local_package_sha256": "61ee20c2bd66aa0c05112783940da16c482b18a54510b4e3ee567e4f471171cb"
+}

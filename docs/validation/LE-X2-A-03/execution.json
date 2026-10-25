@@ -1,0 +1,54 @@
+{
+  "date": "2026-10-25",
+  "head": "e00778b300bfc84fc14b4ca982a23b7bc7ef6cc4",
+  "runtime_changed": false,
+  "python": "3.12.10",
+  "targeted": {
+    "command": "py -3.12 -B -X utf8 -m unittest discover -s tests -p 'test_x2_*.py' -v",
+    "count": 52,
+    "seconds": 127.262,
+    "result": "OK",
+    "skipped": 0,
+    "exit_code": 0,
+    "log_sha256": "fc067b68af3969a0b899e8ec4ef6717af93339cef4110b59163c1c1a8143e3f9",
+    "log_sha256_note": "SHA256 of original local log bytes; Git normalizes line endings",
+    "git_log_sha256": "a01e0028193becdbb28f7422ea1796f4637b715bb41ef6823b1a036870b73eeb"
+  },
+  "local_full_suite_this_task": "NOT_EXECUTED_NO_CODE_CHANGE",
+  "original_full_suite": {
+    "source": "PR65 issuecomment-6379210963",
+    "count": 736,
+    "seconds": 783.855,
+    "result": "OK",
+    "skipped": 3,
+    "binding_note": "original pre-EOF-cleanup snapshot; exact final Head separately covered by remote CI"
+  },
+  "chrome_temp_profile": "NOT_EXECUTED",
+  "edge_inprivate": "NOT_EXECUTED",
+  "independent_browser_instance": "NOT_EXECUTED",
+  "browser_full_e2e": "NOT_EXECUTED",
+  "human_click_full_e2e": "NOT_EXECUTED",
+  "independent_review": "REQUIRED_NOT_COMPLETED",
+  "root_cause_class": "D_UNKNOWN",
+  "original_chrome_observation": {
+    "source": "LE-X2-A-02 actual browser network event and UI, not rerun in A03",
+    "page_url": "http://127.0.0.1:9262/",
+    "host": "127.0.0.1:9262",
+    "origin": "http://127.0.0.1:11434",
+    "referer": "http://127.0.0.1:9262/",
+    "code": "ORIGIN_DENIED",
+    "stage": "http",
+    "browser_full_loop": false
+  },
+  "absolute_launcher_smoke": {
+    "version": "X2-A-L1.1",
+    "fixture": "f82939640d8fbb261bb5e7014b776a5f",
+    "page_url": "http://127.0.0.1:13018/",
+    "mode": "OFFLINE_REPLAY / MODEL_NOT_CONNECTED",
+    "stop_result": "STOPPING",
+    "process_exit_code": 0,
+    "fragment_and_credentials_omitted": true,
+    "command_reference": "docs/trials/X2-A-ORIGIN-DIAGNOSTIC.md step 1",
+    "executed_from_different_cwd": true
+  }
+}
