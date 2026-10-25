@@ -2,6 +2,8 @@
 
 当前门禁只见 [STATUS](../STATUS.md)。这是实际代码入口，不需要安装 Hermes、插件、模型 SDK、第三方 Python 包或 Node 运行依赖。
 
+若遇到 `ORIGIN_DENIED`，优先使用 [五步手动诊断卡](X2-A-ORIGIN-DIAGNOSTIC.md)，不要更改安全校验。它提供本机可直接复制的绝对路径命令与 Edge InPrivate/临时 Chrome 对照；故障来源目前没有确认。
+
 ## 启动与亲手验证
 
 在本 PR 的独立检出目录使用 Python 3.11+（本机正式验证 3.12）。不要在仍有未提交候选的原工作树启动另一份版本。
@@ -53,7 +55,7 @@ py -3.12 -I -S -B -X utf8 tools/experience_x2.py export --fixture <fixture-ID> -
 | `FIXTURE_BUSY` | 另一进程持有同 fixture 生命周期锁；先停止它 |
 | `SESSION_LIMIT_REACHED` / `FIXTURE_LIMIT_REACHED` | 4 轮/故事或 7 故事上限；另建 fixture，不清游标/重置旧实例 |
 
-浏览器实测发现：本机 Chrome 的 X2 POST 请求实际携带 `Origin: http://127.0.0.1:11434`，而页面本源是 X2 随机端口。服务返回 `ORIGIN_DENIED`，因此该配置下**没有**完成浏览器点击闭环。没有修改全局浏览器设置或放宽本源校验；内置浏览器在本会话不可用。试用需使用不重写 Origin 的浏览器配置。无此干扰的真实 HTTP 子进程闭环与浏览器完整交互是不同证据，后者不能被前者冒充。
+历史浏览器实测发现：本机 Chrome 的 X2 POST 网络事件中出现 `Origin: http://127.0.0.1:11434`，而页面本源是 X2 随机端口。服务返回 `ORIGIN_DENIED`，因此该配置下**没有**完成浏览器点击闭环。异常源尚未确认，不能归因于 Ollama、代理或扩展；干净环境对照也未执行，不能保证换浏览器就成功。没有修改全局浏览器设置或放宽本源校验。后续证据与工具停止限制见 [LE-X2-A-03](../reviews/LE-X2-A-03.md)。真实 HTTP 子进程闭环与浏览器完整交互是不同证据，后者不能被前者冒充。
 
 ## 本轮实现与权限闭包
 

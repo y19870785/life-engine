@@ -1,0 +1,21 @@
+{
+  "type": "AUTOMATED_HTTP_NOT_BROWSER",
+  "head": "e00778b300bfc84fc14b4ca982a23b7bc7ef6cc4",
+  "fixture": "9a950b1ba64e44992e2d46ebf94bb1a3",
+  "package_sha256": "61ee20c2bd66aa0c05112783940da16c482b18a54510b4e3ee567e4f471171cb",
+  "negative": {
+    "page_url": "http://127.0.0.1:2365/",
+    "host": "127.0.0.1:2365",
+    "origin": "http://127.0.0.1:11434",
+    "referer": "http://127.0.0.1:2365/",
+    "status": 403,
+    "code": "ORIGIN_DENIED",
+    "sessions_after_denied": 0,
+    "cors_allow_origin_present": false
+  },
+  "positive": {
+    "origin": "http://127.0.0.1:2365",
+    "status": 200,
+    "phase": "roleplay"
+  }
+}
